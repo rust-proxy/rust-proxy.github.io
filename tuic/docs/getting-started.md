@@ -1,8 +1,6 @@
 # 快速开始
 
-本页用最短步骤跑通一对 `tuic-server` 与 `tuic-client`。字段含义、默认值和全部可选项见[服务端配置](server/config.md)与[客户端配置](client/config.md)。
-
-> 版本基线：本文档对应 **Itsusinn/tuic 2.0.0-dev7**。配置格式在 2.0 开发期内仍可能调整，升级前请阅读 Release Notes 并备份配置。
+本页用最短步骤跑通一对 `tuic-server` 与 `tuic-client`。
 
 ## 前提
 
