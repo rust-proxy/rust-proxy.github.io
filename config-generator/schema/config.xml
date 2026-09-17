@@ -1,5 +1,5 @@
-<config-dsl version="4" target-version="2.0.0-dev4">
-	<ui title="配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev4 · QUINN"
+<config-dsl version="4" target-version="2.0.0-dev7">
+	<ui title="配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN"
 		description="填写连接信息，生成相互匹配的服务端与客户端配置。"
 		reference="https://rust-proxy.github.io/tuic/tools/config-generator-reference/" mode-field="mode" format-field="format"
 		export-hint="复制和下载始终包含真实密码。配对模式请分别保存两份配置。">
@@ -10,8 +10,18 @@
 			<notice when="serverSelf" text="自签名仅用于受控测试。配对测试需明确跳过证书校验。"/>
 		</section>
 		<section name="local" label="本地代理" when="client"/>
-		<section name="transport" label="高级选项" detail="日志 · 重连 · 端口转发" collapsed="true">
-			<notice text="客户端 UDP 模式、自定义信任证书和拥塞控制暂未接入运行逻辑，本生成器不输出这些选项。"/>
+		<section name="transport" label="高级选项" detail="日志 · 连接 · 端口转发" collapsed="true">
+			<notice text="预留字段（udp_relay_ipv6、dual_stack、task_negotiation_timeout、ipstack_prefer、timeout、proxy 等）当前未接入运行逻辑，本生成器不输出。"/>
+		</section>
+		<section name="backend" label="QUIC 后端" detail="拥塞控制 · 传输参数" collapsed="true">
+			<notice text="bbr 与 bbr3 当前共用同一实现，行为相同。"/>
+		</section>
+		<section name="routing" label="路由与出站" detail="出站 · ACL · 规则 · DNS" collapsed="true">
+			<notice text="服务端默认拦截回环与私有目标地址。具名出站与 ACL 需要自行确认引用关系。"/>
+			<notice text="请至少保留一个名为 default 的出站，供未匹配的流量使用。"/>
+		</section>
+		<section name="management" label="管理与伪装" detail="RESTful · 伪装 · 实验性" collapsed="true">
+			<notice text="maximum_clients_per_user 当前未强制生效，请勿依赖它限制并发。"/>
 		</section>
 		<notice when="insecureClient" text="当前客户端配置跳过证书校验，仅适合受控测试。"/>
 		<notice when="exposedLocal" text="SOCKS5 正在监听非回环地址且未启用认证，请确认访问范围。"/>
@@ -27,6 +37,7 @@
 		<validator name="socks-credential" kind="length" nonblank="true" min="1" max="255" message="SOCKS5 认证字段必须为 1–255 字节。"/>
 		<validator name="milliseconds" kind="integer" min="1" max="9007199254740991" message="请输入大于 0 的安全整数（毫秒）。"/>
 		<validator name="seconds" kind="integer" min="1" max="9007199254740991" message="请输入大于 0 的安全整数（秒）。"/>
+		<validator name="optional-seconds" kind="optional-integer" min="1" max="9007199254740991" message="请输入大于 0 的安全整数（秒），或留空使用默认值。"/>
 		<validator name="endpoint" kind="endpoint" message="目标必须是域名或 IP 加端口。"/>
 		<validator name="password" kind="length" min="1" message="请输入密码，或点击生成凭据。"/>
 		<validator name="uuid" kind="uuid" transform="trim lowercase" message="请输入非全零的标准 UUID，或点击生成凭据。"/>
@@ -43,6 +54,7 @@
 		<assert key="maxBackoff" when="validBackoff" message="最大等待不能小于首次等待。"><compare op="gte"><source from="/maxBackoff" transform="integer"/><source from="/initialBackoff" transform="integer"/></compare></assert>
 		<unique collection="users" key="uuid" message="UUID 重复，请为每个用户使用不同 UUID。"><source from="uuid" transform="trim lowercase"/></unique>
 		<unique collection="forwards" key="listen" when="validBinding" message="同一协议的监听地址重复。"><source from="protocol"/><source from="listen" transform="socket"/></unique>
+		<unique collection="outbounds" key="name" message="出站名称重复。"><source from="name" transform="trim"/></unique>
 		<assert collection="forwards" key="listen" when="validPorts" message="请使用与 SOCKS5 不同的监听端口。"><compare op="ne"><source from="listen" transform="port"/><source from="/local" transform="port"/></compare></assert>
 	</rules>
 	<inputs>
@@ -69,6 +81,7 @@
 		<field name="privateKey" type="string" default="/etc/tuic/privatekey.pem" section="tls" label="服务端私钥路径" placeholder="/etc/tuic/privatekey.pem" hint="只填写路径，不要粘贴私钥内容。" when="certificate" rule="required" />
 		<field name="email" type="string" default="" section="tls" label="ACME 联系邮箱" placeholder="admin@example.com" hint="用于证书申请。" widget="email" when="acme" rule="email" />
 		<field name="dataDir" type="string" default="/var/lib/tuic" section="tls" label="服务端数据目录" placeholder="/var/lib/tuic" hint="ACME 缓存目录需要可写，并在容器中持久化。" when="acme" rule="required" />
+		<field name="acmeStaging" type="boolean" default="false" section="tls" label="使用 ACME 预发布环境" hint="仅用于测试证书申请流程。" when="acme" />
 		<field name="sni" type="string" default="" section="tls" label="客户端 SNI" placeholder="tuic.example.com" hint="留空时使用证书域名或连接域名；连接 IP 时需填写。" when="client" />
 		<field name="insecure" type="boolean" default="false" section="tls" label="跳过证书校验（仅测试）" hint="会失去服务端身份验证；默认关闭。" when="client" />
 		<field name="local" type="string" default="127.0.0.1:1080" section="local" label="本地 SOCKS5 监听地址" placeholder="127.0.0.1:1080" hint="默认只接受本机连接；对外监听时建议设置认证。" when="client" rule="socket" />
@@ -83,21 +96,136 @@
 			<option value="error" label="error" />
 			<option value="off" label="off" />
 		</field>
+		<field name="logEnabled" type="boolean" default="false" section="transport" label="启用文件日志" hint="开启后写入 [log] 表；服务端需要写全全部字段。" when="server" />
+		<field name="logFormat" type="enum" default="text" section="transport" label="日志格式" when="logEnabled">
+			<option value="text" label="text" />
+			<option value="json" label="json" />
+		</field>
+		<field name="logCompact" type="boolean" default="true" section="transport" label="紧凑日志" hint="单行输出，仅对 text 格式生效。" when="logEnabled" />
+		<field name="logFile" type="string" default="" section="transport" label="日志文件路径" placeholder="/var/log/tuic/server.log" hint="留空则只写标准输出。" when="logEnabled" />
+		<field name="logRotation" type="enum" default="never" section="transport" label="日志轮转" when="logEnabled">
+			<option value="never" label="never" />
+			<option value="hourly" label="hourly" />
+			<option value="daily" label="daily" />
+		</field>
 		<field name="zeroRtt" type="boolean" default="false" section="transport" label="启用 0-RTT" hint="默认关闭；早期数据可能被重放。配对模式会同时设置两端。" />
-		<field name="controller" type="enum" default="bbr" section="transport" label="服务端拥塞控制" when="server">
+		<field name="serverAuthTimeout" type="string" default="3" section="transport" label="认证超时（秒）" placeholder="3" hint="等待客户端认证命令的时间。" widget="number" when="server" rule="seconds" />
+		<field name="serverStreamTimeout" type="string" default="60" section="transport" label="流超时（秒）" placeholder="60" hint="TCP/UDP I/O 任务的保留时间。" widget="number" when="server" rule="seconds" />
+		<field name="lazy" type="boolean" default="true" section="transport" label="按需连接" hint="默认开启，首次代理请求时才连接服务端。" when="client" />
+		<field name="reconnect" type="boolean" default="true" section="transport" label="断线自动重连" hint="默认开启，重试间隔按退避策略增加。" when="client" />
+		<field name="initialBackoff" type="string" default="500" section="transport" label="首次重连等待（毫秒）" placeholder="500" hint="首次重连前等待的时间。" widget="number" when="reconnect" rule="milliseconds" />
+		<field name="maxBackoff" type="string" default="30000" section="transport" label="最大重连等待（毫秒）" placeholder="30000" hint="应大于或等于首次等待时间。" widget="number" when="reconnect" rule="milliseconds" />
+		<field name="udpRelayMode" type="enum" default="native" section="transport" label="UDP 转发模式" when="client">
+			<option value="native" label="native" />
+			<option value="quic" label="quic" />
+		</field>
+		<field name="clientHeartbeat" type="string" default="3" section="transport" label="心跳间隔（秒）" placeholder="3" hint="保持连接活跃的心跳周期。" widget="number" when="client" rule="seconds" />
+		<field name="clientGcInterval" type="string" default="3" section="transport" label="分片回收间隔（秒）" placeholder="3" hint="UDP 分片垃圾回收周期。" widget="number" when="client" rule="seconds" />
+		<field name="clientGcLifetime" type="string" default="15" section="transport" label="分片保留时间（秒）" placeholder="15" hint="UDP 分片在回收前保留的时间。" widget="number" when="client" rule="seconds" />
+		<field name="backendMode" type="enum" default="quinn" section="backend" label="服务端 QUIC 后端" when="server">
+			<option value="quinn" label="Quinn（默认）" />
+			<option value="quiche" label="quiche（实验性）" />
+		</field>
+		<field name="controller" type="enum" default="bbr" section="backend" label="服务端拥塞控制" when="server">
 			<option value="bbr" label="BBR" />
 			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" />
 			<option value="cubic" label="CUBIC" />
 			<option value="newreno" label="New Reno" />
 		</field>
-		<field name="lazy" type="boolean" default="true" section="transport" label="按需连接" hint="默认开启，首次代理请求时才连接服务端。" when="client" />
-		<field name="reconnect" type="boolean" default="true" section="transport" label="断线自动重连" hint="默认开启，重试间隔按退避策略增加。" when="client" />
-		<field name="initialBackoff" type="string" default="500" section="transport" label="首次重连等待（毫秒）" placeholder="500" hint="首次重连前等待的时间。" widget="number" when="reconnect" rule="milliseconds" />
-		<field name="maxBackoff" type="string" default="30000" section="transport" label="最大重连等待（毫秒）" placeholder="30000" hint="应大于或等于首次等待时间。" widget="number" when="reconnect" rule="milliseconds" />
+		<field name="quinnInitialWindow" type="integer" default="1048576" section="backend" label="初始拥塞窗口（字节）" hint="Quinn 后端的初始拥塞窗口。" when="serverQuinn" />
+		<field name="quinnInitialMtu" type="integer" default="1200" section="backend" label="初始 MTU" hint="Quinn 后端的初始 UDP 载荷大小。" when="serverQuinn" />
+		<field name="quinnMinMtu" type="integer" default="1200" section="backend" label="最小 MTU" hint="保证支持的最小 MTU。" when="serverQuinn" />
+		<field name="quinnGso" type="boolean" default="true" section="backend" label="启用 GSO" hint="UDP Generic Segmentation Offload。" when="serverQuinn" />
+		<field name="quinnPmtu" type="boolean" default="true" section="backend" label="启用 PMTU 发现" hint="路径 MTU 发现。" when="serverQuinn" />
+		<field name="quinnSendWindow" type="integer" default="16777216" section="backend" label="发送窗口（字节）" hint="未经确认可发送的最大字节数。" when="serverQuinn" />
+		<field name="quinnReceiveWindow" type="integer" default="8388608" section="backend" label="接收窗口（字节）" hint="每条流可接收的最大字节数。" when="serverQuinn" />
+		<field name="quinnMaxIdleTime" type="string" default="30" section="backend" label="空闲超时（秒）" placeholder="30" hint="空闲连接关闭等待时间。" widget="number" when="serverQuinn" rule="seconds" />
+		<field name="quicheMaxIdleTime" type="string" default="30" section="backend" label="quiche 空闲超时（秒）" placeholder="30" hint="空闲连接关闭等待时间。" widget="number" when="serverQuiche" rule="seconds" />
+		<field name="quicheBiStreams" type="integer" default="100" section="backend" label="最大双向流" hint="quiche 后端允许的并发双向流。" when="serverQuiche" />
+		<field name="quicheUniStreams" type="integer" default="100" section="backend" label="最大单向流" hint="quiche 后端允许的并发单向流。" when="serverQuiche" />
+		<field name="quicheSendWindow" type="integer" default="16777216" section="backend" label="quiche 发送窗口（字节）" hint="未经确认可发送的最大字节数。" when="serverQuiche" />
+		<field name="quicheReceiveWindow" type="integer" default="8388608" section="backend" label="quiche 接收窗口（字节）" hint="每条流可接收的最大字节数。" when="serverQuiche" />
+		<field name="quicheZeroRtt" type="boolean" default="false" section="backend" label="quiche 启用 0-RTT" hint="早期数据可能被重放。" when="serverQuiche" />
+		<field name="clientController" type="enum" default="bbr" section="backend" label="客户端拥塞控制" when="client">
+			<option value="bbr" label="BBR" />
+			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" />
+			<option value="cubic" label="CUBIC" />
+			<option value="newreno" label="New Reno" />
+		</field>
+		<field name="clientSendWindow" type="integer" default="16777216" section="backend" label="客户端发送窗口（字节）" hint="未经确认可发送的最大字节数。" when="client" />
+		<field name="clientReceiveWindow" type="integer" default="8388608" section="backend" label="客户端接收窗口（字节）" hint="每条流可接收的最大字节数。" when="client" />
+		<field name="dnsEnabled" type="boolean" default="false" section="routing" label="配置 DNS 解析" hint="默认使用操作系统解析器。" when="server" />
+		<field name="dnsMode" type="enum" default="system" section="routing" label="DNS 模式" when="dnsEnabled">
+			<option value="system" label="system（操作系统）" />
+			<option value="cloudflare" label="cloudflare" />
+			<option value="cloudflare-tls" label="cloudflare-tls（DoT）" />
+			<option value="cloudflare-https" label="cloudflare-https（DoH）" />
+			<option value="google" label="google" />
+			<option value="google-tls" label="google-tls（DoT）" />
+			<option value="google-https" label="google-https（DoH）" />
+			<option value="quad9" label="quad9" />
+			<option value="quad9-tls" label="quad9-tls（DoT）" />
+			<option value="quad9-https" label="quad9-https（DoH）" />
+			<option value="custom" label="custom（自定义）" />
+		</field>
+		<field name="dnsStackPrefer" type="enum" default="v4first" section="routing" label="地址族偏好" when="dnsEnabled">
+			<option value="v4first" label="v4first" />
+			<option value="v6first" label="v6first" />
+			<option value="v4only" label="v4only" />
+			<option value="v6only" label="v6only" />
+		</field>
+		<field name="dnsTimeout" type="string" default="" section="routing" label="DNS 查询超时（秒）" placeholder="留空使用库默认" hint="单次查询超时，留空表示使用库默认值。" widget="number" when="dnsEnabled" rule="optional-seconds" />
+		<field name="dnsAttempts" type="string" default="" section="routing" label="DNS 重试次数" placeholder="留空使用库默认" hint="单次查询的重试次数，留空表示使用库默认值。" widget="number" when="dnsEnabled" rule="optional-seconds" />
+		<field name="geodataEnabled" type="boolean" default="false" section="routing" label="配置 GeoData" hint="GEOIP/GEOSITE 规则需要数据库。" when="server" />
+		<field name="geosite" type="string" default="" section="routing" label="geosite.dat 路径" placeholder="/var/lib/tuic/geosite.dat" hint="v2ray 域名分类数据库。" when="geodataEnabled" />
+		<field name="geoip" type="string" default="" section="routing" label="geoip.dat 路径" placeholder="/var/lib/tuic/geoip.dat" hint="v2ray IP 国家数据库。" when="geodataEnabled" />
+		<field name="dropLoopback" type="boolean" default="true" section="management" label="拦截回环目标" hint="拒绝解析到回环地址的目标。" when="server" />
+		<field name="dropPrivate" type="boolean" default="true" section="management" label="拦截私有目标" hint="拒绝私有、链路本地与 ULA 地址。" when="server" />
+		<field name="restfulEnabled" type="boolean" default="false" section="management" label="启用管理 API" hint="默认关闭。" when="server" />
+		<field name="restfulAddr" type="string" default="127.0.0.1:13471" section="management" label="管理 API 监听地址" placeholder="127.0.0.1:13471" hint="建议只监听本机。" when="restfulEnabled" rule="socket" />
+		<field name="restfulSecret" type="string" default="" section="management" label="管理 API 令牌" placeholder="留空表示不鉴权" hint="Bearer 令牌；留空表示不鉴权。" widget="password" when="restfulEnabled" />
+		<field name="restfulMaxClients" type="integer" default="0" section="management" label="每用户最大并发" hint="0 表示不限；当前版本未强制生效。" when="restfulEnabled" />
+		<field name="masqueradeEnabled" type="boolean" default="false" section="management" label="启用 HTTP/3 伪装" hint="把非 TUIC 连接反向代理到真实网站。" when="server" />
+		<field name="masqueradeUpstream" type="string" default="https://example.com" section="management" label="伪装上游地址" placeholder="https://example.com" hint="反向代理的目标站点。" when="masqueradeEnabled" />
 		<field name="activeUser" type="integer" default="0" section="internal" label="客户端使用的用户" />
 		<collection name="users" initial-items="1" min-items="1" label="用户" section="authentication" add-label="＋ 添加用户" generate-label="生成凭据" hint="配对配置自动使用相同的 UUID 和密码。" selected-by="activeUser" all-when="server" select-when="client">
 			<field name="uuid" type="string" default="" label="UUID" rule="uuid" generator="uuid-v4" />
 			<field name="password" type="string" default="" label="密码" widget="password" rule="password" generator="hex" bytes="24" />
+		</collection>
+		<collection name="outbounds" initial-items="1" min-items="1" when="server" label="出站" section="routing" add-label="＋ 添加出站" hint="至少保留一个名为 default 的出站；多个绑定地址需手动改为数组。">
+			<field name="name" type="string" default="default" label="名称" placeholder="default" hint="ACL 或规则通过此名称引用。" rule="required" />
+			<field name="type" type="enum" default="direct" label="类型">
+				<option value="direct" label="direct 直连" />
+				<option value="socks5" label="socks5" />
+			</field>
+			<field name="ipMode" type="enum" default="v4first" label="地址族偏好" when="direct">
+				<option value="v4first" label="v4first" />
+				<option value="v6first" label="v6first" />
+				<option value="v4only" label="v4only" />
+				<option value="v6only" label="v6only" />
+			</field>
+			<field name="bindIpv4" type="string" default="" label="绑定 IPv4" placeholder="1.2.3.4" hint="留空表示不绑定；多个地址需手动改为数组。" when="direct" />
+			<field name="bindIpv6" type="string" default="" label="绑定 IPv6" placeholder="2001:db8::1" hint="留空表示不绑定；多个地址需手动改为数组。" when="direct" />
+			<field name="bindDevice" type="string" default="" label="绑定网卡" placeholder="eth0" hint="Linux 网络接口名。" when="direct" />
+			<field name="tfo" type="boolean" default="false" label="TCP Fast Open" hint="需要内核支持。" when="direct" />
+			<field name="routingMarkEnabled" type="boolean" default="false" label="设置路由标记" hint="Linux SO_MARK，用于策略路由。" when="direct" />
+			<field name="routingMark" type="string" default="" label="路由标记" placeholder="100" hint="fwmark 数值。" widget="number" when="routingMarkEnabled" rule="seconds" />
+			<field name="socksAddr" type="string" default="" label="SOCKS5 地址" placeholder="127.0.0.1:1080" hint="上游 SOCKS5 服务器。" when="socks5" rule="socket" />
+			<field name="socksUsername" type="string" default="" label="SOCKS5 用户名" hint="可选。" when="socks5" />
+			<field name="socksPassword" type="string" default="" label="SOCKS5 密码" widget="password" hint="可选。" when="socks5" />
+			<field name="allowUdp" type="boolean" default="false" label="允许 UDP" hint="UDP 仍直连，不经 SOCKS5。" when="socks5" />
+		</collection>
+		<collection name="acls" initial-items="0" when="server" label="ACL 规则" section="routing" add-label="＋ 添加 ACL" hint="在 Metacubex 规则之前求值；地址支持 IP、CIDR、域名、localhost、private、*。">
+			<field name="addr" type="string" default="" label="地址" placeholder="private" hint="IP、CIDR、域名、localhost、private 或 *。" rule="required" />
+			<field name="outbound" type="string" default="default" label="出站" placeholder="default" hint="default/allow、reject/block/deny 或具名出站。" rule="required" />
+			<field name="ports" type="string" default="" label="端口" placeholder="udp/53,tcp/80,443" hint="逗号分隔，可带 tcp/ 或 udp/ 前缀，支持范围。" />
+			<field name="hijack" type="string" default="" label="劫持地址" placeholder="1.1.1.1" hint="当前版本尚未生效，仅保留字段。" />
+		</collection>
+		<collection name="rules" initial-items="0" when="server" label="路由规则" section="routing" add-label="＋ 添加规则" hint="Metacubex 风格规则，在 ACL 之后求值。">
+			<field name="rule" type="string" default="" label="规则" placeholder="DOMAIN-SUFFIX,google.com,proxy" hint="例如 MATCH,default 或 IP-CIDR,10.0.0.0/8,direct。" rule="required" />
+		</collection>
+		<collection name="dnsServers" initial-items="1" min-items="0" when="dnsCustom" label="自定义 DNS 服务器" section="routing" add-label="＋ 添加服务器" hint="支持 1.1.1.1、udp://、tcp://、tls://、https://。">
+			<field name="server" type="string" default="tls://1.1.1.1#cloudflare-dns.com" label="服务器" placeholder="tls://1.1.1.1#cloudflare-dns.com" hint="URL 形式可指定协议、端口与 SNI。" rule="required" />
 		</collection>
 		<collection name="forwards" initial-items="0" when="client" label="转发" section="transport" add-label="＋ 添加转发" hint="服务端默认拦截回环和私有目标地址。">
 			<field name="protocol" type="enum" default="tcp" label="转发协议">
@@ -127,6 +255,31 @@
 		<condition name="validBackoff"><all><use ref="reconnect"/><valid from="/initialBackoff" rule="milliseconds"/><valid from="/maxBackoff" rule="milliseconds"/></all></condition>
 		<condition name="validBinding"><valid from="listen" rule="socket"/></condition>
 		<condition name="validPorts"><all><use ref="validBinding"/><valid from="/local" rule="socket"/></all></condition>
+		<condition name="logEnabled"><truthy from="/logEnabled"/></condition>
+		<condition name="logFileSet"><valid from="/logFile" rule="required"/></condition>
+		<condition name="backendQuinn"><eq from="/backendMode" value="quinn"/></condition>
+		<condition name="backendQuiche"><eq from="/backendMode" value="quiche"/></condition>
+		<condition name="serverQuinn"><all><use ref="server"/><use ref="backendQuinn"/></all></condition>
+		<condition name="serverQuiche"><all><use ref="server"/><use ref="backendQuiche"/></all></condition>
+		<condition name="dnsEnabled"><truthy from="/dnsEnabled"/></condition>
+		<condition name="dnsCustom"><eq from="/dnsMode" value="custom"/></condition>
+		<condition name="dnsTimeoutSet"><valid from="/dnsTimeout" rule="seconds"/></condition>
+		<condition name="dnsAttemptsSet"><valid from="/dnsAttempts" rule="seconds"/></condition>
+		<condition name="geodataEnabled"><truthy from="/geodataEnabled"/></condition>
+		<condition name="geositeSet"><valid from="/geosite" rule="required"/></condition>
+		<condition name="geoipSet"><valid from="/geoip" rule="required"/></condition>
+		<condition name="restfulEnabled"><truthy from="/restfulEnabled"/></condition>
+		<condition name="restfulSecretSet"><valid from="/restfulSecret" rule="required"/></condition>
+		<condition name="masqueradeEnabled"><truthy from="/masqueradeEnabled"/></condition>
+		<condition name="direct"><eq from="type" value="direct"/></condition>
+		<condition name="socks5"><eq from="type" value="socks5"/></condition>
+		<condition name="bindV4Set"><valid from="bindIpv4" rule="required"/></condition>
+		<condition name="bindV6Set"><valid from="bindIpv6" rule="required"/></condition>
+		<condition name="bindDeviceSet"><valid from="bindDevice" rule="required"/></condition>
+		<condition name="routingMarkEnabled"><truthy from="routingMarkEnabled"/></condition>
+		<condition name="routingMarkSet"><valid from="routingMark" rule="seconds"/></condition>
+		<condition name="aclPortsSet"><valid from="ports" rule="required"/></condition>
+		<condition name="aclHijackSet"><valid from="hijack" rule="required"/></condition>
 	</conditions>
 	<values>
 		<value name="host"><source from="/host" transform="trim unbracket"/></value>
@@ -141,9 +294,14 @@
 			<selector name="controller" label="拥塞控制" default="bbr">
 				<choice value="bbr" label="BBR"/><choice value="bbr3" label="BBR3"/><choice value="cubic" label="CUBIC"/><choice value="newreno" label="New Reno"/>
 			</selector>
+			<selector name="routing" label="路由" default="off">
+				<choice value="off" label="不配置"/><choice value="acl" label="ACL 与规则"/>
+			</selector>
 			<line yaml="server: &quot;[::]:8443&quot;" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。"/>
 			<line yaml="log_level: info" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。"/>
 			<line yaml="zero_rtt_handshake: false" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。"/>
+			<line yaml="auth_timeout: 3s" description="等待客户端认证命令的时间。"/>
+			<line yaml="stream_timeout: 60s" description="TCP/UDP I/O 任务的保留时间。"/>
 			<line yaml="data_dir: /var/lib/tuic" description="ACME 证书与账户状态的持久化目录。运行用户必须可写，容器部署时应挂载持久卷。" when="tls=acme"/>
 			<line yaml="users:" description="允许连接的 TUIC 用户映射；键是 UUID，值是对应密码。至少配置一个用户。"/>
 			<line indent="1" yaml="&quot;00000000-0000-4000-8000-000000000001&quot;: &quot;change-this-password&quot;" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。"/>
@@ -155,15 +313,31 @@
 			<line indent="1" yaml="private_key: /etc/tuic/privatekey.pem" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" when="tls=certificate"/>
 			<line indent="1" yaml="auto_ssl: true" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" when="tls=acme"/>
 			<line indent="1" yaml="acme_email: admin@example.com" description="ACME 账户联系邮箱，用于证书服务通知。" when="tls=acme"/>
+			<line indent="1" yaml="acme_staging: false" description="使用 ACME 预发布环境，仅用于测试证书申请流程。" when="tls=acme"/>
 			<line indent="1" yaml="self_sign: true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self"/>
 			<line yaml="backend:" description="底层 QUIC 实现及其传输参数。"/>
-			<line indent="1" yaml="mode: quinn" description="选择 Quinn 作为 QUIC 后端；这是当前生成器支持的服务端后端。"/>
+			<line indent="1" yaml="mode: quinn" description="选择 Quinn 作为 QUIC 后端；quiche 为实验性后端，需要构建时启用对应 feature。"/>
 			<line indent="1" yaml="quinn:" description="Quinn 后端的专属配置命名空间。"/>
 			<line indent="2" yaml="congestion_control:" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。"/>
 			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr"/>
 			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="controller=bbr3"/>
 			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="controller=cubic"/>
 			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="controller=newreno"/>
+			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。"/>
+			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。"/>
+			<line indent="2" yaml="max_idle_time: 30s" description="空闲连接关闭等待时间。"/>
+			<line yaml="outbound:" description="出站规则；default 用于未匹配的流量，具名出站可被 ACL 或规则引用。"/>
+			<line indent="1" yaml="default:" description="默认出站。"/>
+			<line indent="2" yaml="type: direct" description="direct 直连，或 socks5 经上游代理。"/>
+			<line indent="2" yaml="ip_mode: v4first" description="直连时的地址族偏好。" when="routing=acl"/>
+			<line yaml="experimental:" description="安全防护开关。"/>
+			<line indent="1" yaml="drop_loopback: true" description="拒绝解析到回环地址的目标。"/>
+			<line indent="1" yaml="drop_private: true" description="拒绝私有、链路本地与 ULA 地址。"/>
+			<line yaml="acl:" description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl"/>
+			<line indent="1" yaml="- addr: private" description="匹配私有地址网段。" when="routing=acl"/>
+			<line indent="2" yaml="outbound: reject" description="命中后拒绝连接。" when="routing=acl"/>
+			<line yaml="rules:" description="Metacubex 风格路由规则，在 ACL 之后求值。" when="routing=acl"/>
+			<line indent="1" yaml="- MATCH,default" description="兜底规则，把剩余流量交给 default 出站。" when="routing=acl"/>
 		</config>
 		<config name="client" label="客户端配置" filename="client.yaml">
 			<selector name="address" label="服务端地址" default="domain">
@@ -181,7 +355,11 @@
 			<line yaml="uuid: &quot;00000000-0000-4000-8000-000000000001&quot;" description="服务端 users 映射中存在的用户 UUID。配对生成会自动保持两端一致。"/>
 			<line yaml="password: &quot;change-this-password&quot;" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。"/>
 			<line yaml="log_level: info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。"/>
+			<line yaml="udp_relay_mode: native" description="UDP 转发模式，native 为默认，quic 使用 QUIC 流承载。"/>
 			<line yaml="zero_rtt_handshake: false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。"/>
+			<line yaml="heartbeat: 3s" description="保持连接活跃的心跳周期。"/>
+			<line yaml="gc_interval: 3s" description="UDP 分片垃圾回收周期。"/>
+			<line yaml="gc_lifetime: 15s" description="UDP 分片在回收前保留的时间。"/>
 			<line yaml="reconnect: true" description="是否在连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。"/>
 			<line yaml="lazy: true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。"/>
 			<line yaml="reconnect_initial_backoff: 500ms" description="开启自动重连时，首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。"/>
@@ -191,6 +369,12 @@
 			<line indent="1" yaml="alpn:" description="客户端提出的 ALPN 列表，必须与服务端一致。"/>
 			<line indent="2" yaml="- h3" description="当前生成器使用的 QUIC 应用层协议标识。"/>
 			<line indent="1" yaml="skip_cert_verify: false" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。"/>
+			<line yaml="backend:" description="客户端 QUIC 传输参数。"/>
+			<line indent="1" yaml="quinn:" description="客户端仅支持 Quinn 后端。"/>
+			<line indent="2" yaml="congestion_control:" description="拥塞控制算法。"/>
+			<line indent="3" yaml="controller: bbr" description="默认使用 BBR。" />
+			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。"/>
+			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。"/>
 			<line yaml="local:" description="本地代理监听与静态端口转发配置。"/>
 			<line indent="1" yaml="server: 127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。"/>
 			<line indent="1" yaml="username: proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on"/>
@@ -204,12 +388,17 @@
 			<line indent="3" yaml="timeout: 60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp"/>
 		</config>
 	</config-desc>
-	<!-- TUIC 4719113 / Wind 9025349: literal output names, no executable code. -->
+	<!-- TUIC fd7e521 / Wind dee0317: literal output names, no executable code. -->
 	<outputs>
 		<object name="server" when="server" label="服务端" filename="server" command="tuic-server -c {filename}">
 			<string name="server" from="/listen" transform="trim"/>
 			<enum name="log_level" from="/logLevel" options="logLevel"/>
-			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt"/>
+			<object name="log" when="logEnabled">
+				<string name="format" from="/logFormat"/>
+				<boolean name="compact" from="/logCompact"/>
+				<string name="log_file" from="/logFile" transform="trim" when="logFileSet"/>
+				<string name="log_rotation" from="/logRotation"/>
+			</object>
 			<string name="data_dir" from="/dataDir" transform="trim" when="acme"/>
 			<record name="users" from="/users" key="uuid" key-transform="trim lowercase">
 				<string from="password" secret="true"/>
@@ -221,13 +410,91 @@
 				<string name="private_key" from="/privateKey" transform="trim" when="certificate"/>
 				<boolean name="auto_ssl" value="true" when="acme"/>
 				<string name="acme_email" from="/email" transform="trim" when="acme"/>
+				<boolean name="acme_staging" from="/acmeStaging" when="acme"/>
 				<boolean name="self_sign" value="true" when="self"/>
 			</object>
 			<object name="backend">
-				<string name="mode" value="quinn"/>
-				<object name="quinn"><object name="congestion_control">
-					<enum name="controller" from="/controller" options="controller"/>
-				</object></object>
+				<enum name="mode" from="/backendMode" options="backendMode"/>
+				<object name="quinn" when="backendQuinn">
+					<object name="congestion_control">
+						<enum name="controller" from="/controller" options="controller"/>
+						<integer name="initial_window" from="/quinnInitialWindow"/>
+					</object>
+					<integer name="initial_mtu" from="/quinnInitialMtu"/>
+					<integer name="min_mtu" from="/quinnMinMtu"/>
+					<boolean name="gso" from="/quinnGso"/>
+					<boolean name="pmtu" from="/quinnPmtu"/>
+					<integer name="send_window" from="/quinnSendWindow"/>
+					<integer name="receive_window" from="/quinnReceiveWindow"/>
+					<string name="max_idle_time" from="/quinnMaxIdleTime" transform="integer" unit="s"/>
+				</object>
+				<object name="quiche" when="backendQuiche">
+					<object name="congestion_control">
+						<enum name="controller" from="/controller" options="controller"/>
+					</object>
+					<string name="max_idle_time" from="/quicheMaxIdleTime" transform="integer" unit="s"/>
+					<integer name="max_concurrent_bi_streams" from="/quicheBiStreams"/>
+					<integer name="max_concurrent_uni_streams" from="/quicheUniStreams"/>
+					<integer name="send_window" from="/quicheSendWindow"/>
+					<integer name="receive_window" from="/quicheReceiveWindow"/>
+					<boolean name="zero_rtt" from="/quicheZeroRtt"/>
+				</object>
+			</object>
+			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt"/>
+			<string name="auth_timeout" from="/serverAuthTimeout" transform="integer" unit="s"/>
+			<string name="stream_timeout" from="/serverStreamTimeout" transform="integer" unit="s"/>
+			<record name="outbound" from="/outbounds" key="name" key-transform="trim">
+				<object>
+					<string name="type" from="type"/>
+					<string name="ip_mode" from="ipMode" when="direct"/>
+					<string name="bind_ipv4" from="bindIpv4" transform="trim" when="bindV4Set"/>
+					<string name="bind_ipv6" from="bindIpv6" transform="trim" when="bindV6Set"/>
+					<string name="bind_device" from="bindDevice" transform="trim" when="bindDeviceSet"/>
+					<boolean name="tfo" from="tfo" when="direct"/>
+					<integer name="routing_mark" from="routingMark" transform="integer" when="routingMarkSet"/>
+					<string name="addr" from="socksAddr" transform="trim" when="socks5"/>
+					<string name="username" from="socksUsername" when="socks5"/>
+					<string name="password" from="socksPassword" secret="true" when="socks5"/>
+					<boolean name="allow_udp" from="allowUdp" when="socks5"/>
+				</object>
+			</record>
+			<list name="acl" from="/acls" omit-empty="true">
+				<object>
+					<string name="addr" from="addr" transform="trim"/>
+					<string name="outbound" from="outbound" transform="trim"/>
+					<string name="ports" from="ports" transform="trim" when="aclPortsSet"/>
+					<string name="hijack" from="hijack" transform="trim" when="aclHijackSet"/>
+				</object>
+			</list>
+			<list name="rules" from="/rules" omit-empty="true">
+				<string from="rule" transform="trim"/>
+			</list>
+			<object name="dns" when="dnsEnabled">
+				<enum name="mode" from="/dnsMode" options="dnsMode"/>
+				<list name="servers" from="/dnsServers" omit-empty="true" when="dnsCustom">
+					<string from="server" transform="trim"/>
+				</list>
+				<string name="timeout" from="/dnsTimeout" transform="integer" unit="s" when="dnsTimeoutSet"/>
+				<integer name="attempts" from="/dnsAttempts" transform="integer" when="dnsAttemptsSet"/>
+				<enum name="stack_prefer" from="/dnsStackPrefer" options="dnsStackPrefer"/>
+			</object>
+			<object name="geodata" when="geodataEnabled">
+				<string name="geosite" from="/geosite" transform="trim" when="geositeSet"/>
+				<string name="geoip" from="/geoip" transform="trim" when="geoipSet"/>
+			</object>
+			<object name="experimental">
+				<boolean name="drop_loopback" from="/dropLoopback"/>
+				<boolean name="drop_private" from="/dropPrivate"/>
+			</object>
+			<object name="restful" when="restfulEnabled">
+				<boolean name="enabled" value="true"/>
+				<string name="addr" from="/restfulAddr" transform="trim"/>
+				<string name="secret" from="/restfulSecret" secret="true" when="restfulSecretSet"/>
+				<integer name="maximum_clients_per_user" from="/restfulMaxClients"/>
+			</object>
+			<object name="masquerade" when="masqueradeEnabled">
+				<boolean name="enabled" value="true"/>
+				<string name="upstream" from="/masqueradeUpstream" transform="trim"/>
 			</object>
 		</object>
 		<object name="client" when="client" label="客户端" filename="client" command="tuic-client -c {filename}">
@@ -237,7 +504,11 @@
 			<string name="uuid"><select from="/users" index="/activeUser"><source from="uuid" transform="trim lowercase"/></select></string>
 			<string name="password" secret="true"><select from="/users" index="/activeUser"><source from="password"/></select></string>
 			<enum name="log_level" from="/logLevel" options="logLevel"/>
+			<enum name="udp_relay_mode" from="/udpRelayMode" options="udpRelayMode"/>
 			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt"/>
+			<string name="heartbeat" from="/clientHeartbeat" transform="integer" unit="s"/>
+			<string name="gc_interval" from="/clientGcInterval" transform="integer" unit="s"/>
+			<string name="gc_lifetime" from="/clientGcLifetime" transform="integer" unit="s"/>
 			<boolean name="reconnect" from="/reconnect"/>
 			<boolean name="lazy" from="/lazy"/>
 			<string name="reconnect_initial_backoff" from="/initialBackoff" transform="integer" unit="ms" when="reconnect"/>
@@ -246,6 +517,15 @@
 				<string name="sni" ref="clientSni"/>
 				<list name="alpn"><string value="h3"/></list>
 				<boolean name="skip_cert_verify" from="/insecure"/>
+			</object>
+			<object name="backend">
+				<object name="quinn">
+					<object name="congestion_control">
+						<enum name="controller" from="/clientController" options="clientController"/>
+					</object>
+					<integer name="send_window" from="/clientSendWindow"/>
+					<integer name="receive_window" from="/clientReceiveWindow"/>
+				</object>
 			</object>
 			<object name="local">
 				<string name="server" from="/local" transform="trim"/>

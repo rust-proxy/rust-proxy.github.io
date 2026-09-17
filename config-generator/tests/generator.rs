@@ -36,9 +36,18 @@ fn complete_default_pair() -> Result<(), String> {
 	let expected = json!({
 		"server": {"server":"[::]:8443", "log_level":"info", "users":{u.uuid.clone():u.password},
 			"tls":{"hostname":"tuic.example.com", "alpn":["h3"], "certificate":"/etc/tuic/fullchain.pem", "private_key":"/etc/tuic/privatekey.pem"},
-			"backend":{"mode":"quinn", "quinn":{"congestion_control":{"controller":"bbr"}}}},
-		"client": {"server":"tuic.example.com:8443", "uuid":u.uuid, "password":u.password, "log_level":"info", "reconnect":true, "lazy":true,
-			"reconnect_initial_backoff":"500ms", "reconnect_max_backoff":"30000ms", "tls":{"sni":"tuic.example.com", "alpn":["h3"], "skip_cert_verify":false}, "local":{"server":"127.0.0.1:1080"}}
+			"backend":{"mode":"quinn", "quinn":{"congestion_control":{"controller":"bbr", "initial_window":1048576},
+				"initial_mtu":1200, "min_mtu":1200, "gso":true, "pmtu":true, "send_window":16777216, "receive_window":8388608, "max_idle_time":"30s"}},
+			"auth_timeout":"3s", "stream_timeout":"60s",
+			"outbound":{"default":{"type":"direct", "ip_mode":"v4first", "tfo":false}},
+			"experimental":{"drop_loopback":true, "drop_private":true}},
+		"client": {"server":"tuic.example.com:8443", "uuid":u.uuid, "password":u.password, "log_level":"info",
+			"udp_relay_mode":"native", "heartbeat":"3s", "gc_interval":"3s", "gc_lifetime":"15s",
+			"reconnect":true, "lazy":true,
+			"reconnect_initial_backoff":"500ms", "reconnect_max_backoff":"30000ms",
+			"tls":{"sni":"tuic.example.com", "alpn":["h3"], "skip_cert_verify":false},
+			"backend":{"quinn":{"congestion_control":{"controller":"bbr"}, "send_window":16777216, "receive_window":8388608}},
+			"local":{"server":"127.0.0.1:1080"}}
 	});
 	assert!(build_configs(&s)? == expected);
 	Ok(())
@@ -228,7 +237,7 @@ fn forwarding_arrays_and_conflicts() -> Result<(), String> {
 }
 
 #[test]
-fn controllers_and_unsupported_client_fields() -> Result<(), String> {
+fn controllers_and_wired_client_transport() -> Result<(), String> {
 	for (controller, _) in options("controller") {
 		let mut s = ready()?;
 		s.controller = controller.clone();
@@ -237,9 +246,9 @@ fn controllers_and_unsupported_client_fields() -> Result<(), String> {
 			c["server"]["backend"]["quinn"]["congestion_control"]["controller"],
 			*controller
 		);
-		for key in ["backend", "udp_relay_mode", "proxy"] {
-			assert!(c["client"].get(key).is_none());
-		}
+		assert_eq!(c["client"]["udp_relay_mode"], "native");
+		assert_eq!(c["client"]["backend"]["quinn"]["congestion_control"]["controller"], "bbr");
+		assert!(c["client"].get("proxy").is_none());
 		assert!(c["client"]["tls"].get("certificates").is_none());
 	}
 	Ok(())
@@ -289,5 +298,74 @@ fn form_dsl_binding_and_visibility() -> Result<(), String> {
 	assert!(certificate.is_some_and(|f| f.visible(&s)));
 	s.tls_mode = "acme".into();
 	assert!(certificate.is_some_and(|f| !f.visible(&s)));
+	Ok(())
+}
+
+fn outbound_row(id: u64, name: &str, kind: &str) -> serde_json::Value {
+	json!({"id": id, "name": name, "type": kind, "ipMode": "v4first", "bindIpv4": "", "bindIpv6": "",
+		"bindDevice": "", "tfo": false, "routingMarkEnabled": false, "routingMark": "",
+		"socksAddr": "", "socksUsername": "", "socksPassword": "", "allowUdp": false})
+}
+
+#[test]
+fn server_advanced_sections_cover_dev7() -> Result<(), String> {
+	let mut s = ready()?;
+	s.extra.insert("logEnabled".into(), json!(true));
+	s.extra.insert("logFile".into(), json!("/var/log/tuic/server.log"));
+	s.extra.insert("backendMode".into(), json!("quiche"));
+	s.extra.insert("dnsEnabled".into(), json!(true));
+	s.extra.insert("dnsMode".into(), json!("custom"));
+	s.extra.insert(
+		"dnsServers".into(),
+		json!([{"id": 0, "server": "tls://1.1.1.1#cloudflare-dns.com"}]),
+	);
+	s.extra.insert("geodataEnabled".into(), json!(true));
+	s.extra.insert("geosite".into(), json!("/var/lib/tuic/geosite.dat"));
+	s.extra.insert("geoip".into(), json!("/var/lib/tuic/geoip.dat"));
+	s.extra.insert("restfulEnabled".into(), json!(true));
+	s.extra.insert("masqueradeEnabled".into(), json!(true));
+	s.extra.insert(
+		"acls".into(),
+		json!([{"id": 0, "addr": "private", "outbound": "reject", "ports": "", "hijack": ""}]),
+	);
+	s.extra.insert("rules".into(), json!([{"id": 0, "rule": "MATCH,default"}]));
+	s.extra.insert(
+		"outbounds".into(),
+		json!([outbound_row(0, "default", "direct"), outbound_row(1, "proxy", "socks5")]),
+	);
+	s.extra.get_mut("outbounds").expect("outbounds")[1]["socksAddr"] = json!("127.0.0.1:1080");
+	assert!(validate(&s).is_empty());
+	let c = build_configs(&s)?;
+	assert_eq!(c["server"]["log"]["log_file"], "/var/log/tuic/server.log");
+	assert_eq!(c["server"]["backend"]["mode"], "quiche");
+	assert!(c["server"]["backend"].get("quinn").is_none());
+	assert_eq!(c["server"]["backend"]["quiche"]["max_concurrent_bi_streams"], 100);
+	assert_eq!(c["server"]["dns"]["servers"][0], "tls://1.1.1.1#cloudflare-dns.com");
+	assert_eq!(c["server"]["geodata"]["geoip"], "/var/lib/tuic/geoip.dat");
+	assert_eq!(c["server"]["restful"]["enabled"], true);
+	assert_eq!(c["server"]["masquerade"]["enabled"], true);
+	assert_eq!(c["server"]["acl"][0]["addr"], "private");
+	assert_eq!(c["server"]["rules"][0], "MATCH,default");
+	assert_eq!(c["server"]["outbound"]["default"]["type"], "direct");
+	assert_eq!(c["server"]["outbound"]["proxy"]["addr"], "127.0.0.1:1080");
+	assert!(c["server"]["outbound"]["proxy"].get("ip_mode").is_none());
+	Ok(())
+}
+
+#[test]
+fn client_transport_windows_and_0rtt() -> Result<(), String> {
+	let mut s = ready()?;
+	s.extra.insert("udpRelayMode".into(), json!("quic"));
+	s.extra.insert("clientController".into(), json!("cubic"));
+	s.extra.insert("clientSendWindow".into(), json!(4194304));
+	s.extra.insert("clientReceiveWindow".into(), json!(2097152));
+	s.zero_rtt = true;
+	assert!(validate(&s).is_empty());
+	let c = build_configs(&s)?;
+	assert_eq!(c["client"]["udp_relay_mode"], "quic");
+	assert_eq!(c["client"]["zero_rtt_handshake"], true);
+	assert_eq!(c["client"]["backend"]["quinn"]["congestion_control"]["controller"], "cubic");
+	assert_eq!(c["client"]["backend"]["quinn"]["send_window"], 4194304);
+	assert_eq!(c["client"]["backend"]["quinn"]["receive_window"], 2097152);
 	Ok(())
 }

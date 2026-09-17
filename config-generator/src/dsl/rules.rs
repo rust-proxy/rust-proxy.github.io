@@ -66,6 +66,9 @@ impl Document {
 				_ => false,
 			},
 			"integer" => !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit()) && text.parse::<u64>().is_ok_and(range),
+			"optional-integer" => {
+				text.is_empty() || (text.bytes().all(|b| b.is_ascii_digit()) && text.parse::<u64>().is_ok_and(range))
+			}
 			"host" => validation::host_rule(&text).is_none(),
 			"socket" => validation::endpoint(&text, true).is_some(),
 			"endpoint" => validation::endpoint(&text, false).is_some(),

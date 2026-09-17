@@ -146,6 +146,7 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 | `required` | 字符串去除首尾空白后非空 |
 | `length` | 字符串 UTF-8 字节数或列表项数满足 min/max |
 | `integer` | 非负十进制安全解析为 u64，并应用 XML 中的 min/max |
+| `optional-integer` | 空字符串通过；非空时按 `integer` 检查 |
 | `host` | 可连接的域名或 IP，不是通配监听地址 |
 | `socket` / `endpoint` | IP:端口 / 域名或 IP:端口 |
 | `email` | 基本邮箱格式 |

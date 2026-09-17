@@ -220,6 +220,7 @@ pub(super) fn validators(node: Option<&Element>) -> Result<BTreeMap<String, Elem
 			"required",
 			"length",
 			"integer",
+			"optional-integer",
 			"host",
 			"socket",
 			"endpoint",

@@ -21,6 +21,7 @@ await page.route('**/*', route => route.request().url().startsWith(new URL(base)
 const id = key => page.locator(`[id="cg-${key}"]`);
 const preview = page.locator('#cg-preview-code');
 const click = name => page.getByRole('button', { name, exact: true }).click();
+const section = label => page.locator('summary', { hasText: label });
 async function jsonOutput(side) {
   await click(side === 'server' ? '服务端' : '客户端');
   await id('format').selectOption('json');
@@ -115,7 +116,7 @@ try {
   await click('配对生成');
   console.log('PASS: validation, IPv6 and independent modes');
 
-  await page.locator('summary').click();
+  await section('高级选项').click();
   await id('localAuth').check(); await id('localUsername').fill('tester'); await id('localPassword').fill('a " \\ # 中文');
   await click('＋ 添加转发');
   await id('forwards.0.listen').fill('127.0.0.1:8080'); await id('forwards.0.remote').fill('example.com:80');
@@ -129,11 +130,34 @@ try {
   client = await jsonOutput('client'); assert.equal(client.local.password, undefined); assert.equal(client.local.udp_forward, undefined);
   console.log('PASS: local auth, reconnect, forward editing and removal');
 
+  await section('QUIC 后端').click();
+  await id('backendMode').selectOption('quiche');
+  server = await jsonOutput('server');
+  assert.equal(server.backend.mode, 'quiche');
+  assert.equal(server.backend.quiche.max_concurrent_bi_streams, 100);
+  await id('backendMode').selectOption('quinn');
+  server = await jsonOutput('server');
+  assert.equal(server.backend.quinn.congestion_control.initial_window, 1048576);
+  await section('QUIC 后端').click();
+
+  await section('路由与出站').click();
+  await id('dnsEnabled').check();
+  await id('dnsMode').selectOption('custom');
+  await id('dnsServers.0.server').fill('tls://1.1.1.1#cloudflare-dns.com');
+  server = await jsonOutput('server');
+  assert.equal(server.dns.mode, 'custom');
+  assert.equal(server.dns.servers[0], 'tls://1.1.1.1#cloudflare-dns.com');
+  assert.equal(server.outbound.default.type, 'direct');
+  assert.equal(server.experimental.drop_private, true);
+  await id('dnsEnabled').uncheck();
+  await section('路由与出站').click();
+  console.log('PASS: backend selection, routing, outbound and DNS sections');
+
   const injection = '<img src=x onerror=alert(1)> " \\ 中文';
   await id('users.0.password').fill(injection);
   await id('format').selectOption('yaml'); assert.ok((await preview.textContent()).includes(injection.slice(0, 27)));
   await id('format').selectOption('toml'); assert.equal(await page.locator('#config-generator img').count(), 0);
-  await id('reveal').uncheck(); await page.locator('summary').click();
+  await id('reveal').uncheck(); await section('高级选项').click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: resolve('.cache/config-generator-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
