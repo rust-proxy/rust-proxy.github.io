@@ -141,45 +141,33 @@
 			<selector name="controller" label="拥塞控制" default="bbr">
 				<choice value="bbr" label="BBR"/><choice value="bbr3" label="BBR3"/><choice value="cubic" label="CUBIC"/><choice value="newreno" label="New Reno"/>
 			</selector>
-			<selector name="early-data" label="0-RTT" default="off">
-				<choice value="off" label="关闭（推荐）"/><choice value="on" label="开启"/>
-			</selector>
 			<line yaml="server: &quot;[::]:8443&quot;" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。"/>
 			<line yaml="log_level: info" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。"/>
-			<line yaml="zero_rtt_handshake: true" description="允许 QUIC 0-RTT 早期数据以降低重连延迟；早期数据可能被重放，只有明确接受风险时才开启。" when="early-data=on"/>
+			<line yaml="zero_rtt_handshake: false" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。"/>
 			<line yaml="data_dir: /var/lib/tuic" description="ACME 证书与账户状态的持久化目录。运行用户必须可写，容器部署时应挂载持久卷。" when="tls=acme"/>
 			<line yaml="users:" description="允许连接的 TUIC 用户映射；键是 UUID，值是对应密码。至少配置一个用户。"/>
-			<line yaml="  &quot;00000000-0000-4000-8000-000000000001&quot;: &quot;change-this-password&quot;" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。"/>
+			<line indent="1" yaml="&quot;00000000-0000-4000-8000-000000000001&quot;: &quot;change-this-password&quot;" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。"/>
 			<line yaml="tls:" description="服务端 TLS 配置。TUIC 基于 QUIC，TLS 同时负责加密和服务端身份验证。"/>
-			<line yaml="  hostname: tuic.example.com" description="证书对应的 DNS 主机名。ACME 用它申请证书，自签名模式用它生成证书。"/>
-			<line yaml="  alpn:" description="QUIC TLS 的应用层协议协商列表。当前配置固定使用 h3。"/>
-			<line yaml="    - h3" description="客户端与服务端必须协商相同的 ALPN；生成器使用 h3。"/>
-			<line yaml="  certificate: /etc/tuic/fullchain.pem" description="已有证书模式下的证书链文件路径。文件必须在服务端运行环境中存在并可读。" when="tls=certificate"/>
-			<line yaml="  private_key: /etc/tuic/privatekey.pem" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" when="tls=certificate"/>
-			<line yaml="  auto_ssl: true" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" when="tls=acme"/>
-			<line yaml="  acme_email: admin@example.com" description="ACME 账户联系邮箱，用于证书服务通知。" when="tls=acme"/>
-			<line yaml="  self_sign: true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self"/>
+			<line indent="1" yaml="hostname: tuic.example.com" description="证书对应的 DNS 主机名。ACME 用它申请证书，自签名模式用它生成证书。"/>
+			<line indent="1" yaml="alpn:" description="QUIC TLS 的应用层协议协商列表。当前配置固定使用 h3。"/>
+			<line indent="2" yaml="- h3" description="客户端与服务端必须协商相同的 ALPN；生成器使用 h3。"/>
+			<line indent="1" yaml="certificate: /etc/tuic/fullchain.pem" description="已有证书模式下的证书链文件路径。文件必须在服务端运行环境中存在并可读。" when="tls=certificate"/>
+			<line indent="1" yaml="private_key: /etc/tuic/privatekey.pem" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" when="tls=certificate"/>
+			<line indent="1" yaml="auto_ssl: true" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" when="tls=acme"/>
+			<line indent="1" yaml="acme_email: admin@example.com" description="ACME 账户联系邮箱，用于证书服务通知。" when="tls=acme"/>
+			<line indent="1" yaml="self_sign: true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self"/>
 			<line yaml="backend:" description="底层 QUIC 实现及其传输参数。"/>
-			<line yaml="  mode: quinn" description="选择 Quinn 作为 QUIC 后端；这是当前生成器支持的服务端后端。"/>
-			<line yaml="  quinn:" description="Quinn 后端的专属配置命名空间。"/>
-			<line yaml="    congestion_control:" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。"/>
-			<line yaml="      controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr"/>
-			<line yaml="      controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="controller=bbr3"/>
-			<line yaml="      controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="controller=cubic"/>
-			<line yaml="      controller: newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="controller=newreno"/>
+			<line indent="1" yaml="mode: quinn" description="选择 Quinn 作为 QUIC 后端；这是当前生成器支持的服务端后端。"/>
+			<line indent="1" yaml="quinn:" description="Quinn 后端的专属配置命名空间。"/>
+			<line indent="2" yaml="congestion_control:" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。"/>
+			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr"/>
+			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="controller=bbr3"/>
+			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="controller=cubic"/>
+			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="controller=newreno"/>
 		</config>
 		<config name="client" label="客户端配置" filename="client.yaml">
 			<selector name="address" label="服务端地址" default="domain">
 				<choice value="domain" label="域名"/><choice value="ip" label="IP 地址"/>
-			</selector>
-			<selector name="verification" label="证书验证" default="verify">
-				<choice value="verify" label="严格验证（推荐）"/><choice value="skip" label="跳过验证（仅测试）"/>
-			</selector>
-			<selector name="reconnect" label="断线重连" default="on">
-				<choice value="on" label="开启"/><choice value="off" label="关闭"/>
-			</selector>
-			<selector name="early-data" label="0-RTT" default="off">
-				<choice value="off" label="关闭（推荐）"/><choice value="on" label="开启"/>
 			</selector>
 			<selector name="local-auth" label="SOCKS5 认证" default="off">
 				<choice value="off" label="关闭"/><choice value="on" label="用户名与密码"/>
@@ -193,29 +181,27 @@
 			<line yaml="uuid: &quot;00000000-0000-4000-8000-000000000001&quot;" description="服务端 users 映射中存在的用户 UUID。配对生成会自动保持两端一致。"/>
 			<line yaml="password: &quot;change-this-password&quot;" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。"/>
 			<line yaml="log_level: info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。"/>
-			<line yaml="zero_rtt_handshake: true" description="允许客户端在恢复会话时发送 0-RTT 早期数据以降低延迟；早期数据可能被重放，需与服务端同时开启。" when="early-data=on"/>
-			<line yaml="reconnect: true" description="连接中断后自动重试，适合长期运行的本地代理。" when="reconnect=on"/>
-			<line yaml="reconnect: false" description="连接中断后不自动重试，适合由外部进程管理器控制重启的场景。" when="reconnect=off"/>
+			<line yaml="zero_rtt_handshake: false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。"/>
+			<line yaml="reconnect: true" description="是否在连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。"/>
 			<line yaml="lazy: true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。"/>
-			<line yaml="reconnect_initial_backoff: 500ms" description="首次重连前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" when="reconnect=on"/>
-			<line yaml="reconnect_max_backoff: 30000ms" description="指数退避允许增长到的最大等待时间，必须不小于首次等待。" when="reconnect=on"/>
+			<line yaml="reconnect_initial_backoff: 500ms" description="开启自动重连时，首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。"/>
+			<line yaml="reconnect_max_backoff: 30000ms" description="开启自动重连时，指数退避允许增长到的最大等待时间，必须不小于首次等待。"/>
 			<line yaml="tls:" description="客户端 TLS 验证与协议协商配置。"/>
-			<line yaml="  sni: tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。"/>
-			<line yaml="  alpn:" description="客户端提出的 ALPN 列表，必须与服务端一致。"/>
-			<line yaml="    - h3" description="当前生成器使用的 QUIC 应用层协议标识。"/>
-			<line yaml="  skip_cert_verify: false" description="严格验证证书链和主机名，可防止中间人攻击，是生产环境的安全默认值。" when="verification=verify"/>
-			<line yaml="  skip_cert_verify: true" description="跳过服务端证书验证，会失去服务端身份保证；只能用于受控的临时测试。" when="verification=skip"/>
+			<line indent="1" yaml="sni: tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。"/>
+			<line indent="1" yaml="alpn:" description="客户端提出的 ALPN 列表，必须与服务端一致。"/>
+			<line indent="2" yaml="- h3" description="当前生成器使用的 QUIC 应用层协议标识。"/>
+			<line indent="1" yaml="skip_cert_verify: false" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。"/>
 			<line yaml="local:" description="本地代理监听与静态端口转发配置。"/>
-			<line yaml="  server: 127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。"/>
-			<line yaml="  username: proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on"/>
-			<line yaml="  password: &quot;local-proxy-password&quot;" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" when="local-auth=on"/>
-			<line yaml="  tcp_forward:" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp"/>
-			<line yaml="    - listen: 127.0.0.1:8080" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" when="forward=tcp"/>
-			<line yaml="      remote: example.com:80" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" when="forward=tcp"/>
-			<line yaml="  udp_forward:" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp"/>
-			<line yaml="    - listen: 127.0.0.1:5353" description="单条 UDP 转发的本地监听地址。" when="forward=udp"/>
-			<line yaml="      remote: dns.example.com:53" description="UDP 数据报转发到的远端目标地址。" when="forward=udp"/>
-			<line yaml="      timeout: 60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp"/>
+			<line indent="1" yaml="server: 127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。"/>
+			<line indent="1" yaml="username: proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on"/>
+			<line indent="1" yaml="password: &quot;local-proxy-password&quot;" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" when="local-auth=on"/>
+			<line indent="1" yaml="tcp_forward:" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp"/>
+			<line indent="2" yaml="- listen: 127.0.0.1:8080" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" when="forward=tcp"/>
+			<line indent="3" yaml="remote: example.com:80" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" when="forward=tcp"/>
+			<line indent="1" yaml="udp_forward:" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp"/>
+			<line indent="2" yaml="- listen: 127.0.0.1:5353" description="单条 UDP 转发的本地监听地址。" when="forward=udp"/>
+			<line indent="3" yaml="remote: dns.example.com:53" description="UDP 数据报转发到的远端目标地址。" when="forward=udp"/>
+			<line indent="3" yaml="timeout: 60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp"/>
 		</config>
 	</config-desc>
 	<!-- TUIC 4719113 / Wind 9025349: literal output names, no executable code. -->

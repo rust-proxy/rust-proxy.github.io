@@ -41,8 +41,14 @@ try {
   await acmeLine.hover();
   assert.equal(await acmeLine.locator('[role="tooltip"]').isVisible(), true);
   await click('客户端配置');
+  assert.equal(await page.locator('#cg-desc-verification, #cg-desc-reconnect, #cg-desc-early-data').count(), 0,
+    'Simple boolean settings must be described in YAML instead of rendered as selectors');
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('zero_rtt_handshake: false')));
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('skip_cert_verify: false')));
   await page.locator('#cg-desc-forward').selectOption('udp');
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('udp_forward:')));
+  assert.equal(await page.locator('.cg-desc-line').filter({ hasText: '- listen: 127.0.0.1:5353' }).locator('code').textContent(),
+    '    - listen: 127.0.0.1:5353', 'YAML indentation must be rendered from the numeric indent level');
   mkdirSync('.cache', { recursive: true });
   await page.screenshot({ path: resolve('.cache/config-description-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });

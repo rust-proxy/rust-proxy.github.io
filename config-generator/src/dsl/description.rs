@@ -31,6 +31,7 @@ pub struct DescriptionSelector {
 #[derive(Debug, Clone, Serialize)]
 pub struct DescriptionLine {
 	pub yaml: String,
+	pub indent: usize,
 	pub description: String,
 	pub conditions: Vec<(String, String)>,
 }
@@ -96,12 +97,24 @@ pub(super) fn parse(node: Option<&Element>) -> Result<Option<ConfigDescription>,
 					});
 				}
 				"line" => {
-					attrs(child, &["yaml", "description", "when"])?;
+					attrs(child, &["yaml", "indent", "description", "when"])?;
 					if !child.children.is_empty() {
 						return Err(child.error("line 不接受子元素"));
 					}
+					let yaml = child.required("yaml")?;
+					if yaml.trim() != yaml || yaml.contains(['\r', '\n']) {
+						return Err(child.error("YAML 行不能包含前后空白或换行，请使用 indent 控制缩进"));
+					}
+					let indent = child
+						.attr("indent")
+						.unwrap_or("0")
+						.parse::<usize>()
+						.ok()
+						.filter(|value| *value <= 16)
+						.ok_or_else(|| child.error("indent 必须为 0..16 的整数"))?;
 					lines.push(DescriptionLine {
-						yaml: child.required("yaml")?.into(),
+						yaml: yaml.into(),
+						indent,
 						description: child.required("description")?.into(),
 						conditions: parse_conditions(child)?,
 					});

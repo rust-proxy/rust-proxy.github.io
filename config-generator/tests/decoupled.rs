@@ -15,6 +15,7 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	let description = doc.config_description.as_ref().ok_or("missing config description")?;
 	assert_eq!(description.configs[0].label, "完整清单");
 	assert_eq!(description.configs[0].selectors[0].default, "team");
+	assert_eq!(description.configs[0].lines[1].indent, 1);
 	let config = build_configs(&doc, &state.data)?;
 	assert_eq!(config["snapshot"]["items"][0]["name"], "item");
 	assert_eq!(config["selected"]["item"], "item");
@@ -103,6 +104,11 @@ fn schema_extensions_fail_closed() {
 		("op=\"gte\"", "op=\"execute\""),
 		("filename=\"snapshot\"", "filename=\"../snapshot\""),
 		("when=\"visibility=team\"", "when=\"missing=team\""),
+		(
+			"indent=\"1\" yaml=\"project: example\"",
+			"indent=\"17\" yaml=\"project: example\"",
+		),
+		("yaml=\"project: example\"", "yaml=\" project: example\""),
 	] {
 		assert!(
 			Document::parse(&SOURCE.replace(from, to)).is_err(),

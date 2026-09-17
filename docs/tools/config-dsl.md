@@ -63,12 +63,13 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
       <choice value="other" label="其他"/>
     </selector>
     <line yaml="server: &quot;[::]:8443&quot;" description="UDP 监听地址。"/>
-    <line yaml="backend: quinn" description="使用 Quinn 后端。" when="backend=quinn"/>
+    <line yaml="backend:" description="后端配置。"/>
+    <line indent="1" yaml="mode: quinn" description="使用 Quinn 后端。" when="backend=quinn"/>
   </config>
 </config-desc>
 ```
 
-`config-desc` 至少包含一个 `config`，每个配置至少有一行 `line`。`config` 的 `name`、`label`、`filename` 必填。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。`line` 的 `yaml` 和 `description` 必填；可选 `when` 使用逗号分隔的 `selector=value` 条件，所有条件同时满足才显示，例如 `when="tls=certificate,backend=quinn"`。解析器会拒绝重复名称、未知选择器、未知选项、脚本式表达式和未声明属性。
+`config-desc` 至少包含一个 `config`，每个配置至少有一行 `line`。`config` 的 `name`、`label`、`filename` 必填。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。`line` 的 `yaml` 和 `description` 必填；`indent` 是可选的 0–16 级结构化缩进，默认 0，界面统一按每级两个空格渲染。`yaml` 本身不接受前导、尾随空白或换行，避免把不可见空格当成结构。可选 `when` 使用逗号分隔的 `selector=value` 条件，所有条件同时满足才显示，例如 `when="tls=certificate,backend=quinn"`。解析器会拒绝重复名称、未知选择器、未知选项、非法缩进、脚本式表达式和未声明属性。
 
 ## 页面与输入
 

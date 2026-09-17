@@ -56,9 +56,10 @@
         <header><strong>{config.filename}</strong><span>悬浮或聚焦任意配置项查看说明</span></header>
         <div class="cg-desc-code">
           {#each lines as line, index (`${line.yaml}-${index}`)}
-            <button type="button" class="cg-desc-line" aria-label={`${line.yaml}。${line.description}`}>
+            {@const yaml = `${'  '.repeat(line.indent)}${line.yaml}`}
+            <button type="button" class="cg-desc-line" aria-label={`${yaml}。${line.description}`}>
               <span class="cg-line-number" aria-hidden="true">{index + 1}</span>
-              <code>{line.yaml || ' '}</code>
+              <code>{yaml}</code>
               <span class="cg-tooltip" role="tooltip">{line.description}</span>
             </button>
           {/each}
