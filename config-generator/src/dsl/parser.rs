@@ -21,12 +21,13 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 			"validators",
 			"rules",
 			"effects",
+			"config-desc",
 		]
 		.contains(&child.tag.as_str())
 		{
 			return Err(child.error("未知文档区块"));
 		}
-		if child.tag != "ui" {
+		if !["ui", "config-desc"].contains(&child.tag.as_str()) {
 			attrs(child, &[])?;
 		}
 		if sections.insert(child.tag.as_str(), child).is_some() {
@@ -126,6 +127,7 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 	let mut doc = Document {
 		target_version: root.required("target-version")?.into(),
 		ui: metadata::parse_ui(sections.get("ui").copied())?,
+		config_description: description::parse(sections.get("config-desc").copied())?,
 		exports: metadata::exports(outputs)?,
 		validators: metadata::validators(sections.get("validators").copied())?,
 		rules: metadata::rules(sections.get("rules").copied())?,
@@ -463,6 +465,11 @@ fn references(node: &Element, result: &mut BTreeSet<String>) {
 	}
 }
 fn check_references(node: &Element, doc: &Document) -> Result<(), DslError> {
+	// The static config description has its own selector/value validation and
+	// never participates in runtime conditions, values, or input projection.
+	if node.tag == "config-desc" {
+		return Ok(());
+	}
 	for attr in ["all-when", "select-when"] {
 		if let Some(name) = node.attr(attr)
 			&& !doc.conditions.contains_key(name)

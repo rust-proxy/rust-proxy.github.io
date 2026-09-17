@@ -15,7 +15,7 @@ npm ci --prefix config-generator
 npm run dev --prefix config-generator
 ```
 
-打开 `http://127.0.0.1:8080/`。无需启动 Python 或 Zensical。支持配对生成、服务端或客户端单独生成、多用户、三种证书模式、SOCKS5 认证、重连、0-RTT 和 TCP/UDP 转发。
+打开 `http://127.0.0.1:8080/`。无需启动 Python 或 Zensical。支持配对生成、服务端或客户端单独生成、多用户、三种证书模式、SOCKS5 认证、重连、0-RTT 和 TCP/UDP 转发；“配置详解”可按枚举分支浏览 YAML，并通过悬浮或键盘聚焦查看逐项说明。
 
 独立构建：
 

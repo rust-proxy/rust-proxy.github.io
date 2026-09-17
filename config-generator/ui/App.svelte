@@ -2,10 +2,12 @@
   import type { Controller } from './controller.svelte';
   import FormSection from './FormSection.svelte';
   import OutputPanel from './OutputPanel.svelte';
+  import ConfigDescription from './ConfigDescription.svelte';
 
   let { controller }: { controller: Controller } = $props();
   const view = $derived(controller.view);
   let dark = $state(window.matchMedia('(prefers-color-scheme: dark)').matches);
+  let page = $state<'generator' | 'description'>('generator');
 </script>
 
 <svelte:head><title>{view.ui.brand} {view.ui.title}</title></svelte:head>
@@ -16,6 +18,8 @@
       <span class="cg-mark">{view.ui.mark}</span>{view.ui.brand}<span class="cg-brand-sub">配置工具</span>
     </a>
     <nav>
+      <button type="button" class="cg-nav" aria-pressed={page === 'generator'} onclick={() => page = 'generator'}>配置生成</button>
+      {#if view.config_description}<button type="button" class="cg-nav" aria-pressed={page === 'description'} onclick={() => page = 'description'}>配置详解</button>{/if}
       <a href={view.ui.reference} hidden={!view.ui.reference} target="_blank" rel="noopener noreferrer">配置说明 ↗</a>
       <button type="button" class="cg-theme" aria-label="切换主题" aria-pressed={dark} onclick={() => dark = !dark}>
         {dark ? '浅色' : '深色'}
@@ -23,6 +27,9 @@
     </nav>
   </header>
   <main id="config-generator" data-ready="true">
+    {#if page === 'description' && view.config_description}
+      <ConfigDescription description={view.config_description} />
+    {:else}
     <div class="cg-heading">
       <p class="cg-eyebrow">{view.ui.eyebrow}</p><h1>{view.ui.title}</h1><p>{view.ui.description}</p>
       <p class="cg-privacy"><span class="cg-dot"></span>在浏览器本地处理 · 不保存输入 · 不上传凭据</p>
@@ -45,6 +52,7 @@
       <OutputPanel {controller} />
     </div>
     <p class="cg-status" role="status" aria-live="polite">{controller.status}</p>
+    {/if}
     <footer>{view.ui.brand} 配置工具<span>本地生成，按需导出。</span></footer>
   </main>
 </div>

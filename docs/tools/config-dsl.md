@@ -49,7 +49,26 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 </config-dsl>
 ```
 
-`inputs`、`outputs` 各必须有一个。`ui`、`validators`、`conditions`、`values`、`rules`、`effects` 可选，每个区块最多一个。顶层输出数量和名称不限于两个固定角色。
+`inputs`、`outputs` 各必须有一个。`ui`、`config-desc`、`validators`、`conditions`、`values`、`rules`、`effects` 可选，每个区块最多一个。顶层输出数量和名称不限于两个固定角色。
+
+## 配置详解
+
+可选的 `config-desc` 区块为独立的“配置详解”视图提供静态 YAML 示例和逐行说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`，再选择该配置声明的任意 `selector`；右侧只显示 `when` 匹配的 YAML 行。每行可用鼠标悬浮或键盘聚焦查看 `description`。
+
+```xml
+<config-desc title="配置项详解" description="选择分支并查看字段说明。">
+  <config name="server" label="服务端配置" filename="server.yaml">
+    <selector name="backend" label="后端" default="quinn">
+      <choice value="quinn" label="Quinn"/>
+      <choice value="other" label="其他"/>
+    </selector>
+    <line yaml="server: &quot;[::]:8443&quot;" description="UDP 监听地址。"/>
+    <line yaml="backend: quinn" description="使用 Quinn 后端。" when="backend=quinn"/>
+  </config>
+</config-desc>
+```
+
+`config-desc` 至少包含一个 `config`，每个配置至少有一行 `line`。`config` 的 `name`、`label`、`filename` 必填。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。`line` 的 `yaml` 和 `description` 必填；可选 `when` 使用逗号分隔的 `selector=value` 条件，所有条件同时满足才显示，例如 `when="tls=certificate,backend=quinn"`。解析器会拒绝重复名称、未知选择器、未知选项、脚本式表达式和未声明属性。
 
 ## 页面与输入
 

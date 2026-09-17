@@ -35,6 +35,17 @@ export interface CollectionView {
 }
 
 export interface NoticeView { text: string; visible: boolean }
+export interface ConfigDescription {
+  title: string;
+  description: string;
+  configs: {
+    name: string;
+    label: string;
+    filename: string;
+    selectors: { name: string; label: string; default: string; choices: [string, string][] }[];
+    lines: { yaml: string; description: string; conditions: [string, string][] }[];
+  }[];
+}
 export interface SectionView {
   name: string;
   label: string;
@@ -48,6 +59,7 @@ export interface SectionView {
 
 export interface Snapshot {
   ui: { title: string; brand: string; mark: string; eyebrow: string; description: string; reference: string; export_hint: string };
+  config_description: ConfigDescription | null;
   sections: SectionView[];
   mode: FieldView | null;
   format: FieldView | null;

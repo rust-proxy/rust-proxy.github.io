@@ -24,6 +24,11 @@ try {
   await page.waitForSelector('#config-generator[data-ready="true"]');
   assert.equal(await page.title(), 'Notebook 任务清单生成器');
   assert.equal(await page.getByRole('heading', { name: '任务清单生成器' }).count(), 1);
+  await click('配置详解');
+  assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
+  await id('desc-visibility').selectOption('private');
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility: private')));
+  await click('配置生成');
   assert.equal(await id('seed').inputValue().then(v => v.length), 16);
   const seed = await id('seed').inputValue();
   await id('confirm').check();

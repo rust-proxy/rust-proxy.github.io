@@ -38,6 +38,14 @@
 		<assert key="last" when="range" message="结束数量不能小于起始数量。"><compare op="gte"><source from="/last" transform="integer"/><source from="/first" transform="integer"/></compare></assert>
 		<unique collection="entries" key="id" message="项目名称重复。"><source from="id" transform="trim lowercase"/></unique>
 	</rules>
+	<config-desc title="清单格式详解" description="此说明同样完全来自替换后的 XML。">
+		<config name="snapshot" label="完整清单" filename="snapshot.yaml">
+			<selector name="visibility" label="可见性" default="team"><choice value="team" label="团队"/><choice value="private" label="私有"/></selector>
+			<line yaml="project: example" description="清单所属项目的名称。"/>
+			<line yaml="visibility: team" description="团队成员可以读取这份清单。" when="visibility=team"/>
+			<line yaml="visibility: private" description="只有清单所有者可以读取。" when="visibility=private"/>
+		</config>
+	</config-desc>
 	<outputs>
 		<object name="snapshot" label="完整清单" filename="snapshot" command="notebook --input {filename}" when="all">
 			<string name="title" from="/project"/>

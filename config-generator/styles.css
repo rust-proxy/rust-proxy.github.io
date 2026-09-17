@@ -19,8 +19,10 @@ input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; ac
 .cg-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); font-weight: 750; font-size: 19px; letter-spacing: .04em; }
 .cg-mark { display: grid; place-items: center; width: 32px; height: 32px; background: var(--accent); color: var(--surface); border-radius: 8px; font-size: 19px; }
 .cg-brand-sub { font-weight: 400; color: var(--muted); border-left: 1px solid var(--border); padding-left: 12px; font-size: 13px; letter-spacing: 0; }
-.cg-header nav { display: flex; align-items: center; gap: 22px; font-size: 13px; }
+.cg-header nav { display: flex; align-items: center; gap: 12px; font-size: 13px; }
 .cg-header nav a { text-decoration: none; color: var(--muted); }
+.cg-nav { min-height: 34px; border: 0; background: transparent; color: var(--muted); padding: 5px 8px; }
+.cg-nav[aria-pressed="true"] { background: transparent; color: var(--accent); box-shadow: inset 0 -2px var(--accent); border-radius: 0; }
 .cg-theme { min-height: 34px; font-size: 12px; padding: 6px 10px; }
 #config-generator { max-width: 1240px; padding: 40px 36px 24px; margin: auto; }
 .cg-heading { margin-bottom: 26px; }
@@ -31,8 +33,8 @@ h1 { font-size: 32px; letter-spacing: -.035em; line-height: 1.35; margin: 0 0 12
 .cg-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex: none; }
 .cg-modes { display: flex; gap: 6px; padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
 .cg-modes button { min-width: 120px; }
-[aria-pressed="true"]:not(.cg-theme), .cg-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
-[aria-pressed="true"]:not(.cg-theme):hover, .cg-primary:hover { color: var(--surface); }
+[aria-pressed="true"]:not(.cg-theme):not(.cg-nav), .cg-primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+[aria-pressed="true"]:not(.cg-theme):not(.cg-nav):hover, .cg-primary:hover { color: var(--surface); }
 .cg-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .95fr); gap: 48px; align-items: start; }
 .cg-form { min-width: 0; }
 .cg-section { padding: 0 0 24px; margin: 0 0 24px; border: 0; border-bottom: 1px solid var(--border); }
@@ -81,9 +83,33 @@ code { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; }
 .cg-errors button { padding: 2px 0; min-height: 0; border: 0; background: transparent; text-decoration: underline; text-align: left; font-size: 11px; font-weight: 400; }
 .cg-status { color: var(--muted); font-size: 12px; min-height: 20px; }
 footer { display: flex; justify-content: space-between; border-top: 1px solid var(--border); color: var(--muted); padding-top: 18px; margin-top: 24px; font-size: 11px; }
+.cg-desc-heading { max-width: 720px; margin-bottom: 30px; }
+.cg-desc-heading h1 { margin-bottom: 8px; }
+.cg-desc-heading > p:last-child { color: var(--muted); margin: 0; }
+.cg-desc-workspace { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 34px; align-items: start; }
+.cg-desc-controls { position: sticky; top: 24px; border: 1px solid var(--border); border-radius: 12px; padding: 20px; background: var(--surface); }
+.cg-desc-controls fieldset { border: 0; padding: 0; margin: 0 0 20px; }
+.cg-desc-controls legend, .cg-desc-selector > span { display: block; font-weight: 650; font-size: 12px; margin-bottom: 8px; }
+.cg-desc-kinds { display: grid; gap: 7px; }
+.cg-desc-kinds button { text-align: left; }
+.cg-desc-selector { display: block; margin: 0 0 16px; }
+.cg-desc-selector select { width: 100%; }
+.cg-desc-yaml { min-width: 0; overflow: visible; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 18px #14223404; }
+.cg-desc-yaml > header { display: flex; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.cg-desc-yaml > header span { color: var(--muted); font-size: 11px; }
+.cg-desc-code { padding: 14px 0; background: var(--subtle); border-radius: 0 0 12px 12px; }
+.cg-desc-line { position: relative; display: grid; width: 100%; grid-template-columns: 42px minmax(0, 1fr); min-height: 28px; align-items: center; padding: 1px 20px 1px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); text-align: left; font-weight: 400; outline: 0; }
+.cg-desc-line:hover, .cg-desc-line:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
+.cg-desc-line:focus-visible { box-shadow: inset 3px 0 var(--accent); }
+.cg-desc-line code { white-space: pre; overflow-x: auto; font-size: 12px; line-height: 1.8; }
+.cg-line-number { color: var(--muted); opacity: .65; text-align: right; padding-right: 13px; font: 10px ui-monospace, monospace; user-select: none; }
+.cg-tooltip { position: absolute; z-index: 5; left: 42px; bottom: calc(100% + 7px); width: min(460px, calc(100vw - 120px)); padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--text); color: var(--surface); box-shadow: 0 7px 24px #0003; font-size: 12px; line-height: 1.65; opacity: 0; visibility: hidden; transform: translateY(3px); transition: opacity .12s, transform .12s; pointer-events: none; }
+.cg-desc-line:hover .cg-tooltip, .cg-desc-line:focus-visible .cg-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
 @media (max-width: 850px) { .cg-workspace { grid-template-columns: 1fr; gap: 10px; } .cg-output { position: static; } .cg-code { max-height: 420px; } }
+@media (max-width: 850px) { .cg-desc-workspace { grid-template-columns: 1fr; } .cg-desc-controls { position: static; } .cg-desc-kinds { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 480px) {
-  .cg-header { padding: 16px 20px; } .cg-brand-sub { display: none; } .cg-header nav { gap: 12px; font-size: 12px; }
+  .cg-header { padding: 16px 20px; align-items: flex-start; } .cg-brand-sub, .cg-header nav a { display: none; } .cg-header nav { gap: 3px; font-size: 12px; flex-wrap: wrap; justify-content: flex-end; }
   #config-generator { padding: 28px 20px 20px; } h1 { font-size: 27px; } .cg-heading > p { font-size: 13px; } .cg-heading .cg-privacy { font-size: 10px; }
   .cg-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 8px; } .cg-output { padding: 16px; } .cg-row-title { flex-wrap: wrap; }
+  .cg-desc-yaml > header { display: block; } .cg-desc-yaml > header span { display: block; margin-top: 4px; } .cg-tooltip { left: 12px; width: calc(100vw - 64px); }
 }

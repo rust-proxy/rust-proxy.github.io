@@ -12,6 +12,9 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	assert_eq!(doc.ui.brand, "Notebook");
 	assert_eq!(doc.ui.sections.len(), 2);
 	assert_eq!(doc.exports.len(), 3);
+	let description = doc.config_description.as_ref().ok_or("missing config description")?;
+	assert_eq!(description.configs[0].label, "完整清单");
+	assert_eq!(description.configs[0].selectors[0].default, "team");
 	let config = build_configs(&doc, &state.data)?;
 	assert_eq!(config["snapshot"]["items"][0]["name"], "item");
 	assert_eq!(config["selected"]["item"], "item");
@@ -99,6 +102,7 @@ fn schema_extensions_fail_closed() {
 		("min=\"1\" max=\"100\"", "min=\"100\" max=\"1\""),
 		("op=\"gte\"", "op=\"execute\""),
 		("filename=\"snapshot\"", "filename=\"../snapshot\""),
+		("when=\"visibility=team\"", "when=\"missing=team\""),
 	] {
 		assert!(
 			Document::parse(&SOURCE.replace(from, to)).is_err(),
@@ -156,6 +160,7 @@ fn production_code_contains_no_product_identifiers() {
 		include_str!("../src/session/view.rs"),
 		include_str!("../src/wasm.rs"),
 		include_str!("../ui/App.svelte"),
+		include_str!("../ui/ConfigDescription.svelte"),
 		include_str!("../ui/Field.svelte"),
 		include_str!("../ui/CollectionEditor.svelte"),
 		include_str!("../ui/FormSection.svelte"),
@@ -169,6 +174,7 @@ fn production_code_contains_no_product_identifiers() {
 		include_str!("../src/validation.rs"),
 		include_str!("../src/model.rs"),
 		include_str!("../src/dsl.rs"),
+		include_str!("../src/dsl/description.rs"),
 		include_str!("../src/dsl/parser.rs"),
 		include_str!("../src/dsl/metadata.rs"),
 		include_str!("../src/dsl/rules.rs"),

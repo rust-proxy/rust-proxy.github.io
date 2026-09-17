@@ -89,6 +89,7 @@ pub struct ExportFile {
 #[derive(Serialize)]
 pub struct Snapshot {
 	pub ui: Branding,
+	pub config_description: Option<crate::dsl::ConfigDescription>,
 	pub sections: Vec<SectionView>,
 	pub mode: Option<FieldView>,
 	pub format: Option<FieldView>,
@@ -128,6 +129,7 @@ impl Session {
 				reference: ui.reference.clone(),
 				export_hint: ui.export_hint.clone(),
 			},
+			config_description: doc.config_description.clone(),
 			sections: ui
 				.sections
 				.iter()

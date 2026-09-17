@@ -1,4 +1,5 @@
 //! Static XML configuration descriptions, deserialized with Serde. No callbacks or scripts.
+mod description;
 mod metadata;
 mod parser;
 mod rules;
@@ -10,6 +11,7 @@ use std::{
 	net::IpAddr,
 };
 
+pub use description::{ConfigDescription, DescriptionConfig, DescriptionLine, DescriptionSelector};
 pub use metadata::{Export, Generator, Notice, Section, Ui};
 use serde_json::{Map, Value};
 
@@ -130,6 +132,7 @@ impl Collection {
 pub struct Document {
 	pub target_version: String,
 	pub ui: Ui,
+	pub config_description: Option<ConfigDescription>,
 	pub exports: Vec<Export>,
 	validators: BTreeMap<String, Element>,
 	rules: Vec<Element>,
