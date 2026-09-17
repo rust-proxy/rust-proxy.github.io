@@ -14,7 +14,7 @@ manifest = {
     "tuic-client": tuic / "crates" / "tuic-client",
     "tuic-server": tuic / "crates" / "tuic-server",
 }
-lines = ['[package]', 'name = "tuic-docs-config-check"', 'version = "0.0.0"', 'edition = "2024"',
+lines = ['[package]', 'name = "rust-proxy-docs-config-check"', 'version = "0.0.0"', 'edition = "2024"',
          '[workspace]', '[[bin]]', 'name = "config-check"', 'path = "main.rs"', '[dependencies]']
 for name, path in manifest.items():
     lines.append(f'{name} = {{ path = {json.dumps(path.as_posix())} }}')

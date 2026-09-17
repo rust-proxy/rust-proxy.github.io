@@ -96,7 +96,7 @@ async fn smoke(dir: &Path) -> Result<()> {
 		_ => return Err(eyre::eyre!("unexpected SOCKS5 address")),
 	};
 	socks.read_exact(&mut vec![0u8; size]).await?;
-	let message = *b"tuic-docs-smoke!";
+	let message = *b"rust-proxy-smoke";
 	socks.write_all(&message).await?;
 	let mut response = [0u8; 16];
 	socks.read_exact(&mut response).await?;
