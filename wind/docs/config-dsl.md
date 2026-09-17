@@ -463,7 +463,7 @@ MIME 注册或线路消息。
 ## 附录 A. 参考实现与草案决策（说明性）
 
 原始基线为 `rust-proxy.github.io`（原 `tuic-docs`）提交 `775a176`；本地参考实现随后从 pest 迁移到了
-quick-xml + Serde。相对于其 `tuic/config-generator/` 目录的相关文件为 `src/dsl/xml.rs`、
+quick-xml + Serde。相对于其 `config-generator/` 目录的相关文件为 `src/dsl/xml.rs`、
 `src/dsl/wire.rs`、`src/dsl/parser.rs`、`src/dsl.rs`、`src/validation.rs` 和
 `schema/tuic.xml`。这些路径标识本地工作区实现，并不表示迁移已有发布修订。事件扫描在
 Serde 读取标签节点、词法属性和有序子节点之前检查 XML 子集与深度。语义校验与投影

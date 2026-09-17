@@ -1,6 +1,6 @@
 # 配置生成器说明
 
-[打开配置生成器](/tuic/config-generator/){ .md-button .md-button--primary }
+[打开配置生成器](/config-generator/){ .md-button .md-button--primary }
 
 生成器面向 **Itsusinn/tuic 2.0.0-dev4**，以 TUIC [`4719113`](https://github.com/Itsusinn/tuic/tree/4719113dbc0a8dd54e3fd581199ad87c82748229) 与其 Wind 子模块 [`9025349`](https://github.com/rust-proxy/wind/tree/9025349201ba316015cea1b270e48824a04bcc21) 为核对基线。它生成现代分组配置，采用 Quinn 后端。
 

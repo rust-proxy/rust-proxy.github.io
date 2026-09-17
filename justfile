@@ -9,20 +9,20 @@ default:
 # Install locked Python and Node.js dependencies.
 setup:
     uv sync --locked
-    npm ci --prefix tuic/config-generator
+    npm ci --prefix config-generator
     npm ci --prefix tests/config-generator
 
 # Compile WASM, then start the config generator at http://127.0.0.1:8080/.
 dev:
-    npm run dev --prefix tuic/config-generator
+    npm run dev --prefix config-generator
 
 # Start Vite without rebuilding WASM (for Svelte/CSS-only changes).
 dev-ui:
-    npm exec --prefix tuic/config-generator -- vite --host 127.0.0.1 --port 8080
+    npm exec --prefix config-generator -- vite --host 127.0.0.1 --port 8080
 
 # Rebuild WASM after Rust or XML changes while Vite is running.
 wasm:
-    npm run wasm --prefix tuic/config-generator
+    npm run wasm --prefix config-generator
 
 # Start the TUIC documentation development server.
 docs:
@@ -38,7 +38,7 @@ check:
     cargo test --workspace --locked
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
-    npm run check --prefix tuic/config-generator
+    npm run check --prefix config-generator
 
 # Build every documentation site and the standalone generator under site/.
 build:
@@ -54,7 +54,7 @@ browser:
 
 # Run browser regression tests against the assembled deployment build.
 browser-site: build
-    uv run --locked python tests/config-generator/run-browser.py --directory site/tuic/config-generator --prefix /tuic/config-generator/
+    uv run --locked python tests/config-generator/run-browser.py --directory site/config-generator --prefix /config-generator/
 
 # Build, validate, and serve the assembled site preview.
 preview: site-check

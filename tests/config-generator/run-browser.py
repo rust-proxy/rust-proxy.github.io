@@ -8,7 +8,7 @@ import subprocess
 import threading
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--directory', default='tuic/config-generator/dist')
+parser.add_argument('--directory', default='config-generator/dist')
 parser.add_argument('--script', default='tests/config-generator/browser.mjs')
 parser.add_argument('--prefix', default='/', help='Public URL prefix used when building the static application')
 args = parser.parse_args()

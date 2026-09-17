@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH ?? 'playwright');
-const base = process.env.PREVIEW_URL ?? 'http://127.0.0.1:8765/tuic/config-generator/';
+const base = process.env.PREVIEW_URL ?? 'http://127.0.0.1:8765/config-generator/';
 const channel = process.env.BROWSER_CHANNEL ?? (process.env.CI ? 'chromium' : 'msedge');
 const browser = await chromium.launch({ channel, headless: true });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'] });

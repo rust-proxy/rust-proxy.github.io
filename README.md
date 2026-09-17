@@ -3,7 +3,7 @@
 本仓库即组织站点仓库 `rust-proxy.github.io`，其 Pages 站点根路径为 `https://rust-proxy.github.io/`。每个项目是独立的静态站点，位于各自的子路径下；根路径提供门户页。
 
 - TUIC 文档：[rust-proxy.github.io/tuic](https://rust-proxy.github.io/tuic/)。
-- TUIC 配置生成器：[rust-proxy.github.io/tuic/config-generator/](https://rust-proxy.github.io/tuic/config-generator/)。它有自己的 HTML、CSS、WebAssembly 和主题，可在任意静态服务器独立运行，不依赖文档站或后端。
+- 配置生成器（默认呈现 TUIC 配置）：[rust-proxy.github.io/config-generator/](https://rust-proxy.github.io/config-generator/)。它有自己的 HTML、CSS、WebAssembly 和主题，可在任意静态服务器独立运行，不依赖文档站或后端。
 - Wind 文档：[rust-proxy.github.io/wind](https://rust-proxy.github.io/wind/)。
 
 站点使用 [Zensical](https://zensical.org/docs/) 构建，配置生成器使用 **Rust WASM + Svelte 5** 构建。
@@ -14,8 +14,8 @@
 
 ```sh
 rustup target add wasm32-unknown-unknown
-npm ci --prefix tuic/config-generator
-npm run dev --prefix tuic/config-generator
+npm ci --prefix config-generator
+npm run dev --prefix config-generator
 ```
 
 打开 `http://127.0.0.1:8080/`。无需启动 Python 或 Zensical。支持配对生成、服务端或客户端单独生成、多用户、三种证书模式、SOCKS5 认证、重连、0-RTT 和 TCP/UDP 转发；“配置详解”可按枚举分支浏览 YAML，并通过悬浮或键盘聚焦查看逐项说明。
@@ -35,14 +35,14 @@ just check   # Rust、WASM 与 Svelte 检查
 独立构建：
 
 ```sh
-npm run build --prefix tuic/config-generator
+npm run build --prefix config-generator
 ```
 
-`npm run build` 依次使用锁定的 wasm-pack 编译 Rust 库、运行 Svelte/TypeScript 检查，再由 Vite 打包本地 JS/CSS/WASM。首次构建需要下载匹配 Cargo 锁文件的 wasm-bindgen 工具。`npm run dev` 先编译 WASM，再启动 Vite；Svelte/CSS 支持热更新。修改 Rust 或 XML 后，在另一个终端运行 `npm run wasm --prefix tuic/config-generator` 并刷新浏览器。
+`npm run build` 依次使用锁定的 wasm-pack 编译 Rust 库、运行 Svelte/TypeScript 检查，再由 Vite 打包本地 JS/CSS/WASM。首次构建需要下载匹配 Cargo 锁文件的 wasm-bindgen 工具。`npm run dev` 先编译 WASM，再启动 Vite；Svelte/CSS 支持热更新。修改 Rust 或 XML 后，在另一个终端运行 `npm run wasm --prefix config-generator` 并刷新浏览器。
 
-可通过 `CONFIG_SCHEMA` 指定其他 XML，路径相对 `tuic/config-generator/`（或绝对路径）；默认 `schema/config.xml`。替代构建应输出到独立目录，并在完成后恢复环境及默认 WASM，详见 [DSL v4](tuic/docs/tools/config-dsl.md)。
+可通过 `CONFIG_SCHEMA` 指定其他 XML，路径相对 `config-generator/`（或绝对路径）；默认 `schema/config.xml`。替代构建应输出到独立目录，并在完成后恢复环境及默认 WASM，详见 [DSL v4](tuic/docs/tools/config-dsl.md)。
 
-产物在 `tuic/config-generator/dist/`。将整个目录交给静态服务器即可，默认使用相对资源路径，支持根路径或带结尾 `/` 的子路径。服务器需为 `.wasm` 返回 `application/wasm`；不要通过 `file://` 打开文件。固定前缀使用 `npm run build --prefix tuic/config-generator -- --base /your-prefix/`。
+产物在 `config-generator/dist/`。将整个目录交给静态服务器即可，默认使用相对资源路径，支持根路径或带结尾 `/` 的子路径。服务器需为 `.wasm` 返回 `application/wasm`；不要通过 `file://` 打开文件。固定前缀使用 `npm run build --prefix config-generator -- --base /your-prefix/`。
 
 凭据使用浏览器 Crypto API 生成。所有输入、校验和序列化在本地 WASM 中完成；不加载第三方分析脚本，不保存输入、主题或凭据，不向网络提交配置。复制和下载包含明文密码，预览默认隐藏密码。
 
@@ -68,7 +68,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
 
 # 已构建 WASM 后检查 Svelte/TypeScript（build 也会执行）
-npm run check --prefix tuic/config-generator
+npm run check --prefix config-generator
 
 # 构建全部文档站与独立生成器并组装到 site/，不执行发布
 uv run --locked python scripts/build-site.py
@@ -78,7 +78,7 @@ uv run --locked python tests/config-generator/check-site.py
 uv run --locked python tests/config-generator/preview-server.py
 ```
 
-预览：`http://127.0.0.1:8765/`、`http://127.0.0.1:8765/tuic/`、`http://127.0.0.1:8765/tuic/config-generator/`、`http://127.0.0.1:8765/wind/`。先运行 `npm ci --prefix tuic/config-generator` 安装前端依赖；组合脚本先干净构建各文档站，再把独立生成器放在 `site/tuic/config-generator/`，并把 `portal/index.html` 复制为 `site/index.html`。干净构建前停止文档开发服务器，避免缓存冲突。
+预览：`http://127.0.0.1:8765/`、`http://127.0.0.1:8765/tuic/`、`http://127.0.0.1:8765/config-generator/`、`http://127.0.0.1:8765/wind/`。先运行 `npm ci --prefix config-generator` 安装前端依赖；组合脚本先干净构建各文档站，再把独立生成器放在 `site/config-generator/`，并把 `portal/index.html` 复制为 `site/index.html`。干净构建前停止文档开发服务器，避免缓存冲突。
 
 ### 独立格式解析与真实 TUIC 检查
 
@@ -107,7 +107,7 @@ node tests/config-generator/browser.mjs
 uv run --locked python tests/config-generator/run-browser.py
 
 # 组装站点构建使用部署前缀
-uv run --locked python tests/config-generator/run-browser.py --directory site/tuic/config-generator --prefix /tuic/config-generator/
+uv run --locked python tests/config-generator/run-browser.py --directory site/config-generator --prefix /config-generator/
 
 # 也可以使用 Playwright 自带的 Chromium，与 CI 一致
 npm exec --prefix tests/config-generator -- playwright install chromium
@@ -118,7 +118,7 @@ BROWSER_CHANNEL=chromium node tests/config-generator/browser.mjs
 
 ## DSL 与维护约定
 
-[Config DSL v4](tuic/docs/tools/config-dsl.md) 使用独立的 `tuic/config-generator/schema/config.xml` 静态描述输入、默认值、枚举、条件、列表、映射及敏感字段，由 quick-xml + Serde 反序列化，不使用 Rust 宏或闭包编写配置描述。Rust 会话生成表单视图，Svelte 负责渲染；通用投影与脱敏在 `dsl.rs`，通用校验与联动在 `dsl/rules.rs`，基础地址检查在 `validation.rs`。TUIC 品牌、页面分区、提示、跨字段规则、随机值生成声明、导出命令也全部由 XML 提供。新增目标应用只需更换 XML；`schema/example.xml` 提供无 TUIC 字段的复用示例。
+[Config DSL v4](tuic/docs/tools/config-dsl.md) 使用独立的 `config-generator/schema/config.xml` 静态描述输入、默认值、枚举、条件、列表、映射及敏感字段，由 quick-xml + Serde 反序列化，不使用 Rust 宏或闭包编写配置描述。Rust 会话生成表单视图，Svelte 负责渲染；通用投影与脱敏在 `dsl.rs`，通用校验与联动在 `dsl/rules.rs`，基础地址检查在 `validation.rs`。TUIC 品牌、页面分区、提示、跨字段规则、随机值生成声明、导出命令也全部由 XML 提供。新增目标应用只需更换 XML；`schema/example.xml` 提供无 TUIC 字段的复用示例。
 
 配置状态只由 Rust `Session` 修改。Svelte 提交通用字段/集合操作，读取 `Snapshot` 中的字段显示值、可见性、错误和预览；不解析 XML、不执行条件、不重复保存一份可修改的配置对象。跨 WASM 边界使用 JSON 字符串，字段显示值和稳定行标识均为字符串，避免 JavaScript 数字精度损失。`ui/types.ts` 对应 `session/view.rs` 的显示契约；修改契约时同步更新两侧并运行会话测试及两套浏览器测试。复制和下载通过独立的 `export` 操作获取原始文本，不从脱敏预览读取。
 
@@ -127,19 +127,19 @@ BROWSER_CHANNEL=chromium node tests/config-generator/browser.mjs
 | `Cargo.toml` / `Cargo.lock` | 生成器 Rust workspace 与锁定依赖 |
 | `tuic/zensical.toml` / `tuic/docs/` | TUIC 中文文档、导航、字段说明和 DSL 文档 |
 | `tuic/overrides/` | TUIC 主题覆盖与 404 页面 |
-| `tuic/config-generator/` | 可独立构建的 Rust WASM + Svelte 单页应用 |
-| `tuic/config-generator/ui/` | 通用 Svelte 控件、页面布局、浏览器操作及显示契约 |
-| `tuic/config-generator/src/session.rs` / `session/view.rs` | 可原生测试的编辑操作、表单视图和预览导出 |
-| `tuic/config-generator/src/wasm.rs` | WASM 接口及浏览器 Crypto API 随机数适配 |
-| `tuic/config-generator/package.json` / `vite.config.js` | 锁定的前端工具与静态资源打包 |
-| `tuic/config-generator/schema/config.xml` | 唯一 TUIC 产品定义：界面、字段、规则、提示与输出 |
-| `tuic/config-generator/src/dsl/xml.rs` / `dsl/wire.rs` / `dsl/parser.rs` | XML 子集检查、Serde 数据模型与语义校验 |
-| `tuic/config-generator/src/dsl.rs` | 数据投影、类型检查与脱敏 |
-| `tuic/config-generator/src/schema.rs` | 嵌入 XML、缓存解析结果、通用状态与独立行标识 |
-| `tuic/config-generator/src/dsl/metadata.rs` / `dsl/rules.rs` | 页面元数据、随机值声明、校验和字段联动 |
-| `tuic/config-generator/schema/example.xml` | 无 TUIC 字段的完整应用复用示例 |
-| `tuic/config-generator/src/model.rs` | 配置生成入口及三种格式序列化 |
-| `tuic/config-generator/tests/` | XML DSL 与配置回归测试 |
+| `config-generator/` | 可独立构建的 Rust WASM + Svelte 单页应用 |
+| `config-generator/ui/` | 通用 Svelte 控件、页面布局、浏览器操作及显示契约 |
+| `config-generator/src/session.rs` / `session/view.rs` | 可原生测试的编辑操作、表单视图和预览导出 |
+| `config-generator/src/wasm.rs` | WASM 接口及浏览器 Crypto API 随机数适配 |
+| `config-generator/package.json` / `vite.config.js` | 锁定的前端工具与静态资源打包 |
+| `config-generator/schema/config.xml` | 唯一 TUIC 产品定义：界面、字段、规则、提示与输出 |
+| `config-generator/src/dsl/xml.rs` / `dsl/wire.rs` / `dsl/parser.rs` | XML 子集检查、Serde 数据模型与语义校验 |
+| `config-generator/src/dsl.rs` | 数据投影、类型检查与脱敏 |
+| `config-generator/src/schema.rs` | 嵌入 XML、缓存解析结果、通用状态与独立行标识 |
+| `config-generator/src/dsl/metadata.rs` / `dsl/rules.rs` | 页面元数据、随机值声明、校验和字段联动 |
+| `config-generator/schema/example.xml` | 无 TUIC 字段的完整应用复用示例 |
+| `config-generator/src/model.rs` | 配置生成入口及三种格式序列化 |
+| `config-generator/tests/` | XML DSL 与配置回归测试 |
 | `wind/zensical.toml` / `wind/docs/` | Wind 中文协议规范与设计文档（唯一发布来源） |
 | `wind/specs/` | Wind 英文原始规范与 RFC 模板（归档，不发布） |
 | `portal/index.html` | 站点根门户页 |
@@ -157,6 +157,6 @@ BROWSER_CHANNEL=chromium node tests/config-generator/browser.mjs
 - `build`：使用 wasm-pack、Svelte 检查器和 Vite 构建独立 SPA，组合全部文档站后检查站点链接及资源，再通过锁定版本的 Playwright/Chromium 运行 TUIC 及无 TUIC 字段的 XML 复用浏览器回归。Rust、uv 和 npm 使用依赖缓存。
 - `deploy`：依赖 `check` 和 `build` 成功，仅在 `main` 的推送或手动运行时发布；Pages 写权限和 OIDC 权限仅授予此作业，PR 只验证和构建。
 
-发布产物在临时目录组装，其根目录即 `https://rust-proxy.github.io/`：门户页位于 `/`，TUIC 文档位于 `/tuic/`，独立生成器位于 `/tuic/config-generator/`，Wind 文档位于 `/wind/`。不使用自定义域名或 `CNAME`，Pages 来源应设为 GitHub Actions。真实 TUIC 解析与回环测试仍按上文在具备相邻仓库的环境中运行。
+发布产物在临时目录组装，其根目录即 `https://rust-proxy.github.io/`：门户页位于 `/`，TUIC 文档位于 `/tuic/`，独立生成器位于 `/config-generator/`，Wind 文档位于 `/wind/`。不使用自定义域名或 `CNAME`，Pages 来源应设为 GitHub Actions。真实 TUIC 解析与回环测试仍按上文在具备相邻仓库的环境中运行。
 
 文档已从 MkDocs 迁移至 Zensical，不再使用 i18n 插件。旧 `/tuic/zh/` 路径不生成重定向，外部链接应更新到 `/tuic/` 下。站点构建和配置解析通过不代表远端 DNS、证书、防火墙或代理连接已经验证。

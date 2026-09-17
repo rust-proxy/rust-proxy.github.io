@@ -46,7 +46,7 @@ for path, page in parsed.items():
         elif url.fragment and target in parsed and unquote(url.fragment) not in parsed[target].ids:
             errors.append(f'{path.name}: missing fragment {href}')
 
-generator_path = root / 'tuic/config-generator/index.html'
+generator_path = root / 'config-generator/index.html'
 generator = generator_path.read_text(encoding='utf-8')
 for marker in ('googletagmanager', 'google-analytics', 'gtag('):
     assert marker not in generator, 'Generator must not include third-party analytics'
@@ -54,9 +54,9 @@ for marker in ('md-header', 'md-main', 'iframe', 'app.mjs'):
     assert marker not in generator, 'Generator must be a standalone Svelte/WASM application'
 assets = re.findall(r'''(?:src|href)=["']([^"']+\.(?:js|wasm|css))["']''', generator)
 assert any(asset.endswith('.js') for asset in assets), 'Application entry missing'
-wasm_assets = list((root / 'tuic/config-generator/assets').glob('*.wasm'))
+wasm_assets = list((root / 'config-generator/assets').glob('*.wasm'))
 assert wasm_assets, 'Rust WASM engine missing'
-bundles = list((root / 'tuic/config-generator/assets').glob('*.js'))
+bundles = list((root / 'config-generator/assets').glob('*.js'))
 assert any(wasm.name in bundle.read_text(encoding='utf-8') for wasm in wasm_assets for bundle in bundles), 'WASM engine is not referenced by the application'
 for asset in assets:
     url = urlsplit(asset)

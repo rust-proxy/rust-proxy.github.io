@@ -83,11 +83,11 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: |
-            tuic/config-generator/package-lock.json
+            config-generator/package-lock.json
             tests/config-generator/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm ci --prefix tuic/config-generator
+        run: npm ci --prefix config-generator
 
       - name: Build documentation and standalone generator
         run: |
@@ -110,7 +110,7 @@ jobs:
           preview_pid=$!
           trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
           curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-delay 1 --retry-max-time 60 \
-            http://127.0.0.1:8765/tuic/config-generator/ > /dev/null
+            http://127.0.0.1:8765/config-generator/ > /dev/null
           node tests/config-generator/browser.mjs
 
       - name: Verify application reuse with a different XML description
@@ -118,7 +118,7 @@ jobs:
           CONFIG_SCHEMA: schema/example.xml
           BROWSER_CHANNEL: chromium
         run: |
-          npm run build --prefix tuic/config-generator -- --outDir "$PWD/.cache/generic-site"
+          npm run build --prefix config-generator -- --outDir "$PWD/.cache/generic-site"
           uv run --locked python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs
 
       - name: Assemble Pages artifact

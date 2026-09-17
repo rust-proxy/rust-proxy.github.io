@@ -529,7 +529,7 @@ All other lexical behavior is defined here.
 
 The original baseline is `rust-proxy.github.io` (formerly `tuic-docs`) commit
 `775a176`; the local reference has since been migrated from pest to quick-xml +
-Serde. Relevant files relative to its `tuic/config-generator/` directory are
+Serde. Relevant files relative to its `config-generator/` directory are
 `src/dsl/xml.rs`, `src/dsl/wire.rs`,
 `src/dsl/parser.rs`, `src/dsl.rs`, `src/validation.rs`, and `schema/tuic.xml`.
 These identify the local working implementation, not a published revision of the

@@ -1,5 +1,5 @@
 [workspace]
-members = ["tuic/config-generator"]
+members = ["config-generator"]
 resolver = "3"
 
 [profile.release]
