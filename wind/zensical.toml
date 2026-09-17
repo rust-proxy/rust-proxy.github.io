@@ -1,0 +1,80 @@
+[project]
+site_name = "Wind 中文文档"
+site_description = "Wind 中文协议规范与设计文档。"
+site_url = "https://rust-proxy.github.io/wind/"
+docs_dir = "docs"
+site_dir = "site"
+repo_url = "https://github.com/rust-proxy/wind"
+repo_name = "rust-proxy/wind"
+edit_uri = "https://github.com/rust-proxy/rust-proxy.github.io/edit/main/wind/docs/"
+nav = [
+  { "首页" = "index.md" },
+  { "协议规范" = [
+    { "TUIC" = "tuic.md" },
+    { "AnyTLS" = "anytls.md" },
+    { "NaïveProxy" = "naive.md" },
+    { "Hysteria 2" = "hyteria.md" },
+  ] },
+  { "配置与路由" = [
+    { "Config DSL" = "config-dsl.md" },
+    { "ACL 中间表示" = "acl-ir.md" },
+  ] },
+]
+
+[project.theme]
+custom_dir = "overrides"
+variant = "modern"
+language = "zh"
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.indexes",
+  "navigation.path",
+  "navigation.top",
+  "navigation.footer",
+  "search.highlight",
+  "content.action.edit",
+  "content.code.copy",
+  "content.tabs.link",
+  "toc.follow",
+]
+
+[project.theme.font]
+text = "Noto Sans SC"
+code = "JetBrains Mono"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "teal"
+accent = "teal"
+toggle = { icon = "lucide/moon", name = "切换到深色模式" }
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "teal"
+accent = "teal"
+toggle = { icon = "lucide/sun", name = "切换到浅色模式" }
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+tables = {}
+toc = { permalink = true, slugify = { object = "pymdownx.slugs.slugify", kwds = { case = "lower" } } }
+"pymdownx.details" = {}
+"pymdownx.superfences" = {}
+"pymdownx.highlight" = { anchor_linenums = true, pygments_lang_class = true }
+"pymdownx.inlinehilite" = {}
+"pymdownx.tabbed" = { alternate_style = true }
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/rust-proxy/wind"
+name = "Wind 源码"
+
+[[project.extra.social]]
+icon = "lucide/book-open"
+link = "https://github.com/rust-proxy/rust-proxy.github.io"
+name = "文档仓库"

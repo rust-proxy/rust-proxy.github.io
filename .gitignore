@@ -1,8 +1,9 @@
 site/
+build/
 .venv/
 .cache/
 /target/
-/config-generator/dist/
-/config-generator/.tools/
-/config-generator/pkg/
+/tuic/config-generator/dist/
+/tuic/config-generator/.tools/
+/tuic/config-generator/pkg/
 node_modules/

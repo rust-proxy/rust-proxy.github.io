@@ -1,12 +1,12 @@
 [project]
 site_name = "TUIC 用户文档"
 site_description = "TUIC 中文文档。"
-site_url = "https://docs.ihsin.dev/tuic/"
+site_url = "https://rust-proxy.github.io/tuic/"
 docs_dir = "docs"
 site_dir = "site"
 repo_url = "https://github.com/Itsusinn/tuic"
 repo_name = "Itsusinn/tuic"
-edit_uri = "https://github.com/rust-proxy/tuic-docs/edit/main/docs/"
+edit_uri = "https://github.com/rust-proxy/rust-proxy.github.io/edit/main/tuic/docs/"
 nav = [
   { "首页" = "index.md" },
   { "工具" = [
@@ -57,7 +57,7 @@ admonition = {}
 attr_list = {}
 md_in_html = {}
 tables = {}
-toc = { permalink = true }
+toc = { permalink = true, slugify = { object = "pymdownx.slugs.slugify", kwds = { case = "lower" } } }
 "pymdownx.details" = {}
 "pymdownx.superfences" = {}
 "pymdownx.highlight" = { anchor_linenums = true, pygments_lang_class = true }
@@ -75,5 +75,5 @@ name = "TUIC 源码"
 
 [[project.extra.social]]
 icon = "lucide/book-open"
-link = "https://github.com/rust-proxy/tuic-docs"
+link = "https://github.com/rust-proxy/rust-proxy.github.io"
 name = "文档仓库"

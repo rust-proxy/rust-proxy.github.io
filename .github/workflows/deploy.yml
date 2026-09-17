@@ -83,11 +83,11 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: |
-            config-generator/package-lock.json
+            tuic/config-generator/package-lock.json
             tests/config-generator/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm ci --prefix config-generator
+        run: npm ci --prefix tuic/config-generator
 
       - name: Build documentation and standalone generator
         run: |
@@ -118,14 +118,13 @@ jobs:
           CONFIG_SCHEMA: schema/example.xml
           BROWSER_CHANNEL: chromium
         run: |
-          npm run build --prefix config-generator -- --outDir "$PWD/.cache/generic-site"
+          npm run build --prefix tuic/config-generator -- --outDir "$PWD/.cache/generic-site"
           uv run --locked python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs
 
       - name: Assemble Pages artifact
         run: |
-          mkdir -p "$RUNNER_TEMP/pages/tuic"
-          cp -a site/. "$RUNNER_TEMP/pages/tuic/"
-          cp CNAME "$RUNNER_TEMP/pages/CNAME"
+          mkdir -p "$RUNNER_TEMP/pages"
+          cp -a site/. "$RUNNER_TEMP/pages/"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

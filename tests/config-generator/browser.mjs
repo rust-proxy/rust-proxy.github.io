@@ -144,7 +144,7 @@ try {
   assert.equal(await page.locator('.cg-shell').getAttribute('data-theme'), 'dark');
   await page.screenshot({ path: resolve('.cache/config-generator-dark.png'), fullPage: true });
   const reference = await page.locator('a[href*="config-generator-reference"]').first().getAttribute('href');
-  assert.equal(new URL(reference, base).href, 'https://docs.ihsin.dev/tuic/tools/config-generator-reference/');
+  assert.equal(new URL(reference, base).href, 'https://rust-proxy.github.io/tuic/tools/config-generator-reference/');
   assert.equal(await page.evaluate(() => localStorage.length === 0 || !Object.keys(localStorage).some(k => /generator|password|uuid/.test(k))), true);
   assert.deepEqual(requests.filter(u => /google-analytics|googletagmanager|gtag/.test(u)), []);
   assert.deepEqual(requests.filter(u => !u.startsWith(new URL(base).origin)), [], 'Generator must not fetch remote resources');
