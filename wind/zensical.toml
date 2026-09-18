@@ -1,6 +1,6 @@
 [project]
-site_name = "Wind 中文文档"
-site_description = "Wind 中文协议规范与设计文档。"
+site_name = "Wind 文档"
+site_description = "Wind 中英文协议规范与设计文档。"
 site_url = "https://rust-proxy.github.io/wind/"
 docs_dir = "docs"
 site_dir = "site"
@@ -18,6 +18,16 @@ nav = [
   { "配置与路由" = [
     { "Config DSL" = "config-dsl.md" },
     { "ACL 中间表示" = "acl-ir.md" },
+  ] },
+  { "English" = [
+    { "Overview" = "specs/index.md" },
+    { "TUIC" = "specs/tuic.md" },
+    { "AnyTLS" = "specs/anytls.md" },
+    { "NaïveProxy" = "specs/naive.md" },
+    { "Hysteria 2" = "specs/hyteria.md" },
+    { "Config DSL" = "specs/config-dsl.md" },
+    { "ACL IR" = "specs/acl-ir.md" },
+    { "RFC Template" = "specs/example.md" },
   ] },
 ]
 

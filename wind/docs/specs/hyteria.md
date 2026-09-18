@@ -4,6 +4,8 @@ Date: April 2026
 
 # The Hysteria 2 Protocol Specification
 
+[简体中文](../hyteria.md)
+
 ## Abstract
 
 Hysteria is a TCP and UDP proxy protocol based on QUIC, designed for speed, security, and censorship resistance. This document describes the protocol used by Hysteria starting with version 2.0.0 (internally referred to as the "v4" protocol). It details the underlying wire format, the HTTP/3 masquerading mechanism for authentication, proxy request multiplexing, congestion control signaling, and an optional obfuscation layer.

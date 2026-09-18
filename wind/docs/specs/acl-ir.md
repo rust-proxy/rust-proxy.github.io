@@ -4,6 +4,8 @@ Date: June 2026
 
 # wind ACL Intermediate Representation (acl-ir)
 
+[简体中文](../acl-ir.md)
+
 ## Status of This Memo
 
 This document specifies the in-repository ACL intermediate representation used

@@ -4,6 +4,8 @@ Date: April 2026
 
 # The Anytls Protocol Version 2
 
+[简体中文](../anytls.md)
+
 ## Abstract
 
 This document describes the Anytls protocol, a secure, multiplexed proxy protocol that operates over Transport Layer Security (TLS). The protocol is designed to provide robust obfuscation against traffic analysis through dynamic padding schemes, multiplex multiple logical streams over a single session, and protect against active probing by falling back to standard protocols.

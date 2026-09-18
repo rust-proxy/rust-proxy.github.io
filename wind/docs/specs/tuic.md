@@ -4,6 +4,8 @@ Date: April 2026
 
 # TUIC Protocol Specification
 
+[简体中文](../tuic.md)
+
 ## Status of This Memo
 
 This document specifies the TUIC Protocol version 0x05 for the Internet community. This specification defines a multiplexed, TLS-encrypted streaming protocol designed for efficient network relaying over QUIC transport.

@@ -4,6 +4,8 @@ Date: April 2026
 
 # NaïveProxy Protocol Specification
 
+[简体中文](../naive.md)
+
 ## Abstract
 
 This document specifies the NaïveProxy protocol, a censorship-resistant transport protocol that utilizes standard HTTP/2 and HTTP/3 to tunnel network traffic. By adopting the exact network behavior of mainstream web browsers and using standard web server camouflage to respond to unauthorized probes, NaïveProxy effectively mitigates passive traffic analysis and active probing attacks.

@@ -5,6 +5,8 @@ Language version: 3
 
 # Config DSL：静态配置描述
 
+英文版本：[English](specs/config-dsl.md)
+
 ## 本备忘录状态
 
 本文是仓库级标准的提案，不是已采纳的 Wind API 或互联网标准。它从 TUIC 配置生成器的

@@ -4,6 +4,8 @@ Date: April 2026
 
 # Anytls 协议规范版本 2 (The Anytls Protocol Version 2)
 
+英文版本：[English](specs/anytls.md)
+
 ## 摘要 (Abstract)
 
 本文档描述了 Anytls 协议，这是一种基于传输层安全性 (TLS) 运行的安全、多路复用的代理协议。该协议旨在通过动态填充方案提供强大的流量混淆以对抗流量分析，在单个会话中多路复用多个逻辑流，并通过回退到标准协议来防御主动探测。

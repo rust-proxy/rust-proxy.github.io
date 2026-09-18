@@ -5,6 +5,8 @@ Author: [Author Name]
 
 # [Document Title]
 
+*This is an RFC template for drafting new specifications; it has no Chinese edition.*
+
 ## Status of This Memo
 
 [Insert appropriate status boilerplate here. For example:]

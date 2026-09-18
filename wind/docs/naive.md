@@ -4,6 +4,8 @@ Date: April 2026
 
 # NaïveProxy 协议规范 (NaïveProxy Protocol Specification)
 
+英文版本：[English](specs/naive.md)
+
 ## 摘要 (Abstract)
 
 本文档规定了 NaïveProxy 协议，这是一种抗审查的传输协议，它利用标准的 HTTP/2 和 HTTP/3 来隧道化网络流量。通过采用主流 Web 浏览器完全相同的网络行为，并使用标准 Web 服务器伪装来响应未经授权的探测，NaïveProxy 有效地缓解了被动流量分析和主动探测攻击。

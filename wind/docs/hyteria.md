@@ -4,6 +4,8 @@ Date: April 2026
 
 # Hysteria 2 协议规范 (The Hysteria 2 Protocol Specification)
 
+英文版本：[English](specs/hyteria.md)
+
 ## 摘要 (Abstract)
 
 Hysteria 是一款基于 QUIC 的 TCP 和 UDP 代理协议，专为速度、安全性和抗审查性而设计。本文档描述了从 2.0.0 版本（内部有时称为 "v4" 协议）开始 Hysteria 所使用的协议。它详细说明了底层传输格式、用于身份验证的 HTTP/3 伪装机制、代理请求多路复用、拥塞控制信令以及可选的混淆层。

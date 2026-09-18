@@ -4,6 +4,8 @@ Date: 2026 年 6 月
 
 # wind ACL 中间表示 (acl-ir)
 
+英文版本：[English](specs/acl-ir.md)
+
 ## 本备忘录状态
 
 本文档定义 `wind-acl` 在本仓库内使用的 ACL 中间表示。它不是互联网标准，也不定义线

@@ -5,7 +5,7 @@ Language version: 3
 
 # Config DSL: Static Configuration Description
 
-[简体中文](../docs/config-dsl.md)
+[简体中文](../config-dsl.md)
 
 ## Status of This Memo
 

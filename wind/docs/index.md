@@ -8,7 +8,7 @@ hide:
 
 Wind 是共享的代理框架与协议实现集合，为 TUIC、AnyTLS、NaïveProxy、Hysteria 2 等实现提供共用的传输、路由与配置基础设施。
 
-本手册收录 Wind 的中文协议规范与设计文档。
+本手册收录 Wind 的中文协议规范与设计文档，并同时提供 [English specifications](specs/index.md)。
 
 ## 协议规范
 

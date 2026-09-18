@@ -4,6 +4,8 @@ Date: April 2026
 
 # TUIC 协议规范 (TUIC Protocol Specification)
 
+英文版本：[English](specs/tuic.md)
+
 ## 备忘录状态 (Status of This Memo)
 
 本文档为互联网社区指定了 TUIC 协议版本 0x05。本规范定义了一种多路复用、经 TLS 加密的流式协议，旨在基于 QUIC 传输层实现高效的网络中继。
