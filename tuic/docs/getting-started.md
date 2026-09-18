@@ -52,10 +52,6 @@ hostname = "tuic.example.com"
 alpn = ["h3"]
 ```
 
-`self_sign = true` 会在启动时生成自签名证书，仅适合受控测试：客户端必须显式跳过证书校验。生产环境请改用受信任证书或 ACME，见[服务端配置 · TLS 与证书](server/config.md#tls)。
-
-`[users]` 是 UUID 到密码的映射，至少配置一个用户。客户端必须使用完全相同的一组 UUID 与密码。
-
 ### 启动
 
 ```console
@@ -151,7 +147,7 @@ timeout = "60s"
 
 [打开配置生成器](/config-generator/){ .md-button .md-button--primary }
 
-生成器在浏览器本地运行，可配对生成服务端与客户端配置，支持多用户、TLS、SOCKS5 认证和端口转发，并输出 TOML、JSON 或 YAML。使用方式与限制见[配置生成器说明](tools/config-generator-reference.md)。
+生成器在浏览器本地运行，可配对生成服务端与客户端配置，支持多用户、TLS、SOCKS5 认证和端口转发，并输出 TOML、JSON 或 YAML。
 
 ## 验证
 
