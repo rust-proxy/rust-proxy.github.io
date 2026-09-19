@@ -1,23 +1,23 @@
-# 快速开始
+# 快速入门
 
-本页用最短步骤跑通一对 `tuic-server` 与 `tuic-client`。
+本页面提供了让 `tuic-server` 和 `tuic-client` 组合快速投入运行的最简步骤。
 
-## 前提
+## 先决条件
 
-- 一台可被客户端访问的服务器，具有公网 IP 或可解析的域名。
-- 服务器放行 **UDP** 监听端口；代理 TCP 流量同样走 UDP，QUIC 没有 TCP 监听端口。
-- 客户端与服务器时间大致同步，能解析彼此的地址。
+- 客户端可访问的服务器，该服务器需拥有公共 IP 地址或可解析的域名。
+- 服务器必须允许 **UDP** 监听端口；TCP 流量也会通过 UDP 进行代理，且 QUIC 不使用 TCP 监听端口。
+- 客户端和服务器的时间大致同步，并且能够解析彼此的地址。
 
-## 获取程序
+## 获取软件
 
-预编译二进制见 [GitHub Releases](https://github.com/Itsusinn/tuic/releases)。也可以用 Cargo 安装：
+预编译的二进制文件可在 [GitHub Releases](https://github.com/Itsusinn/tuic/releases) 上获取。您也可以使用 Cargo 进行安装：
 
 ```console
 cargo install --git https://github.com/Itsusinn/tuic.git tuic-server
 cargo install --git https://github.com/Itsusinn/tuic.git tuic-client
 ```
 
-从源码构建需要 Rust `1.85.0` 或更高版本和 Git。仓库包含 submodule，克隆时一并初始化：
+从源代码构建需要 Rust `1.85.0` 或更高版本以及 Git。该代码库包含子模块，这些子模块会在克隆过程中自动初始化：
 
 ```console
 git clone --recurse-submodules https://github.com/Itsusinn/tuic.git
@@ -25,9 +25,9 @@ cd tuic
 cargo build --release --package tuic-server --package tuic-client
 ```
 
-产物位于 `target/release/tuic-server` 与 `target/release/tuic-client`。
+构建生成的文件位于 `target/release/tuic-server` 和 `target/release/tuic-client` 目录中。
 
-## 服务端
+## 服务器
 
 ### 生成示例配置
 
@@ -35,7 +35,7 @@ cargo build --release --package tuic-server --package tuic-client
 tuic-server --init
 ```
 
-该命令在当前目录生成 `config.toml`，包含 5 个随机用户；若文件已存在则拒绝覆盖。也可以从下面的最小配置开始。
+此命令会在当前目录中生成一个包含 5 个随机用户的 `config.toml` 文件；如果该文件已存在，则不会覆盖它。您也可以从下面的最小配置开始。
 
 ### 最小配置
 
@@ -58,34 +58,20 @@ alpn = ["h3"]
 # 指定配置文件
 tuic-server -c /etc/tuic/config.toml
 
-# 或指定目录，自动使用其中按字母序第一个可识别的配置文件
+# 或指定一个目录；系统将自动使用按字母顺序排列的首个可识别配置文件
 tuic-server -d /etc/tuic
 ```
 
-未提供 `-c` 或 `-d` 时服务端会报错退出。配置文件格式由扩展名推断：`.toml`、`.json`、`.json5`、`.yaml`、`.yml`。
+如果未提供 `-c` 或 `-d` 选项，服务器将报告错误并退出。配置文件的格式根据文件扩展名推断：`.toml`、`.json`、`.json5`、`.yaml` 或 `.yml`。
 
 ### 防火墙
 
-至少放行 UDP 监听端口（示例为 `8443`）。ACME 自动证书还需要放行 **TCP 80** 用于 HTTP-01 验证。
+至少需允许 UDP 监听端口（例如 `8443`）上的流量通过。ACME 自动证书还要求 **TCP 端口 80** 处于开放状态，以供 HTTP-01 验证使用。
 
-### Docker
-
-```console
-docker run --name tuic-server \
-  --restart always \
-  --network host \
-  -v /PATH/TO/DATA_DIR:/var/lib/tuic/ \
-  -v /PATH/TO/CONFIG_FILE:/etc/tuic/config.toml \
-  -v /PATH/TO/CERTIFICATE:/var/lib/tuic/fullchain.pem \
-  -v /PATH/TO/PRIVATE_KEY:/var/lib/tuic/key.pem \
-  -dit ghcr.io/itsusinn/tuic-server:latest
-```
-
-容器会使用 `/etc/tuic` 下按字母序第一个配置文件。
 
 ## 客户端
 
-### 最小配置
+### 最低配置
 
 ```toml
 log_level = "info"
@@ -101,31 +87,31 @@ alpn = ["h3"]
 server = "127.0.0.1:1080"
 ```
 
-- `server` 是客户端可达的 `host:port`，IPv6 必须写作 `[addr]:port`。
-- 用 IP 连接时仍应把证书域名填入 `tls.sni`，否则 TLS 校验会失败。
-- 若服务端使用自签名证书，测试时需加 `skip_cert_verify = true`（生产环境不应使用）。
+- `server` 是客户端可访问的 `主机:端口` 地址；对于 IPv6，必须写为 `[地址]:端口`。
+- 通过 IP 连接时，仍应在 `tls.sni` 中指定证书域名；否则，TLS 验证将失败。
+- 如果服务器使用自签名证书，在测试期间请添加 `skip_cert_verify = true`（生产环境中不应使用此设置）。
 
-### 启动
+### 启动客户端
 
 ```console
 tuic-client -c /etc/tuic/client.toml
 ```
 
-客户端默认按需连接（`lazy = true`）：收到第一个代理请求时才建立 QUIC 连接。连接断开后默认自动重连。
+默认情况下，客户端按需连接（`lazy = true`）：仅在收到第一个代理请求时才建立 QUIC 连接。连接中断后，默认会自动重新连接。
 
-### 让应用使用代理
+### 配置应用程序以使用代理
 
-客户端在 `local.server` 暴露一个 SOCKS5 服务。将应用或系统的 SOCKS5 代理指向 `127.0.0.1:1080` 即可。例如：
+客户端在 `local.server` 暴露一个 SOCKS5 服务。只需将应用程序或系统的 SOCKS5 代理指向 `127.0.0.1:1080` 即可。例如：
 
 ```console
 curl --socks5-hostname 127.0.0.1:1080 https://example.com
 ```
 
-`--socks5-hostname` 让域名在服务端解析，适合需要远端 DNS 的场景。
+`--socks5-hostname` 选项会在服务器端解析域名，这适用于需要远程 DNS 的场景。
 
 ### 端口转发
 
-除 SOCKS5 外，客户端可把本地端口直接转发到远端目标：
+除了 SOCKS5 之外，客户端还可以将本地端口直接转发到远程目标：
 
 ```toml
 [local]
@@ -141,18 +127,19 @@ remote = "8.8.8.8:53"
 timeout = "60s"
 ```
 
-服务端默认拦截回环和私有目标地址（`experimental.drop_loopback`、`experimental.drop_private`）。访问内网目标需要另行调整服务端路由与访问控制。
+默认情况下，服务器会阻止回环地址和私有目标地址（`experimental.drop_loopback`、`experimental.drop_private`）。若要访问内部网络目标，您必须单独配置服务器的路由和访问控制。
 
-## 用配置生成器起步
+## 开始使用配置生成器
 
 [打开配置生成器](/config-generator/){ .md-button .md-button--primary }
 
-生成器在浏览器本地运行，可配对生成服务端与客户端配置，支持多用户、TLS、SOCKS5 认证和端口转发，并输出 TOML、JSON 或 YAML。
+该生成器在您的浏览器中本地运行，可生成成对的服务器和客户端配置。它支持多用户、TLS、SOCKS5 身份验证和端口转发，并输出 TOML、JSON 或 YAML 格式。
 
 ## 验证
 
-1. 服务端日志出现监听与 TLS 就绪信息。
-2. 客户端启动后，通过本地 SOCKS5 请求一个外部地址。
-3. 若失败，依次检查：UDP 端口是否放行、`tls.sni` 是否与证书匹配、两端 `uuid`/`password` 是否一致、`tls.alpn` 是否一致。
+1. 服务器日志应显示其正在监听并已准备好进行 TLS 连接。
+2. 启动客户端后，从本地机器向外部地址发送一个 SOCKS5 请求。
+3. 如果请求失败，请按以下顺序检查：UDP 端口是否已打开、`tls.sni` 是否与证书匹配、双方的 `uuid` 和 `password` 是否一致，以及 `tls.alpn` 是否匹配。
 
-配置校验通过只代表字段合法，不代表 DNS、证书、防火墙或实际链路已经验证。
+通过配置验证仅表示字段有效；并不意味着 DNS、证书、防火墙或实际网络连接已通过验证。
+
