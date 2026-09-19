@@ -10,9 +10,8 @@ edit_uri = "https://github.com/rust-proxy/rust-proxy.github.io/edit/main/tuic/do
 nav = [
   { "首页" = "index.md" },
   { "快速开始" = "getting-started.md" },
-  { "工具" = [
-    { "配置生成器" = "/config-generator/" },
-  ] },
+  { "Docker" = "docker.md" },
+  { "配置生成器" = "/config-generator/" },
 ]
 
 [project.theme]
