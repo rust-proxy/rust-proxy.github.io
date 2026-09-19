@@ -55,9 +55,8 @@ jobs:
 
       - name: Verify TOML, JSON and YAML round trips
         run: |
-          uv sync --locked
           cargo run --locked --example fixtures -- .cache/config-generator-fixtures
-          uv run --locked python tests/config-generator/roundtrip.py .cache/config-generator-fixtures/roundtrip.json
+          uvx --with 'PyYAML>=6,<7' python tests/config-generator/roundtrip.py .cache/config-generator-fixtures/roundtrip.json
 
   build:
     name: Build and test standalone SPA
@@ -86,14 +85,15 @@ jobs:
             config-generator/package-lock.json
             tests/config-generator/package-lock.json
 
+      - uses: extractions/setup-just@v4
+
       - name: Install frontend dependencies
         run: npm ci --prefix config-generator
 
       - name: Build documentation and standalone generator
         run: |
-          uv sync --locked
-          uv run --locked python scripts/build-site.py
-          uv run --locked python tests/config-generator/check-site.py
+          just build
+          uvx python tests/config-generator/check-site.py
 
       - name: Install browser test dependencies
         run: npm ci --prefix tests/config-generator
@@ -106,7 +106,7 @@ jobs:
         env:
           BROWSER_CHANNEL: chromium
         run: |
-          uv run --locked python tests/config-generator/preview-server.py &
+          uvx python tests/config-generator/preview-server.py &
           preview_pid=$!
           trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
           curl --fail --silent --show-error --retry 30 --retry-connrefused --retry-delay 1 --retry-max-time 60 \
@@ -119,7 +119,7 @@ jobs:
           BROWSER_CHANNEL: chromium
         run: |
           npm run build --prefix config-generator -- --outDir "$PWD/.cache/generic-site"
-          uv run --locked python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs
+          uvx python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs
 
       - name: Assemble Pages artifact
         run: |

@@ -12,7 +12,7 @@ v4 替换 v3 描述格式，旧 XML 需要迁移；已生成的 TUIC 配置保�
 $env:CONFIG_SCHEMA = 'schema/example.xml'
 try {
     npm run build --prefix config-generator -- --outDir ../.cache/generic-site
-    uv run --locked python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs
+    uvx python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs
 } finally {
     Remove-Item Env:CONFIG_SCHEMA
     npm run wasm --prefix config-generator

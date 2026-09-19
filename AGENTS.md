@@ -48,15 +48,14 @@ Credentials are generated with the browser Crypto API. All input, validation, an
 
 ## Running the documentation locally
 
-Requires Python 3.10+ and [uv](https://docs.astral.sh/uv/).
+Requires [uv](https://docs.astral.sh/uv/); `uvx` fetches the pinned Zensical and Python on demand, so no project virtual environment is created.
 
 ```sh
-uv sync --locked
-uv run --locked zensical serve -f tuic/zensical.toml
-uv run --locked zensical serve -f wind/zensical.toml
+just docs
+just docs-wind
 ```
 
-Each documentation site has its own `zensical.toml` and `docs/`; the development server serves only one site at a time, and the configuration generator runs separately with the Vite server above. When adding a documentation site, create `<project>/zensical.toml` and `<project>/docs/`, and add it to the site list in `scripts/build-site.py` and to the portal links.
+Each documentation site has its own `zensical.toml` and `docs/`; the development server serves only one site at a time, and the configuration generator runs separately with the Vite server above. When adding a documentation site, create `<project>/zensical.toml` and `<project>/docs/`, and add it to the `build` recipe in `justfile` and to the portal links.
 
 ## Combined build and validation
 
@@ -71,14 +70,14 @@ cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
 npm run check --prefix config-generator
 
 # Build all documentation sites and the standalone generator into site/; no publishing
-uv run --locked python scripts/build-site.py
-uv run --locked python tests/config-generator/check-site.py
+just build
+uvx python tests/config-generator/check-site.py
 
 # Assemble a site preview (/, /tuic/, /wind/)
-uv run --locked python tests/config-generator/preview-server.py
+uvx python tests/config-generator/preview-server.py
 ```
 
-Preview: `http://127.0.0.1:8765/`, `http://127.0.0.1:8765/tuic/`, `http://127.0.0.1:8765/config-generator/`, `http://127.0.0.1:8765/wind/`. Run `npm ci --prefix config-generator` first to install the frontend dependencies; the combined script clean-builds each documentation site, places the standalone generator under `site/config-generator/`, and copies `portal/index.html` to `site/index.html`. Stop the documentation development servers before a clean build to avoid cache conflicts.
+Preview: `http://127.0.0.1:8765/`, `http://127.0.0.1:8765/tuic/`, `http://127.0.0.1:8765/config-generator/`, `http://127.0.0.1:8765/wind/`. Run `npm ci --prefix config-generator` first to install the frontend dependencies; the combined build clean-builds each documentation site, places the standalone generator under `site/config-generator/`, and copies `portal/index.html` to `site/index.html`. Stop the documentation development servers before a clean build to avoid cache conflicts.
 
 ### Standalone format parsing and real TUIC checks
 
@@ -87,10 +86,10 @@ Preview: `http://127.0.0.1:8765/`, `http://127.0.0.1:8765/tuic/`, `http://127.0.
 cargo run --locked --example fixtures -- .cache/config-generator-fixtures
 
 # Python 3.11+ independent parsers for tomllib, json, and PyYAML
-uv run --locked --with 'PyYAML>=6,<7' python tests/config-generator/roundtrip.py .cache/config-generator-fixtures/roundtrip.json
+uvx --with 'PyYAML>=6,<7' python tests/config-generator/roundtrip.py .cache/config-generator-fixtures/roundtrip.json
 
 # Call the neighboring TUIC's real parsing functions and run a local SOCKS5 -> TUIC -> TCP echo
-uv run --locked python tests/config-generator/check-rust.py --offline
+uvx python tests/config-generator/check-rust.py --offline
 ```
 
 The real parsing check requires the neighboring `../tuic`, its submodules, cached dependencies, and the corresponding build tools; omit `--offline` when the dependency cache is missing. The auxiliary Cargo project writes only to `.cache/`, starts from TUIC's lock file, and does not modify TUIC manifests, sources, lock files, or submodules. The loopback allowance applies only to the in-memory test configuration, and error diagnostics never print configuration contents.
@@ -104,17 +103,17 @@ npm ci --prefix tests/config-generator
 node tests/config-generator/browser.mjs
 
 # Test the built standalone artifact; the temporary local server shuts down with the test
-uv run --locked python tests/config-generator/run-browser.py
+uvx python tests/config-generator/run-browser.py
 
 # Use the deployment prefix for the assembled site build
-uv run --locked python tests/config-generator/run-browser.py --directory site/config-generator --prefix /config-generator/
+uvx python tests/config-generator/run-browser.py --directory site/config-generator --prefix /config-generator/
 
 # Alternatively use Playwright's bundled Chromium, matching CI
 npm exec --prefix tests/config-generator -- playwright install chromium
 BROWSER_CHANNEL=chromium node tests/config-generator/browser.mjs
 ```
 
-`PLAYWRIGHT_MODULE_PATH` can point to an existing Playwright module directory; `BROWSER_CHANNEL` accepts `msedge`, `chrome`, and `chromium`, with CI defaulting to `chromium`. The standalone Vite development server uses `PREVIEW_URL=http://127.0.0.1:8080/`. The tests cover WASM loading, standalone page structure, pairing consistency, user removal, TLS switching, input validation, forwarding edits, copy/download, escaping, mobile, theming, no external requests, and no input persistence; screenshots go to `.cache/`. The reuse check builds with `schema/example.xml` into `.cache/generic-site` and runs `uv run --locked python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs`; see the DSL documentation for the full command. CI likewise keeps the default site artifacts for later publishing.
+`PLAYWRIGHT_MODULE_PATH` can point to an existing Playwright module directory; `BROWSER_CHANNEL` accepts `msedge`, `chrome`, and `chromium`, with CI defaulting to `chromium`. The standalone Vite development server uses `PREVIEW_URL=http://127.0.0.1:8080/`. The tests cover WASM loading, standalone page structure, pairing consistency, user removal, TLS switching, input validation, forwarding edits, copy/download, escaping, mobile, theming, no external requests, and no input persistence; screenshots go to `.cache/`. The reuse check builds with `schema/example.xml` into `.cache/generic-site` and runs `uvx python tests/config-generator/run-browser.py --directory .cache/generic-site --script tests/config-generator/browser-generic.mjs`; see the DSL documentation for the full command. CI likewise keeps the default site artifacts for later publishing.
 
 ## DSL and maintenance conventions
 
@@ -143,7 +142,7 @@ Configuration state is modified only by the Rust `Session`. Svelte submits gener
 | `wind/zensical.toml` / `wind/docs/` | Wind Chinese protocol specifications and design documents (single publishing source) |
 | `wind/docs/specs/` | Wind English specifications and RFC template, published under `/wind/specs/` and kept in sync with the Chinese editions |
 | `portal/index.html` | Site root portal page |
-| `scripts/build-site.py` | Build all documentation sites and the generator and assemble them into `site/`; does not publish |
+| `justfile` | Build, check, and preview recipes; the `build` recipe assembles all documentation sites and the generator into `site/` without publishing |
 | `tests/config-generator/` | Standalone parser, real TUIC, site, and browser checks |
 | `.github/workflows/deploy.yml` | GitHub Pages build and publish workflow |
 
@@ -153,7 +152,7 @@ The main documentation is maintained only in Simplified Chinese; the English spe
 
 The [CI and Pages workflow](.github/workflows/deploy.yml) runs on pull requests, pushes to `main`, and manual triggers:
 
-- `check`: nightly rustfmt, stable native and WASM Clippy, Rust/XML DSL tests, and independent TOML/JSON/YAML parsing round trips. Python is pinned to 3.13, and dependencies use `uv.lock`.
+- `check`: nightly rustfmt, stable native and WASM Clippy, Rust/XML DSL tests, and independent TOML/JSON/YAML parsing round trips. Python is pinned to 3.13 via `UV_PYTHON`, and tools run on demand with `uvx`.
 - `build`: builds the standalone SPA with wasm-pack, the Svelte checker, and Vite, assembles all documentation sites, checks site links and assets, and then runs the TUIC and no-TUIC-field XML reuse browser regressions through the locked Playwright/Chromium. Rust, uv, and npm use dependency caching.
 - `deploy`: depends on `check` and `build` succeeding, and publishes only on pushes to `main` or manual runs; Pages write and OIDC permissions are granted only to this job, while pull requests only validate and build.
 
