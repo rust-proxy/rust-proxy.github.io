@@ -4,7 +4,7 @@
 set windows-shell := ["bash", "-c"]
 
 # Pinned Zensical version, run on demand with `uvx`.
-zensical := 'zensical==0.0.59'
+zensical := 'zensical==0.0.63'
 
 # Show the available repository tasks.
 default:
