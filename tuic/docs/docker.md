@@ -45,14 +45,16 @@ docker run -d \
   --restart unless-stopped \
   -p 8443:8443/udp \
   -v /etc/tuic:/etc/tuic:ro \
+  -v /var/lib/tuic:/var/lib/tuic \
   ghcr.io/itsusinn/tuic-server:latest
 ```
 
 - `-p 8443:8443/udp` 必须显式指定 `/udp`；TUIC 不使用 TCP 监听端口。
 - `-v /etc/tuic:/etc/tuic:ro` 以只读方式挂载配置目录，与默认命令 `-d /etc/tuic` 对应。
+- `-v /var/lib/tuic:/var/lib/tuic` 以可写方式挂载数据目录，用于持久化 `data_dir`（ACME 证书等）；如不需要持久化可省略。
 - 如需使用不同的目录，请覆盖命令，例如 `ghcr.io/itsusinn/tuic-server -d /config`。
 
-容器的工作目录是 `/var/lib/tuic`。配置中的 `data_dir` 默认为空，会解析为该工作目录；TLS 证书与私钥的**相对路径**也基于 `data_dir` 解析，而不是配置文件所在目录。因此配置里应使用**绝对路径**，或显式设置 `data_dir`，否则相对路径会指向容器内临时的 `/var/lib/tuic`。
+容器的工作目录是 `/var/lib/tuic`。配置中的 `data_dir` 默认为空，会解析为该工作目录；TLS 证书与私钥的**相对路径**也基于 `data_dir` 解析，而不是配置文件所在目录。因此配置里应使用**绝对路径**，或显式设置 `data_dir`，否则相对路径会指向容器内临时的 `/var/lib/tuic`。如需持久化 ACME 等数据，请把宿主机目录挂载到该路径。
 
 ### Docker Compose
 
@@ -66,15 +68,12 @@ services:
       - "8443:8443/udp"
     volumes:
       - /etc/tuic:/etc/tuic:ro
+      - /var/lib/tuic:/var/lib/tuic
 ```
 
 若服务器使用 ACME 自动申请证书，HTTP-01 验证还需要开放 **TCP 端口 80**。此时可在 `ports` 中追加 `"80:80/tcp"`，或改用 `network_mode: host` 让容器直接使用宿主机网络。
 
-ACME 证书会写入 `data_dir`。默认情况下 `data_dir` 为空并解析为 `/var/lib/tuic`，属于容器可写层，容器重建后会丢失并触发重新申请。如需持久化，请把 `data_dir` 指向挂载目录（例如 `/etc/tuic`）并使用**可写**挂载，此时不要加 `:ro`：
-
-```toml
-data_dir = "/etc/tuic"
-```
+ACME 证书会写入 `data_dir`。默认情况下 `data_dir` 为空并解析为容器内 `/var/lib/tuic`，属于容器可写层，容器重建后会丢失并触发重新申请。如需持久化，把宿主机目录挂载到容器内的 `/var/lib/tuic` 即可，无需修改 `data_dir`，配置目录也仍可保持 `:ro`。挂载示例见上文的 `docker run` 与 Docker Compose。
 
 ## 验证
 
