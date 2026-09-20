@@ -1,6 +1,6 @@
 # Docker 部署
 
-本页面介绍如何使用官方镜像运行 `tuic-server`。客户端仍按[快速入门](getting-started.md)在宿主机或其它容器中运行。
+本页面介绍如何使用官方镜像运行 `tuic-server`。服务端的完整配置见[服务端](server.md)，客户端仍按[快速入门](getting-started.md)在宿主机或其它容器中运行。
 
 ## 前置条件
 

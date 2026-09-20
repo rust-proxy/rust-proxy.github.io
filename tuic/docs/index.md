@@ -14,6 +14,8 @@ TUIC 是一个基于 QUIC 传输协议实现的 0-RTT 代理协议。旨在最�
 ## 手册导航
 
 - [快速开始](getting-started.md)：获取程序、最小配置、启动与验证。
+- [服务端](server.md)：安装、启动与完整配置、TLS 与 ACME。
+- [客户端](client.md)：安装、启动与完整配置、SOCKS5 与端口转发。
 - [Docker 部署](docker.md)：使用官方镜像运行服务端。
 - [配置生成器](/config-generator/)：在浏览器本地生成服务器与客户端配置。
 
