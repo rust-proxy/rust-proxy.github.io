@@ -10,7 +10,6 @@ pub struct Ui {
 	pub mark: String,
 	pub eyebrow: String,
 	pub description: String,
-	pub reference: String,
 	pub export_hint: String,
 	pub mode_field: Option<String>,
 	pub format_field: Option<String>,
@@ -25,7 +24,6 @@ impl Default for Ui {
 			mark: "C".into(),
 			eyebrow: String::new(),
 			description: String::new(),
-			reference: String::new(),
 			export_hint: String::new(),
 			mode_field: None,
 			format_field: None,
@@ -139,7 +137,6 @@ pub(super) fn parse_ui(node: Option<&Element>) -> Result<Ui, DslError> {
 			"mark",
 			"eyebrow",
 			"description",
-			"reference",
 			"export-hint",
 			"mode-field",
 			"format-field",
@@ -151,15 +148,11 @@ pub(super) fn parse_ui(node: Option<&Element>) -> Result<Ui, DslError> {
 		mark: node.attr("mark").unwrap_or_default().into(),
 		eyebrow: node.attr("eyebrow").unwrap_or_default().into(),
 		description: node.attr("description").unwrap_or_default().into(),
-		reference: node.attr("reference").unwrap_or_default().into(),
 		export_hint: node.attr("export-hint").unwrap_or_default().into(),
 		mode_field: node.attr("mode-field").map(str::to_owned),
 		format_field: node.attr("format-field").map(str::to_owned),
 		..Ui::default()
 	};
-	if !ui.reference.is_empty() && !ui.reference.starts_with("https://") {
-		return Err(node.error("说明链接必须使用 HTTPS"));
-	}
 	let mut seen = BTreeSet::new();
 	for child in &node.children {
 		if child.tag == "notice" {

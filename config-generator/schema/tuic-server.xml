@@ -1,5 +1,5 @@
 <config-dsl version="4" target-version="2.0.0-dev7">
-	<ui title="服务端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写监听、认证与路由信息，生成 TUIC 服务端配置。" reference="https://rust-proxy.github.io/tuic/tools/config-generator-reference/" format-field="format" export-hint="复制和下载始终包含真实密码。">
+	<ui title="服务端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写监听、认证与路由信息，生成 TUIC 服务端配置。" format-field="format" export-hint="复制和下载始终包含真实密码。">
 		<section name="addresses" label="连接信息" />
 		<section name="authentication" label="用户认证" />
 		<section name="tls" label="TLS 与证书">
@@ -292,18 +292,51 @@
 				<choice value="acme" label="ACME 自动证书" />
 				<choice value="self" label="自签名测试" />
 			</selector>
+			<selector name="backend" label="QUIC 后端" default="quinn">
+				<choice value="quinn" label="Quinn" />
+				<choice value="quiche" label="quiche" />
+			</selector>
 			<selector name="controller" label="拥塞控制" default="bbr">
 				<choice value="bbr" label="BBR" />
 				<choice value="bbr3" label="BBR3" />
 				<choice value="cubic" label="CUBIC" />
 				<choice value="newreno" label="New Reno" />
 			</selector>
-			<selector name="routing" label="路由" default="off">
+			<selector name="logging" label="文件日志" default="off">
+				<choice value="off" label="关闭" />
+				<choice value="file" label="写入 log 表" />
+			</selector>
+			<selector name="outbound" label="默认出站" default="direct">
+				<choice value="direct" label="direct 直连" />
+				<choice value="socks5" label="socks5 上游" />
+			</selector>
+			<selector name="routing" label="ACL 与规则" default="off">
 				<choice value="off" label="不配置" />
 				<choice value="acl" label="ACL 与规则" />
 			</selector>
+			<selector name="dns" label="DNS" default="off">
+				<choice value="off" label="系统解析" />
+				<choice value="custom" label="自定义 DNS" />
+			</selector>
+			<selector name="geodata" label="GeoData" default="off">
+				<choice value="off" label="不配置" />
+				<choice value="on" label="加载数据库" />
+			</selector>
+			<selector name="restful" label="管理 API" default="off">
+				<choice value="off" label="关闭" />
+				<choice value="on" label="启用" />
+			</selector>
+			<selector name="masquerade" label="HTTP/3 伪装" default="off">
+				<choice value="off" label="关闭" />
+				<choice value="on" label="启用" />
+			</selector>
 			<line yaml="server: &quot;[::]:8443&quot;" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。" />
 			<line yaml="log_level: info" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。" />
+			<line yaml="log:" description="文件日志配置；未启用时不会输出该表。" when="logging=file" />
+			<line indent="1" yaml="format: text" description="日志输出格式：text 为可读文本，json 为结构化日志。" when="logging=file" />
+			<line indent="1" yaml="compact: true" description="单行紧凑输出，仅对 text 格式生效。" when="logging=file" />
+			<line indent="1" yaml="log_file: /var/log/tuic/server.log" description="可选日志文件路径；设置后同时写入文件与标准输出。" when="logging=file" />
+			<line indent="1" yaml="log_rotation: never" description="日志轮转策略：never、hourly 或 daily。" when="logging=file" />
 			<line yaml="zero_rtt_handshake: false" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。" />
 			<line yaml="auth_timeout: 3s" description="等待客户端认证命令的时间。" />
 			<line yaml="stream_timeout: 60s" description="TCP/UDP I/O 任务的保留时间。" />
@@ -321,28 +354,76 @@
 			<line indent="1" yaml="acme_staging: false" description="使用 ACME 预发布环境，仅用于测试证书申请流程。" when="tls=acme" />
 			<line indent="1" yaml="self_sign: true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self" />
 			<line yaml="backend:" description="底层 QUIC 实现及其传输参数。" />
-			<line indent="1" yaml="mode: quinn" description="选择 Quinn 作为 QUIC 后端；quiche 为实验性后端，需要构建时启用对应 feature。" />
-			<line indent="1" yaml="quinn:" description="Quinn 后端的专属配置命名空间。" />
-			<line indent="2" yaml="congestion_control:" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。" />
-			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr" />
-			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="controller=bbr3" />
-			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="controller=cubic" />
-			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="controller=newreno" />
-			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。" />
-			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。" />
-			<line indent="2" yaml="max_idle_time: 30s" description="空闲连接关闭等待时间。" />
+			<line indent="1" yaml="mode: quinn" description="选择 Quinn 作为 QUIC 后端。" when="backend=quinn" />
+			<line indent="1" yaml="mode: quiche" description="选择 quiche 作为 QUIC 后端；实验性，需要构建时启用对应 feature。" when="backend=quiche" />
+			<line indent="1" yaml="quinn:" description="Quinn 后端的专属配置命名空间。" when="backend=quinn" />
+			<line indent="2" yaml="congestion_control:" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。" when="backend=quinn" />
+			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="backend=quinn,controller=bbr" />
+			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="backend=quinn,controller=bbr3" />
+			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="backend=quinn,controller=cubic" />
+			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="backend=quinn,controller=newreno" />
+			<line indent="3" yaml="initial_window: 1048576" description="初始拥塞窗口（字节）。" when="backend=quinn" />
+			<line indent="2" yaml="initial_mtu: 1200" description="MTU 发现前的初始 UDP 载荷。" when="backend=quinn" />
+			<line indent="2" yaml="min_mtu: 1200" description="网络保证支持的最小 UDP 载荷，须不小于 1200 且不大于 initial_mtu。" when="backend=quinn" />
+			<line indent="2" yaml="gso: true" description="启用通用分段卸载（GSO）。" when="backend=quinn" />
+			<line indent="2" yaml="pmtu: true" description="启用路径 MTU 发现。" when="backend=quinn" />
+			<line indent="2" yaml="send_window: 16777216" description="未确认情况下允许发送的最大字节数。" when="backend=quinn" />
+			<line indent="2" yaml="receive_window: 8388608" description="对端每条流未确认情况下允许发送的最大字节数。" when="backend=quinn" />
+			<line indent="2" yaml="max_idle_time: 30s" description="空闲连接关闭前的等待时间。" when="backend=quinn" />
+			<line indent="1" yaml="quiche:" description="quiche 后端的专属配置命名空间。" when="backend=quiche" />
+			<line indent="2" yaml="congestion_control:" description="拥塞控制配置。" when="backend=quiche" />
+			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="backend=quiche,controller=bbr" />
+			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现。" when="backend=quiche,controller=bbr3" />
+			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制。" when="backend=quiche,controller=cubic" />
+			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法。" when="backend=quiche,controller=newreno" />
+			<line indent="2" yaml="max_idle_time: 30s" description="空闲连接关闭前的等待时间。" when="backend=quiche" />
+			<line indent="2" yaml="max_concurrent_bi_streams: 100" description="允许的并发双向流数量。" when="backend=quiche" />
+			<line indent="2" yaml="max_concurrent_uni_streams: 100" description="允许的并发单向流数量。" when="backend=quiche" />
+			<line indent="2" yaml="send_window: 16777216" description="未确认情况下允许发送的最大字节数。" when="backend=quiche" />
+			<line indent="2" yaml="receive_window: 8388608" description="对端每条流未确认情况下允许发送的最大字节数。" when="backend=quiche" />
+			<line indent="2" yaml="zero_rtt: false" description="quiche 后端的 0-RTT 早期数据开关。" when="backend=quiche" />
 			<line yaml="outbound:" description="出站规则；default 用于未匹配的流量，具名出站可被 ACL 或规则引用。" />
 			<line indent="1" yaml="default:" description="默认出站。" />
-			<line indent="2" yaml="type: direct" description="direct 直连，或 socks5 经上游代理。" />
-			<line indent="2" yaml="ip_mode: v4first" description="直连时的地址族偏好。" when="routing=acl" />
+			<line indent="2" yaml="type: direct" description="direct 直连。" when="outbound=direct" />
+			<line indent="2" yaml="ip_mode: v4first" description="直连时的地址族偏好：v4first、v6first、v4only 或 v6only。" when="outbound=direct" />
+			<line indent="2" yaml="bind_ipv4: 1.2.3.4" description="可选：绑定出站 IPv4 源地址；多个地址需手动改为数组。" when="outbound=direct" />
+			<line indent="2" yaml="bind_ipv6: 2001:db8::1" description="可选：绑定出站 IPv6 源地址；多个地址需手动改为数组。" when="outbound=direct" />
+			<line indent="2" yaml="bind_device: eth0" description="可选：绑定 Linux 网络接口。" when="outbound=direct" />
+			<line indent="2" yaml="tfo: false" description="是否启用 TCP Fast Open，需要内核支持。" when="outbound=direct" />
+			<line indent="2" yaml="routing_mark: 100" description="可选：Linux SO_MARK 路由标记，用于策略路由。" when="outbound=direct" />
+			<line indent="2" yaml="type: socks5" description="socks5 经上游代理出站。" when="outbound=socks5" />
+			<line indent="2" yaml="addr: 127.0.0.1:1080" description="上游 SOCKS5 服务器地址。" when="outbound=socks5" />
+			<line indent="2" yaml="username: proxy-user" description="可选：上游 SOCKS5 用户名。" when="outbound=socks5" />
+			<line indent="2" yaml="password: &quot;proxy-password&quot;" description="可选：上游 SOCKS5 密码，属于敏感信息。" when="outbound=socks5" />
+			<line indent="2" yaml="allow_udp: false" description="是否允许该出站承载 UDP；当前 UDP 仍直连，尚未实现 SOCKS5 UDP 转发。" when="outbound=socks5" />
 			<line yaml="experimental:" description="安全防护开关。" />
 			<line indent="1" yaml="drop_loopback: true" description="拒绝解析到回环地址的目标。" />
 			<line indent="1" yaml="drop_private: true" description="拒绝私有、链路本地与 ULA 地址。" />
 			<line yaml="acl:" description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl" />
-			<line indent="1" yaml="- addr: private" description="匹配私有地址网段。" when="routing=acl" />
-			<line indent="2" yaml="outbound: reject" description="命中后拒绝连接。" when="routing=acl" />
+			<line indent="1" yaml="- addr: private" description="匹配私有地址网段；地址支持 IP、CIDR、域名、localhost、private 与 *。" when="routing=acl" />
+			<line indent="2" yaml="outbound: reject" description="命中后拒绝连接；也可写 default 或具名出站。" when="routing=acl" />
+			<line indent="2" yaml="ports: udp/53,tcp/80,443" description="可选：限制端口，可带 tcp/ 或 udp/ 前缀并支持范围。" when="routing=acl" />
+			<line indent="2" yaml="hijack: 1.1.1.1" description="可选：命中后重定向到指定地址；当前版本尚未生效，仅保留字段。" when="routing=acl" />
 			<line yaml="rules:" description="Metacubex 风格路由规则，在 ACL 之后求值。" when="routing=acl" />
 			<line indent="1" yaml="- MATCH,default" description="兜底规则，把剩余流量交给 default 出站。" when="routing=acl" />
+			<line yaml="dns:" description="DNS 解析配置；未启用时使用操作系统解析器。" when="dns=custom" />
+			<line indent="1" yaml="mode: custom" description="DNS 模式：system、cloudflare、google、quad9、custom 及对应的 DoT/DoH 变体。" when="dns=custom" />
+			<line indent="1" yaml="servers:" description="自定义 DNS 服务器列表，仅在 custom 模式输出。" when="dns=custom" />
+			<line indent="2" yaml="- tls://1.1.1.1#cloudflare-dns.com" description="服务器 URL，支持 1.1.1.1、udp://、tcp://、tls:// 与 https://。" when="dns=custom" />
+			<line indent="1" yaml="timeout: 5s" description="可选：单次查询超时；留空使用库默认值。" when="dns=custom" />
+			<line indent="1" yaml="attempts: 2" description="可选：单次查询的重试次数；留空使用库默认值。" when="dns=custom" />
+			<line indent="1" yaml="stack_prefer: v4first" description="解析结果的地址族偏好。" when="dns=custom" />
+			<line yaml="geodata:" description="GEOIP/GEOSITE 规则所需的数据库路径。" when="geodata=on" />
+			<line indent="1" yaml="geosite: /var/lib/tuic/geosite.dat" description="v2ray 域名分类数据库路径。" when="geodata=on" />
+			<line indent="1" yaml="geoip: /var/lib/tuic/geoip.dat" description="v2ray IP 国家数据库路径。" when="geodata=on" />
+			<line yaml="restful:" description="RESTful 管理 API。" when="restful=on" />
+			<line indent="1" yaml="enabled: true" description="启用管理 API。" when="restful=on" />
+			<line indent="1" yaml="addr: 127.0.0.1:13471" description="管理 API 监听地址；建议只监听本机。" when="restful=on" />
+			<line indent="1" yaml="secret: &quot;YOUR_SECRET_HERE&quot;" description="Bearer 令牌；留空表示不校验，不建议在公网暴露。" when="restful=on" />
+			<line indent="1" yaml="maximum_clients_per_user: 0" description="每用户最大并发连接数；0 表示不限，当前版本未强制生效。" when="restful=on" />
+			<line yaml="masquerade:" description="把非 TUIC 的 HTTP/3 探测流量反向代理到真实网站。" when="masquerade=on" />
+			<line indent="1" yaml="enabled: true" description="启用 HTTP/3 伪装。" when="masquerade=on" />
+			<line indent="1" yaml="upstream: https://example.com" description="反向代理的上游站点。" when="masquerade=on" />
 		</config>
 	</config-desc>
 	<!-- TUIC fd7e521 / Wind dee0317: literal output names, no executable code. -->

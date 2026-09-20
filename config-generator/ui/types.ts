@@ -58,7 +58,7 @@ export interface SectionView {
 }
 
 export interface Snapshot {
-  ui: { title: string; brand: string; mark: string; eyebrow: string; description: string; reference: string; export_hint: string };
+  ui: { title: string; brand: string; mark: string; eyebrow: string; description: string; export_hint: string };
   config_description: ConfigDescription | null;
   sections: SectionView[];
   mode: FieldView | null;

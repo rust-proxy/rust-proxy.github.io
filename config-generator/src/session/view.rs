@@ -69,7 +69,6 @@ pub struct Branding {
 	pub mark: String,
 	pub eyebrow: String,
 	pub description: String,
-	pub reference: String,
 	pub export_hint: String,
 }
 
@@ -126,7 +125,6 @@ impl Session {
 				mark: ui.mark.clone(),
 				eyebrow: ui.eyebrow.clone(),
 				description: ui.description.clone(),
-				reference: ui.reference.clone(),
 				export_hint: ui.export_hint.clone(),
 			},
 			config_description: doc.config_description.clone(),

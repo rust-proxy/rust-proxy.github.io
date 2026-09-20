@@ -1,5 +1,5 @@
 <config-dsl version="4" target-version="2.0.0-dev7">
-	<ui title="客户端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写服务器与本地代理信息，生成 TUIC 客户端配置。" reference="https://rust-proxy.github.io/tuic/tools/config-generator-reference/" format-field="format" export-hint="复制和下载始终包含真实密码。">
+	<ui title="客户端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写服务器与本地代理信息，生成 TUIC 客户端配置。" format-field="format" export-hint="复制和下载始终包含真实密码。">
 		<section name="addresses" label="连接信息" />
 		<section name="authentication" label="用户认证" />
 		<section name="tls" label="TLS 与证书">
@@ -193,21 +193,37 @@
 				<choice value="tcp" label="TCP 转发" />
 				<choice value="udp" label="UDP 转发" />
 			</selector>
+			<selector name="reconnect" label="断线重连" default="on">
+				<choice value="on" label="自动重连" />
+				<choice value="off" label="不重连" />
+			</selector>
+			<selector name="udp-relay" label="UDP 模式" default="native">
+				<choice value="native" label="native" />
+				<choice value="quic" label="quic" />
+			</selector>
+			<selector name="controller" label="拥塞控制" default="bbr">
+				<choice value="bbr" label="BBR" />
+				<choice value="bbr3" label="BBR3" />
+				<choice value="cubic" label="CUBIC" />
+				<choice value="newreno" label="New Reno" />
+			</selector>
 			<line yaml="server: tuic.example.com:8443" description="客户端连接的 TUIC 服务端地址，包含 UDP 端口。域名会在客户端解析。" when="address=domain" />
 			<line yaml="server: &quot;[2001:db8::1]:8443&quot;" description="直接连接 IPv6 地址时使用方括号包围地址，再追加 UDP 端口。" when="address=ip" />
 			<line yaml="ip: &quot;2001:db8::1&quot;" description="显式指定服务端 IP，可绕过域名解析；使用域名连接时通常不需要此字段。" when="address=ip" />
 			<line yaml="uuid: &quot;00000000-0000-4000-8000-000000000001&quot;" description="必须与服务端 users 映射中存在的用户 UUID 一致。" />
 			<line yaml="password: &quot;change-this-password&quot;" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。" />
 			<line yaml="log_level: info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。" />
-			<line yaml="udp_relay_mode: native" description="UDP 转发模式，native 为默认，quic 使用 QUIC 流承载。" />
+			<line yaml="udp_relay_mode: native" description="UDP 转发模式，native 为默认。" when="udp-relay=native" />
+			<line yaml="udp_relay_mode: quic" description="quic 使用 QUIC 流承载 UDP。" when="udp-relay=quic" />
 			<line yaml="zero_rtt_handshake: false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。" />
 			<line yaml="heartbeat: 3s" description="保持连接活跃的心跳周期。" />
 			<line yaml="gc_interval: 3s" description="UDP 分片垃圾回收周期。" />
 			<line yaml="gc_lifetime: 15s" description="UDP 分片在回收前保留的时间。" />
-			<line yaml="reconnect: true" description="是否在连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。" />
+			<line yaml="reconnect: true" description="连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。" when="reconnect=on" />
+			<line yaml="reconnect: false" description="不自动重连，连接中断后退出或等待外部进程管理器重启。" when="reconnect=off" />
 			<line yaml="lazy: true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。" />
-			<line yaml="reconnect_initial_backoff: 500ms" description="开启自动重连时，首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" />
-			<line yaml="reconnect_max_backoff: 30000ms" description="开启自动重连时，指数退避允许增长到的最大等待时间，必须不小于首次等待。" />
+			<line yaml="reconnect_initial_backoff: 500ms" description="首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" when="reconnect=on" />
+			<line yaml="reconnect_max_backoff: 30000ms" description="指数退避允许增长到的最大等待时间，必须不小于首次等待。" when="reconnect=on" />
 			<line yaml="tls:" description="客户端 TLS 验证与协议协商配置。" />
 			<line indent="1" yaml="sni: tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。" />
 			<line indent="1" yaml="alpn:" description="客户端提出的 ALPN 列表，必须与服务端一致。" />
@@ -216,7 +232,10 @@
 			<line yaml="backend:" description="客户端 QUIC 传输参数。" />
 			<line indent="1" yaml="quinn:" description="客户端仅支持 Quinn 后端。" />
 			<line indent="2" yaml="congestion_control:" description="拥塞控制算法。" />
-			<line indent="3" yaml="controller: bbr" description="默认使用 BBR。" />
+			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr" />
+			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现。" when="controller=bbr3" />
+			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制。" when="controller=cubic" />
+			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法。" when="controller=newreno" />
 			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。" />
 			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。" />
 			<line yaml="local:" description="本地代理监听与静态端口转发配置。" />

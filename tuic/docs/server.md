@@ -2,7 +2,7 @@
 
 `tuic-server` 是一个积极维护的 TUIC 协议服务端实现。它 fork 自原始 TUIC 项目，在保持协议简洁、低握手开销的同时，增加了 Docker 支持、自签证书、ACME 自动签发、证书热重载、ACL/路由、出站与管理 API 等生产可用能力。
 
-本页介绍服务端的安装、启动与配置。客户端请见[客户端](client.md)；Docker 部署请见 [Docker](docker.md)；成对的示例配置可在[配置生成器](/config-generator/)本地生成。
+本页介绍服务端的安装、启动与配置。客户端请见[客户端](client.md)；Docker 部署请见 [Docker](docker.md)；完整示例与字段说明见[配置生成器](/config-generator/?schema=tuic-server&mode=detail)。
 
 ## 安装
 
@@ -41,143 +41,15 @@ tuic-server --init
 
 ### 完整示例
 
-```toml
-# 日志级别：trace, debug, info, warn, error, off
-log_level = "info"
+完整且带注释的服务端配置示例由[配置生成器](/config-generator/?schema=tuic-server&mode=detail)的“配置详解”维护：选择证书模式、QUIC 后端、拥塞控制、出站与路由等分支即可查看对应的完整 YAML 结构，悬浮或聚焦任意一行可查看字段说明。
 
-# 监听地址
-server = "[::]:8443"
+[查看服务端完整配置详解](/config-generator/?schema=tuic-server&mode=detail){ .md-button .md-button--primary }
 
-# 工作目录（用于解析证书/私钥的相对路径）
-data_dir = ""
+生成器默认输出 TOML，也可切换为 JSON 或 YAML，并可在“配置生成”视图中填写参数后直接复制或下载。`rules`、`[dns]`、`[geodata]`、`[restful]`、`[masquerade]` 等段落同样可以在生成器中配置。
 
-# 为 IPv6 UDP 中继创建独立 socket
-udp_relay_ipv6 = true
-# 启用 0-RTT QUIC 握手（出于安全考虑建议 false）
-zero_rtt_handshake = false
-# 监听 socket 是否使用双栈（IPv4/IPv6）
-dual_stack = true
-# 等待客户端认证命令的最长时间
-auth_timeout = "3s"
-# 任务协商的最长时间
-task_negotiation_timeout = "3s"
-# UDP 分片垃圾回收间隔
-gc_interval = "10s"
-# UDP 分片保留时长
-gc_lifetime = "30s"
-# 出站 UDP socket 接收的最大包大小（字节）
-max_external_packet_size = 1500
-# TCP/UDP I/O 任务的保留时长
-stream_timeout = "60s"
+!!! note "预留字段"
 
-[log]
-# 输出格式：text（默认）、json
-format = "text"
-# 紧凑格式（单行、更简洁），仅对 text 生效
-compact = true
-# 可选日志文件路径；设置后会同时写入该文件
-# log_file = "/var/log/tuic/server.log"
-# 日志轮转策略：never（默认）、hourly、daily
-# log_rotation = "daily"
-
-[users]
-# 用户列表：UUID = 密码
-"00000000-0000-4000-8000-000000000001" = "change-this-password"
-
-[tls]
-# 使用自动生成的自签证书与私钥
-self_sign = false
-# 证书路径（相对路径基于 data_dir）
-certificate = ""
-# 私钥路径（相对路径基于 data_dir）
-private_key = ""
-# ALPN 协议（例如 ["h3"]）
-alpn = []
-# 用于签发证书或自签的域名/IP
-hostname = "localhost"
-# 启用内置 ACME 自动申请证书
-auto_ssl = false
-# ACME 账户邮箱；留空时使用 admin@<hostname>
-acme_email = ""
-# 使用 Let's Encrypt 的 staging 环境（测试用）
-acme_staging = false
-
-[masquerade]
-# 对非 TUIC 的 HTTP/3 探测流量启用反向代理伪装
-enabled = false
-# 反向代理上游站点
-upstream = "https://example.com"
-
-[backend]
-# QUIC 后端：quinn（默认）或 quiche（实验性，需编译时启用 quiche feature）
-mode = "quinn"
-
-[backend.quinn]
-# 拥塞控制：bbr, bbr3, cubic, new_reno
-[backend.quinn.congestion_control]
-controller = "bbr"
-# 初始拥塞窗口（字节）
-initial_window = 1048576
-# MTU 发现前的初始 UDP 载荷
-initial_mtu = 1200
-# 网络保证支持的最小 UDP 载荷，须 ≥1200 且 ≤ initial_mtu
-min_mtu = 1200
-# 启用通用分段卸载（GSO）
-gso = true
-# 启用路径 MTU 发现
-pmtu = true
-# 未确认情况下允许发送的最大字节数
-send_window = 16777216
-# 对端每条流未确认情况下允许发送的最大字节数
-receive_window = 8388608
-# 空闲连接关闭前的等待时间
-max_idle_time = "30s"
-
-# Access Control List（ACL）：数组表格式
-[[acl]]
-# 地址：IPv4/IPv6、CIDR、域名、通配域名、localhost 或 private
-addr = "127.0.0.1"
-# 端口：逗号分隔，可带协议（如 "udp/53,tcp/80,udp/10000-20000,443"）
-ports = "udp/53"
-# 出站：direct / default / drop / <自定义出站名>
-outbound = "default"
-# 可选：重定向到指定地址
-hijack = "1.1.1.1"
-
-[outbound.default]
-# 出站类型：direct 或 socks5
-type = "direct"
-# IP 模式：v4first, v6first, v4only, v6only
-ip_mode = "v4first"
-
-# 命名出站，可被 ACL 引用
-[outbound.through_socks5]
-type = "socks5"
-addr = "127.0.0.1:1080"
-# 可选 SOCKS5 认证
-# username = "optional"
-# password = "optional"
-# 是否允许该出站的 UDP（默认 false；UDP 仍直连，尚未实现 SOCKS5 UDP 转发）
-allow_udp = false
-
-[experimental]
-# 丢弃回环目标
-drop_loopback = true
-# 丢弃私有目标
-drop_private = true
-
-[restful]
-# 是否启用 RESTful 管理 API
-enabled = false
-# 监听地址
-addr = "127.0.0.1:13471"
-# Bearer 令牌；为空表示不校验（不建议在公网暴露）
-secret = "YOUR_SECRET_HERE"
-# 每个用户的最大并发连接数（0 表示不限制）
-maximum_clients_per_user = 0
-```
-
-此外还支持 `rules`（Metacubex 风格路由规则）、`[dns]`（DNS 解析）与 `[geodata]`（`geosite.dat` / `geoip.dat`）等段落。字段级说明与取值范围以[配置生成器](/config-generator/)为准。
+    `udp_relay_ipv6`、`dual_stack`、`task_negotiation_timeout` 等预留字段尚未接入运行逻辑，生成器不会输出。
 
 ### 出站与 ACL
 

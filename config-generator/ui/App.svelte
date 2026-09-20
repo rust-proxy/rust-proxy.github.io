@@ -60,7 +60,6 @@
       {/if}
       <button type="button" class="cg-nav" aria-pressed={page === 'generator'} onclick={() => selectPage('generator')}>配置生成</button>
       {#if view.config_description}<button type="button" class="cg-nav" aria-pressed={page === 'description'} onclick={() => selectPage('description')}>配置详解</button>{/if}
-      <a href={view.ui.reference} hidden={!view.ui.reference} target="_blank" rel="noopener noreferrer">配置说明 ↗</a>
       <button type="button" class="cg-theme" aria-label="切换主题" aria-pressed={dark} onclick={() => dark = !dark}>
         {dark ? '浅色' : '深色'}
       </button>

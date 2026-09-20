@@ -75,7 +75,7 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 ## 页面与输入
 
-`ui` 属性：`title`、`brand` 必填；可选 `mark`、`eyebrow`、`description`、`reference`（HTTPS 说明链接）、`export-hint`、`mode-field`、`format-field`。后两者引用任意顶层枚举，分别显示为模式按钮和输出格式选择器，不要求字段名为 mode 或 format。格式枚举只能包含 `toml`、`json`、`yaml`；未绑定格式时默认 JSON。
+`ui` 属性：`title`、`brand` 必填；可选 `mark`、`eyebrow`、`description`、`export-hint`、`mode-field`、`format-field`。后两者引用任意顶层枚举，分别显示为模式按钮和输出格式选择器，不要求字段名为 mode 或 format。格式枚举只能包含 `toml`、`json`、`yaml`；未绑定格式时默认 JSON。
 
 `section` 用 `name` 绑定输入的 `section`，`label` 指定标题，`detail` 指定补充文字，`collapsed="true"` 使用折叠面板，`when` 控制整个分区显示。`notice text="…" when="…"` 可放在分区内或 `ui` 下，后者出现在导出区域。所有文字作为文本呈现，不解析 HTML；分区显示条件不隐式改变输出或校验，应在对应字段和输出声明 `when`。
 

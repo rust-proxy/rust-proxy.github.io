@@ -154,8 +154,7 @@ try {
   await page.screenshot({ path: resolve('.cache/config-generator-mobile.png'), fullPage: true });
   await click('切换主题');
   assert.equal(await page.locator('.cg-shell').getAttribute('data-theme'), 'dark');
-  const reference = await page.locator('a[href*="config-generator-reference"]').first().getAttribute('href');
-  assert.equal(new URL(reference, base).href, 'https://rust-proxy.github.io/tuic/tools/config-generator-reference/');
+  assert.equal(await page.getByRole('link', { name: '配置说明 ↗' }).count(), 0);
   assert.equal(await page.evaluate(() => localStorage.length === 0 || !Object.keys(localStorage).some(key => /generator|password|uuid/.test(key))), true);
   assert.deepEqual(requests.filter(url => /google-analytics|googletagmanager|gtag/.test(url)), []);
   assert.deepEqual(requests.filter(url => !url.startsWith(new URL(base).origin)), []);

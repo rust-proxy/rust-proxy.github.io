@@ -1,7 +1,7 @@
 <config-dsl version="4" target-version="2.0.0-dev7">
 	<ui title="配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN"
 		description="填写连接信息，生成相互匹配的服务端与客户端配置。"
-		reference="https://rust-proxy.github.io/tuic/tools/config-generator-reference/" mode-field="mode" format-field="format"
+		mode-field="mode" format-field="format"
 		export-hint="复制和下载始终包含真实密码。配对模式请分别保存两份配置。">
 		<section name="addresses" label="连接信息"/>
 		<section name="authentication" label="用户认证"/>
