@@ -19,7 +19,7 @@ docker pull ghcr.io/itsusinn/tuic-server:latest
 - 同时提供 `linux/amd64` 与 `linux/arm64` 两种架构。
 - `latest` 指向最近一次发布；也可以使用对应的版本标签（例如 `ghcr.io/itsusinn/tuic-server:1.2.3`）。镜像仅在推送 `v*` 版本标签时发布，普通分支或 PR 构建不会推送。
 - 镜像入口为 `/usr/bin/tuic-server`，默认命令为 `-d /etc/tuic`，因此会读取挂载到 `/etc/tuic` 的配置目录。
-- 容器的工作目录为 `/var/lib/tuic`，并设置了 `IN_DOCKER=true`；后者让服务器在未显式指定格式时按配置文件内容推断格式，而不只依赖扩展名。
+- 容器的工作目录为 `/var/lib/tuic`；服务器按配置文件扩展名判断格式，未识别的扩展名需要显式设置 `TUIC_CONFIG_FORMAT`。
 - 最终阶段基于 `gcr.io/distroless/cc`：包含 glibc 运行时与 CA 证书（可用于 ACME 申请），但不含 shell、包管理器及 `curl`/`wget` 等工具，因此无法 `docker exec` 进入容器调试。
 
 ## 准备配置
