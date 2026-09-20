@@ -1,0 +1,303 @@
+<config-dsl version="4" target-version="2.0.0-dev7">
+	<ui title="客户端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写服务器与本地代理信息，生成 TUIC 客户端配置。" reference="https://rust-proxy.github.io/tuic/tools/config-generator-reference/" format-field="format" export-hint="复制和下载始终包含真实密码。">
+		<section name="addresses" label="连接信息" />
+		<section name="authentication" label="用户认证" />
+		<section name="tls" label="TLS 与证书">
+		</section>
+		<section name="local" label="本地代理" />
+		<section name="transport" label="高级选项" detail="日志 · 连接 · 端口转发" collapsed="true">
+			<notice text="预留字段（udp_relay_ipv6、dual_stack、task_negotiation_timeout、ipstack_prefer、timeout、proxy 等）当前未接入运行逻辑，本生成器不输出。" />
+		</section>
+		<section name="backend" label="QUIC 后端" detail="拥塞控制 · 传输参数" collapsed="true">
+			<notice text="bbr 与 bbr3 当前共用同一实现，行为相同。" />
+		</section>
+		<notice when="insecureClient" text="当前客户端配置跳过证书校验，仅适合受控测试。" />
+		<notice when="exposedLocal" text="SOCKS5 正在监听非回环地址且未启用认证，请确认访问范围。" />
+		<notice when="zeroRtt" text="0-RTT 早期数据可能被重放。" />
+		<notice text="此处仅检查配置字段。证书文件、DNS、防火墙和实际连接需要在部署环境验证。" />
+	</ui>
+	<validators>
+		<validator name="required" kind="required" message="请填写此项。" />
+		<validator name="host" kind="host" message="请输入可连接的域名或 IP，不含端口、路径或通配监听地址。" />
+		<validator name="port" kind="integer" min="1" max="65535" message="端口必须是 1–65535 的整数。" />
+		<validator name="socket" kind="socket" message="请输入有效的 IP:端口；IPv6 使用方括号。" />
+		<validator name="email" kind="email" message="请填写有效的邮箱地址。" />
+		<validator name="socks-credential" kind="length" nonblank="true" min="1" max="255" message="SOCKS5 认证字段必须为 1–255 字节。" />
+		<validator name="milliseconds" kind="integer" min="1" max="9007199254740991" message="请输入大于 0 的安全整数（毫秒）。" />
+		<validator name="seconds" kind="integer" min="1" max="9007199254740991" message="请输入大于 0 的安全整数（秒）。" />
+		<validator name="optional-seconds" kind="optional-integer" min="1" max="9007199254740991" message="请输入大于 0 的安全整数（秒），或留空使用默认值。" />
+		<validator name="endpoint" kind="endpoint" message="目标必须是域名或 IP 加端口。" />
+		<validator name="password" kind="length" min="1" message="请输入密码，或点击生成凭据。" />
+		<validator name="uuid" kind="uuid" transform="trim lowercase" message="请输入非全零的标准 UUID，或点击生成凭据。" />
+		<validator name="domain" kind="domain" message="请填写有效的 DNS 域名。" />
+		<validator name="publicDomain" kind="public-domain" message="请填写公开域名。" />
+		<validator name="loopback" kind="loopback-socket" message="请使用回环监听地址。" />
+	</validators>
+	<rules>
+		<assert key="sni" message="请填写证书对应的 DNS 域名作为 SNI。">
+			<valid ref="clientSni" rule="domain" />
+		</assert>
+		<assert key="maxBackoff" when="validBackoff" message="最大等待不能小于首次等待。">
+			<compare op="gte">
+				<source from="/maxBackoff" transform="integer" />
+				<source from="/initialBackoff" transform="integer" />
+			</compare>
+		</assert>
+		<unique collection="users" key="uuid" message="UUID 重复，请为每个用户使用不同 UUID。">
+			<source from="uuid" transform="trim lowercase" />
+		</unique>
+		<unique collection="forwards" key="listen" when="validBinding" message="同一协议的监听地址重复。">
+			<source from="protocol" />
+			<source from="listen" transform="socket" />
+		</unique>
+		<assert collection="forwards" key="listen" when="validPorts" message="请使用与 SOCKS5 不同的监听端口。">
+			<compare op="ne">
+				<source from="listen" transform="port" />
+				<source from="/local" transform="port" />
+			</compare>
+		</assert>
+	</rules>
+	<inputs>
+		<field name="format" type="enum" default="toml" section="format" label="输出格式">
+			<option value="toml" label="TOML" />
+			<option value="json" label="JSON" />
+			<option value="yaml" label="YAML" />
+		</field>
+		<field name="host" type="string" default="" section="addresses" label="连接域名或 IP" placeholder="tuic.example.com" hint="客户端实际连接的主机，不含协议、路径或端口。" rule="host" />
+		<field name="port" type="string" default="8443" section="addresses" label="连接端口" placeholder="8443" hint="客户端连接的 UDP 端口；可与监听端口不同。" widget="number" rule="port" />
+		<field name="sni" type="string" default="" section="tls" label="客户端 SNI" placeholder="tuic.example.com" hint="留空时使用连接域名；通过 IP 连接时需填写证书对应的 DNS 域名。" />
+		<field name="insecure" type="boolean" default="false" section="tls" label="跳过证书校验（仅测试）" hint="会失去服务端身份验证；默认关闭。" />
+		<field name="local" type="string" default="127.0.0.1:1080" section="local" label="本地 SOCKS5 监听地址" placeholder="127.0.0.1:1080" hint="默认只接受本机连接；对外监听时建议设置认证。" rule="socket" />
+		<field name="localAuth" type="boolean" default="false" section="local" label="启用 SOCKS5 用户名和密码" hint="监听非本机地址时建议设置认证。" />
+		<field name="localUsername" type="string" default="" section="local" label="SOCKS5 用户名" hint="与 TUIC 服务端认证相互独立。" when="localAuth" rule="socks-credential" />
+		<field name="localPassword" type="string" default="" section="local" label="SOCKS5 密码" hint="与用户名同时设置。" widget="password" when="localAuth" rule="socks-credential" />
+		<field name="logLevel" type="enum" default="info" section="transport" label="日志级别">
+			<option value="trace" label="trace" />
+			<option value="debug" label="debug" />
+			<option value="info" label="info" />
+			<option value="warn" label="warn" />
+			<option value="error" label="error" />
+			<option value="off" label="off" />
+		</field>
+		<field name="zeroRtt" type="boolean" default="false" section="transport" label="启用 0-RTT" hint="默认关闭；早期数据可能被重放。配对模式会同时设置两端。" />
+		<field name="lazy" type="boolean" default="true" section="transport" label="按需连接" hint="默认开启，首次代理请求时才连接服务端。" />
+		<field name="reconnect" type="boolean" default="true" section="transport" label="断线自动重连" hint="默认开启，重试间隔按退避策略增加。" />
+		<field name="initialBackoff" type="string" default="500" section="transport" label="首次重连等待（毫秒）" placeholder="500" hint="首次重连前等待的时间。" widget="number" when="reconnect" rule="milliseconds" />
+		<field name="maxBackoff" type="string" default="30000" section="transport" label="最大重连等待（毫秒）" placeholder="30000" hint="应大于或等于首次等待时间。" widget="number" when="reconnect" rule="milliseconds" />
+		<field name="udpRelayMode" type="enum" default="native" section="transport" label="UDP 转发模式">
+			<option value="native" label="native" />
+			<option value="quic" label="quic" />
+		</field>
+		<field name="clientHeartbeat" type="string" default="3" section="transport" label="心跳间隔（秒）" placeholder="3" hint="保持连接活跃的心跳周期。" widget="number" rule="seconds" />
+		<field name="clientGcInterval" type="string" default="3" section="transport" label="分片回收间隔（秒）" placeholder="3" hint="UDP 分片垃圾回收周期。" widget="number" rule="seconds" />
+		<field name="clientGcLifetime" type="string" default="15" section="transport" label="分片保留时间（秒）" placeholder="15" hint="UDP 分片在回收前保留的时间。" widget="number" rule="seconds" />
+		<field name="clientController" type="enum" default="bbr" section="backend" label="客户端拥塞控制">
+			<option value="bbr" label="BBR" />
+			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" />
+			<option value="cubic" label="CUBIC" />
+			<option value="newreno" label="New Reno" />
+		</field>
+		<field name="clientSendWindow" type="integer" default="16777216" section="backend" label="客户端发送窗口（字节）" hint="未经确认可发送的最大字节数。" />
+		<field name="clientReceiveWindow" type="integer" default="8388608" section="backend" label="客户端接收窗口（字节）" hint="每条流可接收的最大字节数。" />
+		<field name="activeUser" type="integer" default="0" section="internal" label="客户端使用的用户" />
+		<collection name="users" initial-items="1" min-items="1" label="用户" section="authentication" add-label="＋ 添加用户" generate-label="生成凭据" hint="选择一个服务端已配置的用户凭据。" selected-by="activeUser">
+			<field name="uuid" type="string" default="" label="UUID" rule="uuid" generator="uuid-v4" />
+			<field name="password" type="string" default="" label="密码" widget="password" rule="password" generator="hex" bytes="24" />
+		</collection>
+		<collection name="forwards" initial-items="0" label="转发" section="transport" add-label="＋ 添加转发" hint="服务端默认拦截回环和私有目标地址。">
+			<field name="protocol" type="enum" default="tcp" label="转发协议">
+				<option value="tcp" label="TCP" />
+				<option value="udp" label="UDP" />
+			</field>
+			<field name="listen" type="string" default="" label="本地监听地址" placeholder="127.0.0.1:8080" rule="socket" />
+			<field name="remote" type="string" default="" label="远端目标地址" placeholder="example.com:80" rule="endpoint" />
+			<field name="timeout" type="string" default="60" label="会话超时（秒）" widget="number" when="udp" rule="seconds" />
+		</collection>
+	</inputs>
+	<conditions>
+		<condition name="localAuth">
+			<all>
+				<truthy from="/localAuth" />
+			</all>
+		</condition>
+		<condition name="reconnect">
+			<all>
+				<truthy from="/reconnect" />
+			</all>
+		</condition>
+		<condition name="zeroRtt">
+			<truthy from="/zeroRtt" />
+		</condition>
+		<condition name="udp">
+			<eq from="protocol" value="udp" />
+		</condition>
+		<condition name="ip">
+			<ip ref="host" />
+		</condition>
+		<condition name="insecureClient">
+			<all>
+				<truthy from="/insecure" />
+			</all>
+		</condition>
+		<condition name="exposedLocal">
+			<all>
+				<not>
+					<truthy from="/localAuth" />
+				</not>
+				<valid from="/local" rule="socket" />
+				<not>
+					<valid from="/local" rule="loopback" />
+				</not>
+			</all>
+		</condition>
+		<condition name="validBackoff">
+			<all>
+				<use ref="reconnect" />
+				<valid from="/initialBackoff" rule="milliseconds" />
+				<valid from="/maxBackoff" rule="milliseconds" />
+			</all>
+		</condition>
+		<condition name="validBinding">
+			<valid from="listen" rule="socket" />
+		</condition>
+		<condition name="validPorts">
+			<all>
+				<use ref="validBinding" />
+				<valid from="/local" rule="socket" />
+			</all>
+		</condition>
+	</conditions>
+	<values>
+		<value name="host">
+			<source from="/host" transform="trim unbracket" />
+		</value>
+		<value name="clientSni">
+			<coalesce>
+				<source from="/sni" transform="trim" />
+				<source ref="host" />
+			</coalesce>
+		</value>
+	</values>
+	<config-desc title="配置项详解" description="选择枚举分支，查看完整 YAML 结构；悬浮或聚焦任意一行可了解字段作用。">
+		<config name="client" label="客户端配置" filename="client.yaml">
+			<selector name="address" label="服务端地址" default="domain">
+				<choice value="domain" label="域名" />
+				<choice value="ip" label="IP 地址" />
+			</selector>
+			<selector name="local-auth" label="SOCKS5 认证" default="off">
+				<choice value="off" label="关闭" />
+				<choice value="on" label="用户名与密码" />
+			</selector>
+			<selector name="forward" label="端口转发示例" default="none">
+				<choice value="none" label="不配置" />
+				<choice value="tcp" label="TCP 转发" />
+				<choice value="udp" label="UDP 转发" />
+			</selector>
+			<line yaml="server: tuic.example.com:8443" description="客户端连接的 TUIC 服务端地址，包含 UDP 端口。域名会在客户端解析。" when="address=domain" />
+			<line yaml="server: &quot;[2001:db8::1]:8443&quot;" description="直接连接 IPv6 地址时使用方括号包围地址，再追加 UDP 端口。" when="address=ip" />
+			<line yaml="ip: &quot;2001:db8::1&quot;" description="显式指定服务端 IP，可绕过域名解析；使用域名连接时通常不需要此字段。" when="address=ip" />
+			<line yaml="uuid: &quot;00000000-0000-4000-8000-000000000001&quot;" description="必须与服务端 users 映射中存在的用户 UUID 一致。" />
+			<line yaml="password: &quot;change-this-password&quot;" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。" />
+			<line yaml="log_level: info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。" />
+			<line yaml="udp_relay_mode: native" description="UDP 转发模式，native 为默认，quic 使用 QUIC 流承载。" />
+			<line yaml="zero_rtt_handshake: false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。" />
+			<line yaml="heartbeat: 3s" description="保持连接活跃的心跳周期。" />
+			<line yaml="gc_interval: 3s" description="UDP 分片垃圾回收周期。" />
+			<line yaml="gc_lifetime: 15s" description="UDP 分片在回收前保留的时间。" />
+			<line yaml="reconnect: true" description="是否在连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。" />
+			<line yaml="lazy: true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。" />
+			<line yaml="reconnect_initial_backoff: 500ms" description="开启自动重连时，首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" />
+			<line yaml="reconnect_max_backoff: 30000ms" description="开启自动重连时，指数退避允许增长到的最大等待时间，必须不小于首次等待。" />
+			<line yaml="tls:" description="客户端 TLS 验证与协议协商配置。" />
+			<line indent="1" yaml="sni: tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。" />
+			<line indent="1" yaml="alpn:" description="客户端提出的 ALPN 列表，必须与服务端一致。" />
+			<line indent="2" yaml="- h3" description="当前生成器使用的 QUIC 应用层协议标识。" />
+			<line indent="1" yaml="skip_cert_verify: false" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。" />
+			<line yaml="backend:" description="客户端 QUIC 传输参数。" />
+			<line indent="1" yaml="quinn:" description="客户端仅支持 Quinn 后端。" />
+			<line indent="2" yaml="congestion_control:" description="拥塞控制算法。" />
+			<line indent="3" yaml="controller: bbr" description="默认使用 BBR。" />
+			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。" />
+			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。" />
+			<line yaml="local:" description="本地代理监听与静态端口转发配置。" />
+			<line indent="1" yaml="server: 127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。" />
+			<line indent="1" yaml="username: proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on" />
+			<line indent="1" yaml="password: &quot;local-proxy-password&quot;" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" when="local-auth=on" />
+			<line indent="1" yaml="tcp_forward:" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp" />
+			<line indent="2" yaml="- listen: 127.0.0.1:8080" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" when="forward=tcp" />
+			<line indent="3" yaml="remote: example.com:80" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" when="forward=tcp" />
+			<line indent="1" yaml="udp_forward:" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp" />
+			<line indent="2" yaml="- listen: 127.0.0.1:5353" description="单条 UDP 转发的本地监听地址。" when="forward=udp" />
+			<line indent="3" yaml="remote: dns.example.com:53" description="UDP 数据报转发到的远端目标地址。" when="forward=udp" />
+			<line indent="3" yaml="timeout: 60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp" />
+		</config>
+	</config-desc>
+	<!-- TUIC fd7e521 / Wind dee0317: literal output names, no executable code. -->
+	<outputs>
+		<object name="client" label="客户端" filename="client" command="tuic-client -c {filename}">
+			<string name="server">
+				<endpoint>
+					<source ref="host" />
+					<source from="/port" transform="integer" />
+				</endpoint>
+			</string>
+			<!-- Explicit IP also avoids the baseline client's IPv6 DNS formatting issue. -->
+			<string name="ip" ref="host" when="ip" />
+			<string name="uuid">
+				<select from="/users" index="/activeUser">
+					<source from="uuid" transform="trim lowercase" />
+				</select>
+			</string>
+			<string name="password" secret="true">
+				<select from="/users" index="/activeUser">
+					<source from="password" />
+				</select>
+			</string>
+			<enum name="log_level" from="/logLevel" options="logLevel" />
+			<enum name="udp_relay_mode" from="/udpRelayMode" options="udpRelayMode" />
+			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt" />
+			<string name="heartbeat" from="/clientHeartbeat" transform="integer" unit="s" />
+			<string name="gc_interval" from="/clientGcInterval" transform="integer" unit="s" />
+			<string name="gc_lifetime" from="/clientGcLifetime" transform="integer" unit="s" />
+			<boolean name="reconnect" from="/reconnect" />
+			<boolean name="lazy" from="/lazy" />
+			<string name="reconnect_initial_backoff" from="/initialBackoff" transform="integer" unit="ms" when="reconnect" />
+			<string name="reconnect_max_backoff" from="/maxBackoff" transform="integer" unit="ms" when="reconnect" />
+			<object name="tls">
+				<string name="sni" ref="clientSni" />
+				<list name="alpn">
+					<string value="h3" />
+				</list>
+				<boolean name="skip_cert_verify" from="/insecure" />
+			</object>
+			<object name="backend">
+				<object name="quinn">
+					<object name="congestion_control">
+						<enum name="controller" from="/clientController" options="clientController" />
+					</object>
+					<integer name="send_window" from="/clientSendWindow" />
+					<integer name="receive_window" from="/clientReceiveWindow" />
+				</object>
+			</object>
+			<object name="local">
+				<string name="server" from="/local" transform="trim" />
+				<string name="username" from="/localUsername" when="localAuth" />
+				<string name="password" from="/localPassword" when="localAuth" secret="true" />
+				<list name="tcp_forward" from="/forwards" where-field="protocol" equals="tcp" omit-empty="true">
+					<object>
+						<string name="listen" from="listen" transform="trim" />
+						<string name="remote" from="remote" transform="trim" />
+						<string name="timeout" from="timeout" transform="integer" unit="s" when="udp" />
+					</object>
+				</list>
+				<list name="udp_forward" from="/forwards" where-field="protocol" equals="udp" omit-empty="true">
+					<object>
+						<string name="listen" from="listen" transform="trim" />
+						<string name="remote" from="remote" transform="trim" />
+						<string name="timeout" from="timeout" transform="integer" unit="s" when="udp" />
+					</object>
+				</list>
+			</object>
+		</object>
+	</outputs>
+</config-dsl>

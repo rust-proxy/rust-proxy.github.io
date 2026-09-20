@@ -1,14 +1,19 @@
-import { Engine } from '../pkg/engine';
+import { Engine, schemas as readSchemas } from '../pkg/engine';
 import type { Action, ExportFile, Snapshot } from './types';
 
 export class Controller {
-  private engine = new Engine();
+  readonly schemas: { name: string; label: string }[];
+  private engine: Engine;
   private selected = '';
   private reveal = false;
-  view: Snapshot = $state.raw(this.read());
+  schema = $state('');
+  view: Snapshot = $state.raw({} as Snapshot);
   status = $state('');
 
-  constructor() {
+  constructor(requested = '') {
+    this.schemas = (JSON.parse(readSchemas()) as [string, string][]).map(([name, label]) => ({ name, label }));
+    this.schema = this.schemas.some(item => item.name === requested) ? requested : (this.schemas[0]?.name ?? '');
+    this.engine = new Engine(this.schema);
     try { this.engine.initialize(); }
     catch (error) { this.status = String(error); }
     this.refresh();
@@ -26,6 +31,20 @@ export class Controller {
       this.status = action.type.startsWith('generate') ? '已更新随机值。' : '';
       this.refresh();
     } catch (error) { this.status = String(error); }
+  };
+
+  selectSchema = (name: string) => {
+    if (name === this.schema || !this.schemas.some(item => item.name === name)) return;
+    const engine = new Engine(name);
+    this.status = '';
+    try { engine.initialize(); }
+    catch (error) { this.status = String(error); }
+    this.engine.free();
+    this.engine = engine;
+    this.schema = name;
+    this.selected = '';
+    this.reveal = false;
+    this.refresh();
   };
 
   select = (name: string) => { this.selected = name; this.refresh(); };

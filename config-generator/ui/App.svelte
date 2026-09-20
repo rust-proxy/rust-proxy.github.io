@@ -12,60 +12,33 @@
   const query = new URLSearchParams(window.location.search);
   const requestedMode = query.get('mode');
   let page = $state<Page>(requestedMode === 'detail' || requestedMode === 'description' ? 'description' : 'generator');
-  let scheme = $state(query.get('scheme') ?? '');
-  let appliedScheme = $state('');
-  const schemes = $derived.by(() => {
-    const described = new Map(view.config_description?.configs.map(item => [item.name, item.label]) ?? []);
-    return view.outputs
-      .filter(output => described.has(output.name))
-      .map(output => ({ name: output.name, label: described.get(output.name) ?? output.label, visible: output.visible }));
-  });
 
   function updateUrl() {
     const url = new URL(window.location.href);
     url.searchParams.set('mode', page === 'description' ? 'detail' : 'generate');
-    if (scheme) url.searchParams.set('scheme', scheme);
-    else url.searchParams.delete('scheme');
+    url.searchParams.set('schema', controller.schema);
     window.history.replaceState(window.history.state, '', url);
   }
 
-  function selectScheme(name: string) {
-    scheme = name;
-    if (page === 'generator') {
-      appliedScheme = name;
-      controller.select(name);
-    }
+  function selectSchema(name: string) {
+    controller.selectSchema(name);
+    if (page === 'description' && !controller.view.config_description) page = 'generator';
     updateUrl();
-  }
-
-  function selectOutput(name: string) {
-    if (schemes.some(item => item.name === name)) selectScheme(name);
-    else controller.select(name);
   }
 
   function selectPage(next: Page) {
     page = next;
-    if (next === 'generator' && scheme) {
-      appliedScheme = scheme;
-      controller.select(scheme);
-    }
     updateUrl();
   }
 
+  queueMicrotask(() => {
+    if (query.has('schema') && query.get('schema') !== controller.schema) updateUrl();
+  });
+
   $effect(() => {
-    if (page === 'description' && !view.config_description) page = 'generator';
-    const available = page === 'generator' ? schemes.filter(item => item.visible) : schemes;
-    const next = available.some(item => item.name === scheme)
-      ? scheme
-      : available.find(item => item.name === view.selected)?.name ?? available[0]?.name ?? '';
-    if (next !== scheme) {
-      const hadScheme = scheme !== '';
-      scheme = next;
-      if (hadScheme) updateUrl();
-    }
-    if (page === 'generator' && next && appliedScheme !== next) {
-      appliedScheme = next;
-      controller.select(next);
+    if (page === 'description' && !view.config_description) {
+      page = 'generator';
+      updateUrl();
     }
   });
 </script>
@@ -78,10 +51,10 @@
       <span class="cg-mark">{view.ui.mark}</span>{view.ui.brand}<span class="cg-brand-sub">配置工具</span>
     </a>
     <nav>
-      {#if schemes.length}
-        <label class="cg-scheme" for="cg-scheme"><span>配置方案</span>
-          <select id="cg-scheme" value={scheme} onchange={(event) => selectScheme(event.currentTarget.value)}>
-            {#each schemes as item (item.name)}<option value={item.name}>{item.label}</option>{/each}
+      {#if controller.schemas.length}
+        <label class="cg-schema" for="cg-schema"><span>配置方案</span>
+          <select id="cg-schema" value={controller.schema} onchange={(event) => selectSchema(event.currentTarget.value)}>
+            {#each controller.schemas as item (item.name)}<option value={item.name}>{item.label}</option>{/each}
           </select>
         </label>
       {/if}
@@ -95,7 +68,7 @@
   </header>
   <main id="config-generator" data-ready="true">
     {#if page === 'description' && view.config_description}
-      <ConfigDescription description={view.config_description} selected={scheme} onselect={selectScheme} />
+      <ConfigDescription description={view.config_description} />
     {:else}
     <div class="cg-heading">
       <p class="cg-eyebrow">{view.ui.eyebrow}</p><h1>{view.ui.title}</h1><p>{view.ui.description}</p>
@@ -116,7 +89,7 @@
           <FormSection {section} number={index + 1} dispatch={controller.dispatch} />
         {/each}
       </form>
-      <OutputPanel {controller} onselect={selectOutput} />
+      <OutputPanel {controller} />
     </div>
     <p class="cg-status" role="status" aria-live="polite">{controller.status}</p>
     {/if}

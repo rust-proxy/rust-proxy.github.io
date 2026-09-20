@@ -1,12 +1,12 @@
 # 配置描述 DSL
 
-生成器使用 **Config DSL v4**。`config-generator/schema/config.xml` 是 TUIC 产品定义的唯一运行时来源：品牌、版本、链接、字段、集合、默认值、校验、联动、提示、启动命令及输出结构均在 XML 中。Rust 实现通用 XML 解释器、编辑状态、表单视图、随机字节编码和序列化；Svelte 渲染通用控件。两者都不认识服务端、客户端或 TUIC 配置字段。
+生成器使用 **Config DSL v4**。`schema/schemas.txt` 注册默认构建内嵌的应用级 schema；当前 `tuic-server.xml` 与 `tuic-client.xml` 分别定义 TUIC 服务端和客户端。品牌、版本、链接、字段、集合、默认值、校验、联动、提示、启动命令及输出结构均在 XML 中。Rust 实现通用注册、XML 解释器、编辑状态、表单视图、随机字节编码和序列化；Svelte 渲染通用控件。两者都不认识服务端、客户端或 TUIC 配置字段。
 
 v4 替换 v3 描述格式，旧 XML 需要迁移；已生成的 TUIC 配置保持兼容。测试目录中的旧版类型和期望输出仅用于 TUIC 回归验证，不编译进应用。
 
 ## 更换描述
 
-默认构建嵌入 `schema/config.xml`。可使用 `CONFIG_SCHEMA` 选择另一份文件，路径相对 `config-generator/`，也支持绝对路径。库调用不依赖嵌入文件：`Document::parse(xml)` → `State::new(&document)` → `model::build_configs(&document, &state.data)`。
+默认构建嵌入 `schema/schemas.txt` 列出的全部 XML。清单每行是 `schema-id | 显示名称 | XML 文件名`；ID 只允许小写 ASCII 字母、数字和连字符，顺序决定默认项。新增 `wind` 等应用时添加独立 XML 和一行清单项即可。浏览器只接受已注册 ID，不读取 URL 指定的文件或网络配置。可使用 `CONFIG_SCHEMA` 选择一份独立 XML 进行复用测试，路径相对 `config-generator/`，也支持绝对路径。库调用不依赖嵌入文件：`Document::parse(xml)` → `State::new(&document)` → `model::build_configs(&document, &state.data)`。
 
 ```powershell
 $env:CONFIG_SCHEMA = 'schema/example.xml'
@@ -55,7 +55,7 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 可选的 `config-desc` 区块为独立的“配置详解”视图提供静态 YAML 示例和逐行说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`，再选择该配置声明的任意 `selector`；右侧只显示 `when` 匹配的 YAML 行。每行可用鼠标悬浮或键盘聚焦查看 `description`。
 
-当 `config` 的 `name` 与一个顶层输出同名时，它也会成为页面级“配置方案”。页面可通过 `?scheme=<name>&mode=generate|detail` 直接选择方案和生成/详解视图；选择器、详解中的配置按钮和生成预览会同步这些参数。没有同名输出的详解配置不会暴露为页面级方案。
+页面级方案来自 `schema/schemas.txt`，与单份 XML 内的输出和 `config-desc/config` 名称无关。页面可通过 `?schema=<schema-id>&mode=generate|detail` 直接选择应用 schema 和生成/详解视图；选择器与页签会同步这些参数并保留其他查询参数和片段。切换 schema 会创建全新会话，不复用上一应用的输入或凭据。
 
 ```xml
 <config-desc title="配置项详解" description="选择分支并查看字段说明。">

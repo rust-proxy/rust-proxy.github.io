@@ -18,7 +18,7 @@ npm ci --prefix config-generator
 npm run dev --prefix config-generator
 ```
 
-Open `http://127.0.0.1:8080/`. No Python or Zensical server is needed. It supports paired generation, server-only or client-only generation, multiple users, three certificate modes, SOCKS5 authentication, logging, connections, TCP/UDP forwarding, Quinn/quiche backends, outbound and ACL routing, DNS/GeoData, RESTful management, and HTTP/3 masquerading; "configuration details" browses the YAML by enum branch and shows per-field explanations on hover or keyboard focus.
+Open `http://127.0.0.1:8080/`. No Python or Zensical server is needed. Its application-schema selector currently provides independent TUIC server and client generators, covering multiple users, three certificate modes, SOCKS5 authentication, logging, connections, TCP/UDP forwarding, Quinn/quiche backends, outbound and ACL routing, DNS/GeoData, RESTful management, and HTTP/3 masquerading; "configuration details" browses the YAML by enum branch and shows per-field explanations on hover or keyboard focus.
 
 When [just](https://just.systems/) is installed, the repository root provides shortcuts:
 
@@ -40,13 +40,13 @@ npm run build --prefix config-generator
 
 `npm run build` compiles the Rust library with the locked wasm-pack, runs the Svelte/TypeScript checks, and then bundles the local JS/CSS/WASM with Vite. The first build downloads the wasm-bindgen tool matching the Cargo lock file. `npm run dev` compiles WASM first and then starts Vite; Svelte/CSS supports hot reloading. After changing Rust or XML, run `npm run wasm --prefix config-generator` in another terminal and refresh the browser.
 
-`CONFIG_SCHEMA` selects a different XML; paths are relative to `config-generator/` (or absolute), defaulting to `schema/config.xml`. Alternative builds should output to a separate directory, and the environment and default WASM must be restored afterward; see [DSL v4](tuic/docs/tools/config-dsl.md).
+The default build embeds every application schema listed in `config-generator/schema/schemas.txt`; the browser switches between them without fetching XML. `CONFIG_SCHEMA` still selects one XML for isolated reuse tests; paths are relative to `config-generator/` (or absolute). Alternative builds should output to a separate directory, and the environment and default WASM must be restored afterward; see the generator's DSL guide.
 
 Artifacts live in `config-generator/dist/`. Hand the entire directory to a static server; it uses relative asset paths by default and supports either the root path or a subpath with a trailing `/`. The server must return `application/wasm` for `.wasm`; do not open the files over `file://`. For a fixed prefix, use `npm run build --prefix config-generator -- --base /your-prefix/`.
 
 Credentials are generated with the browser Crypto API. All input, validation, and serialization happen locally in WASM; no third-party analytics scripts are loaded, inputs, themes, and credentials are not saved, and configuration is never submitted over the network. Copy and download include plaintext passwords, while the preview hides passwords by default.
 
-The page accepts `scheme` and `mode` query parameters for direct links. `scheme` is a configuration name shared by a top-level output and a `<config-desc>` configuration (for example `server` or `client`); `mode` is `generate` or `detail`. The configuration selector and page tabs keep these parameters synchronized without discarding unrelated query parameters or the URL fragment.
+The page accepts `schema` and `mode` query parameters for direct links. `schema` is an application-schema ID from `schema/schemas.txt` (currently `tuic-server` or `tuic-client`); `mode` is `generate` or `detail`. The selector and page tabs keep these parameters synchronized without discarding unrelated query parameters or the URL fragment. Unknown schemas safely fall back to the first registered schema.
 
 ## Running the documentation locally
 
@@ -119,7 +119,7 @@ BROWSER_CHANNEL=chromium node tests/config-generator/browser.mjs
 
 ## DSL and maintenance conventions
 
-[Config DSL v4](tuic/docs/tools/config-dsl.md) uses a separate `config-generator/schema/config.xml` to statically describe inputs, defaults, enums, conditions, lists, mappings, and sensitive fields, deserialized with quick-xml + Serde; configuration descriptions are not written with Rust macros or closures. The Rust session produces the form view, and Svelte renders it; generic projection and redaction live in `dsl.rs`, generic validation and field linkage in `dsl/rules.rs`, and basic address checks in `validation.rs`. TUIC branding, page sections, hints, cross-field rules, random-value generation declarations, and export commands are also entirely provided by the XML. Adding a target application only requires swapping the XML; `schema/example.xml` provides a reuse example with no TUIC fields.
+[Config DSL v4](config-generator/AGENTS.md) uses independent XML files to statically describe inputs, defaults, enums, conditions, lists, mappings, and sensitive fields, deserialized with quick-xml + Serde; configuration descriptions are not written with Rust macros or closures. `schema/schemas.txt` registers the XML files embedded in the production selector. The Rust session produces the form view, and Svelte renders it; generic projection and redaction live in `dsl.rs`, generic validation and field linkage in `dsl/rules.rs`, and basic address checks in `validation.rs`. TUIC branding, page sections, hints, cross-field rules, random-value generation declarations, and export commands are also entirely provided by XML. Adding a target application requires a new XML file and one manifest entry; `schema/example.xml` provides a reuse example with no TUIC fields.
 
 Configuration state is modified only by the Rust `Session`. Svelte submits generic field/collection operations and reads field display values, visibility, errors, and previews from `Snapshot`; it does not parse XML, evaluate conditions, or keep a second mutable copy of the configuration. JSON strings cross the WASM boundary, and both field display values and stable row identities are strings, avoiding JavaScript number precision loss. `ui/types.ts` corresponds to the display contract in `session/view.rs`; when changing the contract, update both sides and run the session tests plus both browser test suites. Copy and download obtain the original text through a separate `export` operation rather than reading the redacted preview.
 
@@ -133,7 +133,8 @@ Configuration state is modified only by the Rust `Session`. Svelte submits gener
 | `config-generator/src/session.rs` / `session/view.rs` | Natively testable editing operations, form view, and preview export |
 | `config-generator/src/wasm.rs` | WASM interface and browser Crypto API randomness adapter |
 | `config-generator/package.json` / `vite.config.js` | Locked frontend tooling and static asset bundling |
-| `config-generator/schema/config.xml` | The single TUIC product definition: UI, fields, rules, hints, and output |
+| `config-generator/schema/schemas.txt` | Application-schema IDs, selector labels, and embedded XML sources |
+| `config-generator/schema/tuic-server.xml` / `tuic-client.xml` | Independent TUIC server and client definitions |
 | `config-generator/src/dsl/xml.rs` / `dsl/wire.rs` / `dsl/parser.rs` | XML subset checks, Serde data model, and semantic validation |
 | `config-generator/src/dsl.rs` | Data projection, type checking, and redaction |
 | `config-generator/src/schema.rs` | Embedded XML, cached parse results, generic state, and stable row identities |

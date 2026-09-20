@@ -6,13 +6,31 @@ use serde_json::Value;
 use crate::dsl::{Document, DslError};
 pub use crate::dsl::{InputField, InputKind};
 
-pub const SOURCE: &str = include_str!(env!("CONFIG_SCHEMA_PATH"));
-pub fn document() -> Result<&'static Document, DslError> {
-	static DOCUMENT: OnceLock<Result<Document, DslError>> = OnceLock::new();
-	DOCUMENT
-		.get_or_init(|| Document::parse(SOURCE))
-		.as_ref()
+include!(concat!(env!("OUT_DIR"), "/embedded_schemas.rs"));
+
+fn documents() -> Result<&'static [Document], DslError> {
+	static DOCUMENTS: OnceLock<Result<Vec<Document>, DslError>> = OnceLock::new();
+	DOCUMENTS
+		.get_or_init(|| SOURCES.iter().map(|(_, _, source)| Document::parse(source)).collect())
+		.as_deref()
 		.map_err(Clone::clone)
+}
+
+pub fn schemas() -> Result<Vec<(&'static str, &'static str)>, DslError> {
+	documents()?;
+	Ok(SOURCES.iter().map(|(name, label, _)| (*name, *label)).collect())
+}
+
+pub fn document_for(name: &str) -> Result<&'static Document, DslError> {
+	let index = SOURCES
+		.iter()
+		.position(|(candidate, _, _)| *candidate == name)
+		.ok_or_else(|| DslError("配置方案不存在".into()))?;
+	documents()?.get(index).ok_or_else(|| DslError("配置方案不存在".into()))
+}
+
+pub fn document() -> Result<&'static Document, DslError> {
+	documents()?.first().ok_or_else(|| DslError("没有可用的配置方案".into()))
 }
 pub fn input_fields() -> &'static [InputField] {
 	document().map(|d| d.fields.as_slice()).unwrap_or_default()

@@ -23,11 +23,16 @@ pub struct Engine {
 }
 
 #[wasm_bindgen]
+pub fn schemas() -> Result<String, JsValue> {
+	serde_json::to_string(&schema::schemas().map_err(js_error)?).map_err(|_| js_error("无法读取配置方案。"))
+}
+
+#[wasm_bindgen]
 impl Engine {
 	#[wasm_bindgen(constructor)]
-	pub fn new() -> Result<Engine, JsValue> {
+	pub fn new(schema: &str) -> Result<Engine, JsValue> {
 		Ok(Self {
-			session: Session::new(schema::document().map_err(js_error)?.clone()),
+			session: Session::new(schema::document_for(schema).map_err(js_error)?.clone()),
 		})
 	}
 

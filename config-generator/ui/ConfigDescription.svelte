@@ -1,18 +1,16 @@
 <script lang="ts">
   import type { ConfigDescription } from './types';
 
-  let { description, selected, onselect }: {
-    description: ConfigDescription;
-    selected: string;
-    onselect: (name: string) => void;
-  } = $props();
+  let { description }: { description: ConfigDescription } = $props();
+  let selected = $state('');
   let selections = $state<Record<string, string>>({});
-  let initialized = $state('');
   const config = $derived(description.configs.find(item => item.name === selected) ?? description.configs[0]);
   const lines = $derived(config?.lines.filter(line => line.conditions.every(([name, value]) => selections[name] === value)) ?? []);
 
   function selectConfig(name: string) {
-    onselect(name);
+    selected = name;
+    const next = description.configs.find(item => item.name === name);
+    selections = Object.fromEntries(next?.selectors.map(selector => [selector.name, selector.default]) ?? []);
   }
 
   function setSelection(name: string, value: string) {
@@ -20,11 +18,7 @@
   }
 
   $effect(() => {
-    if (!description.configs.some(item => item.name === selected)) onselect(description.configs[0]?.name ?? '');
-    else if (config && initialized !== config.name) {
-      initialized = config.name;
-      selections = Object.fromEntries(config.selectors.map(selector => [selector.name, selector.default]));
-    }
+    if (!description.configs.some(item => item.name === selected)) selectConfig(description.configs[0]?.name ?? '');
   });
 </script>
 

@@ -1,13 +1,29 @@
 //! Typed legacy fixtures are a test oracle, never part of the generator runtime.
 #![allow(dead_code, unused_imports)]
-use config_generator::{dsl::InputField, schema::document};
-pub use config_generator::{
-	model::serialize,
-	schema::{input_fields, options},
-	validation::endpoint,
-};
+use std::sync::OnceLock;
+
+use config_generator::dsl::{Document, DslError, InputField};
+pub use config_generator::{model::serialize, validation::endpoint};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+fn document() -> Result<&'static Document, DslError> {
+	static DOCUMENT: OnceLock<Result<Document, DslError>> = OnceLock::new();
+	DOCUMENT
+		.get_or_init(|| Document::parse(include_str!("../fixtures/config.xml")))
+		.as_ref()
+		.map_err(Clone::clone)
+}
+pub fn input_fields() -> &'static [InputField] {
+	document().map(|d| d.fields.as_slice()).unwrap_or_default()
+}
+pub fn options(name: &str) -> &'static [(String, String)] {
+	input_fields()
+		.iter()
+		.find(|field| field.key == name)
+		.map(|field| field.options.as_slice())
+		.unwrap_or_default()
+}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct State {

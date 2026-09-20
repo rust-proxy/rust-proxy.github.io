@@ -11,7 +11,7 @@ async function start() {
     await init({ module_or_path: wasmUrl });
     const target = document.getElementById('app');
     if (!target) throw new Error('找不到应用容器。');
-    const controller = new Controller();
+    const controller = new Controller(new URLSearchParams(window.location.search).get('schema') ?? '');
     const app = mount(App, { target, props: { controller } });
     // App component hot replacement reuses its controller; only the owner frees WASM.
     import.meta.hot?.dispose(() => {
@@ -19,7 +19,8 @@ async function start() {
       controller.dispose();
     });
     loading?.remove();
-  } catch {
+  } catch (error) {
+    console.error(error);
     if (loading) {
       loading.setAttribute('role', 'alert');
       loading.textContent = '配置生成器加载失败，请刷新页面并确认浏览器支持 WebAssembly。';

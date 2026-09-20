@@ -20,10 +20,10 @@ const id = key => page.locator(`[id="cg-${key}"]`);
 const click = name => page.getByRole('button', { name, exact: true }).click();
 const output = async () => JSON.parse(await page.locator('#cg-preview-code').textContent());
 try {
-  await page.goto(`${base}?scheme=snapshot&mode=detail`);
+  await page.goto(`${base}?schema=example&mode=detail`);
   await page.waitForSelector('#config-generator[data-ready="true"]');
   assert.equal(await page.title(), 'Notebook 任务清单生成器');
-  assert.equal(await id('scheme').inputValue(), 'snapshot');
+  assert.equal(await id('schema').inputValue(), 'example');
   assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
   await click('配置生成');
   assert.equal(new URL(page.url()).searchParams.get('mode'), 'generate');
