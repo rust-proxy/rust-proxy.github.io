@@ -7,7 +7,67 @@
   let { controller }: { controller: Controller } = $props();
   const view = $derived(controller.view);
   let dark = $state(window.matchMedia('(prefers-color-scheme: dark)').matches);
-  let page = $state<'generator' | 'description'>('generator');
+  type Page = 'generator' | 'description';
+
+  const query = new URLSearchParams(window.location.search);
+  const requestedMode = query.get('mode');
+  let page = $state<Page>(requestedMode === 'detail' || requestedMode === 'description' ? 'description' : 'generator');
+  let scheme = $state(query.get('scheme') ?? '');
+  let appliedScheme = $state('');
+  const schemes = $derived.by(() => {
+    const described = new Map(view.config_description?.configs.map(item => [item.name, item.label]) ?? []);
+    return view.outputs
+      .filter(output => described.has(output.name))
+      .map(output => ({ name: output.name, label: described.get(output.name) ?? output.label, visible: output.visible }));
+  });
+
+  function updateUrl() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('mode', page === 'description' ? 'detail' : 'generate');
+    if (scheme) url.searchParams.set('scheme', scheme);
+    else url.searchParams.delete('scheme');
+    window.history.replaceState(window.history.state, '', url);
+  }
+
+  function selectScheme(name: string) {
+    scheme = name;
+    if (page === 'generator') {
+      appliedScheme = name;
+      controller.select(name);
+    }
+    updateUrl();
+  }
+
+  function selectOutput(name: string) {
+    if (schemes.some(item => item.name === name)) selectScheme(name);
+    else controller.select(name);
+  }
+
+  function selectPage(next: Page) {
+    page = next;
+    if (next === 'generator' && scheme) {
+      appliedScheme = scheme;
+      controller.select(scheme);
+    }
+    updateUrl();
+  }
+
+  $effect(() => {
+    if (page === 'description' && !view.config_description) page = 'generator';
+    const available = page === 'generator' ? schemes.filter(item => item.visible) : schemes;
+    const next = available.some(item => item.name === scheme)
+      ? scheme
+      : available.find(item => item.name === view.selected)?.name ?? available[0]?.name ?? '';
+    if (next !== scheme) {
+      const hadScheme = scheme !== '';
+      scheme = next;
+      if (hadScheme) updateUrl();
+    }
+    if (page === 'generator' && next && appliedScheme !== next) {
+      appliedScheme = next;
+      controller.select(next);
+    }
+  });
 </script>
 
 <svelte:head><title>{view.ui.brand} {view.ui.title}</title></svelte:head>
@@ -18,8 +78,15 @@
       <span class="cg-mark">{view.ui.mark}</span>{view.ui.brand}<span class="cg-brand-sub">配置工具</span>
     </a>
     <nav>
-      <button type="button" class="cg-nav" aria-pressed={page === 'generator'} onclick={() => page = 'generator'}>配置生成</button>
-      {#if view.config_description}<button type="button" class="cg-nav" aria-pressed={page === 'description'} onclick={() => page = 'description'}>配置详解</button>{/if}
+      {#if schemes.length}
+        <label class="cg-scheme" for="cg-scheme"><span>配置方案</span>
+          <select id="cg-scheme" value={scheme} onchange={(event) => selectScheme(event.currentTarget.value)}>
+            {#each schemes as item (item.name)}<option value={item.name}>{item.label}</option>{/each}
+          </select>
+        </label>
+      {/if}
+      <button type="button" class="cg-nav" aria-pressed={page === 'generator'} onclick={() => selectPage('generator')}>配置生成</button>
+      {#if view.config_description}<button type="button" class="cg-nav" aria-pressed={page === 'description'} onclick={() => selectPage('description')}>配置详解</button>{/if}
       <a href={view.ui.reference} hidden={!view.ui.reference} target="_blank" rel="noopener noreferrer">配置说明 ↗</a>
       <button type="button" class="cg-theme" aria-label="切换主题" aria-pressed={dark} onclick={() => dark = !dark}>
         {dark ? '浅色' : '深色'}
@@ -28,7 +95,7 @@
   </header>
   <main id="config-generator" data-ready="true">
     {#if page === 'description' && view.config_description}
-      <ConfigDescription description={view.config_description} />
+      <ConfigDescription description={view.config_description} selected={scheme} onselect={selectScheme} />
     {:else}
     <div class="cg-heading">
       <p class="cg-eyebrow">{view.ui.eyebrow}</p><h1>{view.ui.title}</h1><p>{view.ui.description}</p>
@@ -49,7 +116,7 @@
           <FormSection {section} number={index + 1} dispatch={controller.dispatch} />
         {/each}
       </form>
-      <OutputPanel {controller} />
+      <OutputPanel {controller} onselect={selectOutput} />
     </div>
     <p class="cg-status" role="status" aria-live="polite">{controller.status}</p>
     {/if}

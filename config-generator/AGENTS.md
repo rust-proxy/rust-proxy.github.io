@@ -55,6 +55,8 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 可选的 `config-desc` 区块为独立的“配置详解”视图提供静态 YAML 示例和逐行说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`，再选择该配置声明的任意 `selector`；右侧只显示 `when` 匹配的 YAML 行。每行可用鼠标悬浮或键盘聚焦查看 `description`。
 
+当 `config` 的 `name` 与一个顶层输出同名时，它也会成为页面级“配置方案”。页面可通过 `?scheme=<name>&mode=generate|detail` 直接选择方案和生成/详解视图；选择器、详解中的配置按钮和生成预览会同步这些参数。没有同名输出的详解配置不会暴露为页面级方案。
+
 ```xml
 <config-desc title="配置项详解" description="选择分支并查看字段说明。">
   <config name="server" label="服务端配置" filename="server.yaml">

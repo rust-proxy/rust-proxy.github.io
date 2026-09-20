@@ -3,7 +3,7 @@
   import { download, focusError } from './browser';
   import Notices from './Notices.svelte';
 
-  let { controller }: { controller: Controller } = $props();
+  let { controller, onselect }: { controller: Controller; onselect: (name: string) => void } = $props();
   const view = $derived(controller.view);
   const errors = $derived(Object.entries(view.errors));
   let reveal = $state(false);
@@ -35,7 +35,7 @@
     <div class="cg-sides" role="group" aria-label="配置预览类型">
       {#each view.outputs as output (output.name)}
         <button type="button" hidden={!output.visible} aria-pressed={view.selected === output.name}
-          onclick={() => controller.select(output.name)}>{output.label}</button>
+          onclick={() => onselect(output.name)}>{output.label}</button>
       {/each}
     </div>
     {#if view.format}

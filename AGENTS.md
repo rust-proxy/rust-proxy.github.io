@@ -46,6 +46,8 @@ Artifacts live in `config-generator/dist/`. Hand the entire directory to a stati
 
 Credentials are generated with the browser Crypto API. All input, validation, and serialization happen locally in WASM; no third-party analytics scripts are loaded, inputs, themes, and credentials are not saved, and configuration is never submitted over the network. Copy and download include plaintext passwords, while the preview hides passwords by default.
 
+The page accepts `scheme` and `mode` query parameters for direct links. `scheme` is a configuration name shared by a top-level output and a `<config-desc>` configuration (for example `server` or `client`); `mode` is `generate` or `detail`. The configuration selector and page tabs keep these parameters synchronized without discarding unrelated query parameters or the URL fragment.
+
 ## Running the documentation locally
 
 Requires [uv](https://docs.astral.sh/uv/); `uvx` fetches the pinned Zensical and Python on demand, so no project virtual environment is created.

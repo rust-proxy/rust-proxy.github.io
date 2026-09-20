@@ -28,6 +28,18 @@ async function jsonOutput(side) {
   return JSON.parse(await preview.textContent());
 }
 try {
+  await page.goto(`${base}?scheme=client&mode=detail&retained=yes#query-state`);
+  await page.waitForSelector('#config-generator[data-ready="true"]');
+  assert.equal(await id('scheme').inputValue(), 'client');
+  assert.equal(await page.locator('article[aria-label="客户端配置 YAML 配置详解"]').count(), 1);
+  await id('scheme').selectOption('server');
+  assert.equal(new URL(page.url()).searchParams.get('scheme'), 'server');
+  assert.equal(new URL(page.url()).searchParams.get('retained'), 'yes');
+  assert.equal(new URL(page.url()).hash, '#query-state');
+  await click('配置生成');
+  assert.equal(new URL(page.url()).searchParams.get('mode'), 'generate');
+  assert.equal(await page.getByRole('button', { name: '服务端', exact: true }).getAttribute('aria-pressed'), 'true');
+
   await page.goto(base);
   await page.waitForSelector('#config-generator[data-ready="true"]');
   assert.equal(await page.locator('.md-header, .md-main, iframe').count(), 0, 'Standalone application must not depend on Zensical');

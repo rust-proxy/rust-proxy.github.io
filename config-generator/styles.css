@@ -21,6 +21,8 @@ input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; ac
 .cg-brand-sub { font-weight: 400; color: var(--muted); border-left: 1px solid var(--border); padding-left: 12px; font-size: 13px; letter-spacing: 0; }
 .cg-header nav { display: flex; align-items: center; gap: 12px; font-size: 13px; }
 .cg-header nav a { text-decoration: none; color: var(--muted); }
+.cg-scheme { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+.cg-scheme select { min-height: 34px; padding: 5px 28px 5px 9px; }
 .cg-nav { min-height: 34px; border: 0; background: transparent; color: var(--muted); padding: 5px 8px; }
 .cg-nav[aria-pressed="true"] { background: transparent; color: var(--accent); box-shadow: inset 0 -2px var(--accent); border-radius: 0; }
 .cg-theme { min-height: 34px; font-size: 12px; padding: 6px 10px; }
@@ -108,7 +110,7 @@ footer { display: flex; justify-content: space-between; border-top: 1px solid va
 @media (max-width: 850px) { .cg-workspace { grid-template-columns: 1fr; gap: 10px; } .cg-output { position: static; } .cg-code { max-height: 420px; } }
 @media (max-width: 850px) { .cg-desc-workspace { grid-template-columns: 1fr; } .cg-desc-controls { position: static; } .cg-desc-kinds { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 480px) {
-  .cg-header { padding: 16px 20px; align-items: flex-start; } .cg-brand-sub, .cg-header nav a { display: none; } .cg-header nav { gap: 3px; font-size: 12px; flex-wrap: wrap; justify-content: flex-end; }
+  .cg-header { padding: 16px 20px; align-items: flex-start; } .cg-brand-sub, .cg-header nav a, .cg-scheme > span { display: none; } .cg-header nav { gap: 3px; font-size: 12px; flex-wrap: wrap; justify-content: flex-end; }
   #config-generator { padding: 28px 20px 20px; } h1 { font-size: 27px; } .cg-heading > p { font-size: 13px; } .cg-heading .cg-privacy { font-size: 10px; }
   .cg-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 8px; } .cg-output { padding: 16px; } .cg-row-title { flex-wrap: wrap; }
   .cg-desc-yaml > header { display: block; } .cg-desc-yaml > header span { display: block; margin-top: 4px; } .cg-tooltip { left: 12px; width: calc(100vw - 64px); }
