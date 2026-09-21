@@ -43,7 +43,12 @@ export interface ConfigDescription {
     label: string;
     filename: string;
     selectors: { name: string; label: string; default: string; choices: [string, string][] }[];
-    lines: { yaml: string; indent: number; description: string; conditions: [string, string][] }[];
+    formats: {
+      name: string;
+      label: string;
+      extension: string;
+      lines: { text: string; description: string; conditions: [string, string][] }[];
+    }[];
   }[];
 }
 export interface SectionView {

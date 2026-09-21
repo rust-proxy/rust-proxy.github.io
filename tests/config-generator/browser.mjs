@@ -36,6 +36,11 @@ try {
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('skip_cert_verify: false')));
   await page.locator('#cg-desc-forward').selectOption('udp');
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('udp_forward:')));
+  await id('desc-format').selectOption('toml');
+  assert.equal(await page.locator('article[aria-label="客户端配置 TOML 配置详解"]').count(), 1);
+  assert.equal(await page.locator('.cg-desc-document header strong').textContent(), 'client.toml');
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('[[local.udp_forward]]')));
+  await id('desc-format').selectOption('yaml');
 
   await id('schema').selectOption('tuic-server');
   assert.equal(new URL(page.url()).searchParams.get('schema'), 'tuic-server');

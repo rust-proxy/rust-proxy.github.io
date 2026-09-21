@@ -31,7 +31,11 @@ try {
   await click('配置详解');
   assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
   await id('desc-visibility').selectOption('private');
-  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility: private')));
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility: "private"')));
+  await id('desc-format').selectOption('toml');
+  assert.equal(await page.locator('.cg-desc-document header strong').textContent(), 'snapshot.toml');
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('[metadata]')));
+  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility = "private"')));
   await click('配置生成');
   assert.equal(await id('seed').inputValue().then(v => v.length), 16);
   const seed = await id('seed').inputValue();

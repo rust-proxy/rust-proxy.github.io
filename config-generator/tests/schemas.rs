@@ -6,6 +6,26 @@ use config_generator::{
 
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 
+fn rendered_toml(config: &config_generator::dsl::DescriptionConfig, selected: &[(&str, &str)]) -> String {
+	config
+		.formats
+		.iter()
+		.find(|format| format.name == "toml")
+		.into_iter()
+		.flat_map(|format| &format.lines)
+		.filter(|line| {
+			line.conditions.iter().all(|(name, value)| {
+				selected
+					.iter()
+					.find(|(candidate, _)| *candidate == name)
+					.is_some_and(|(_, chosen)| *chosen == value)
+			})
+		})
+		.map(|line| line.text.as_str())
+		.collect::<Vec<_>>()
+		.join("\n")
+}
+
 #[test]
 fn embedded_application_schemas_are_independent() -> Result {
 	assert_eq!(
@@ -65,6 +85,33 @@ fn split_schemas_preserve_standalone_tuic_outputs() -> Result {
 			build_configs(current, &current_state)?[output],
 			build_configs(&legacy, &legacy_state)?[output]
 		);
+	}
+	Ok(())
+}
+
+#[test]
+fn structured_descriptions_render_valid_toml_across_selector_choices() -> Result {
+	for schema in ["tuic-server", "tuic-client"] {
+		let document = document_for(schema)?;
+		let description = document.config_description.as_ref().ok_or("missing config description")?;
+		for config in &description.configs {
+			let defaults = config
+				.selectors
+				.iter()
+				.map(|selector| (selector.name.as_str(), selector.default.as_str()))
+				.collect::<Vec<_>>();
+			toml::from_str::<toml::Value>(&rendered_toml(config, &defaults))?;
+			for selector in &config.selectors {
+				for (choice, _) in &selector.choices {
+					let mut selected = defaults.clone();
+					let Some((_, value)) = selected.iter_mut().find(|(name, _)| *name == selector.name) else {
+						return Err("selector default is missing".into());
+					};
+					*value = choice;
+					toml::from_str::<toml::Value>(&rendered_toml(config, &selected))?;
+				}
+			}
+		}
 	}
 	Ok(())
 }

@@ -286,8 +286,8 @@
 		<value name="serverHostname"><coalesce><source from="/hostname" transform="trim"/><source ref="host" when="client"/></coalesce></value>
 		<value name="clientSni"><coalesce><source from="/sni" transform="trim"/><source from="/hostname" transform="trim" when="server"/><source ref="host"/></coalesce></value>
 	</values>
-	<config-desc title="配置项详解" description="选择配置类型和枚举分支，查看完整 YAML 结构；悬浮或聚焦任意一行可了解字段作用。">
-		<config name="server" label="服务端配置" filename="server.yaml">
+	<config-desc title="配置项详解" description="选择配置类型、YAML 或 TOML 及枚举分支，查看完整配置结构；悬浮或聚焦任意一行可了解字段作用。">
+		<config name="server" label="服务端配置" filename="server">
 			<selector name="tls" label="证书模式" default="certificate">
 				<choice value="certificate" label="已有证书"/><choice value="acme" label="ACME 自动证书"/><choice value="self" label="自签名测试"/>
 			</selector>
@@ -297,49 +297,62 @@
 			<selector name="routing" label="路由" default="off">
 				<choice value="off" label="不配置"/><choice value="acl" label="ACL 与规则"/>
 			</selector>
-			<line yaml="server: &quot;[::]:8443&quot;" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。"/>
-			<line yaml="log_level: info" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。"/>
-			<line yaml="zero_rtt_handshake: false" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。"/>
-			<line yaml="auth_timeout: 3s" description="等待客户端认证命令的时间。"/>
-			<line yaml="stream_timeout: 60s" description="TCP/UDP I/O 任务的保留时间。"/>
-			<line yaml="data_dir: /var/lib/tuic" description="ACME 证书与账户状态的持久化目录。运行用户必须可写，容器部署时应挂载持久卷。" when="tls=acme"/>
-			<line yaml="users:" description="允许连接的 TUIC 用户映射；键是 UUID，值是对应密码。至少配置一个用户。"/>
-			<line indent="1" yaml="&quot;00000000-0000-4000-8000-000000000001&quot;: &quot;change-this-password&quot;" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。"/>
-			<line yaml="tls:" description="服务端 TLS 配置。TUIC 基于 QUIC，TLS 同时负责加密和服务端身份验证。"/>
-			<line indent="1" yaml="hostname: tuic.example.com" description="证书对应的 DNS 主机名。ACME 用它申请证书，自签名模式用它生成证书。"/>
-			<line indent="1" yaml="alpn:" description="QUIC TLS 的应用层协议协商列表。当前配置固定使用 h3。"/>
-			<line indent="2" yaml="- h3" description="客户端与服务端必须协商相同的 ALPN；生成器使用 h3。"/>
-			<line indent="1" yaml="certificate: /etc/tuic/fullchain.pem" description="已有证书模式下的证书链文件路径。文件必须在服务端运行环境中存在并可读。" when="tls=certificate"/>
-			<line indent="1" yaml="private_key: /etc/tuic/privatekey.pem" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" when="tls=certificate"/>
-			<line indent="1" yaml="auto_ssl: true" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" when="tls=acme"/>
-			<line indent="1" yaml="acme_email: admin@example.com" description="ACME 账户联系邮箱，用于证书服务通知。" when="tls=acme"/>
-			<line indent="1" yaml="acme_staging: false" description="使用 ACME 预发布环境，仅用于测试证书申请流程。" when="tls=acme"/>
-			<line indent="1" yaml="self_sign: true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self"/>
-			<line yaml="backend:" description="底层 QUIC 实现及其传输参数。"/>
-			<line indent="1" yaml="mode: quinn" description="选择 Quinn 作为 QUIC 后端；quiche 为实验性后端，需要构建时启用对应 feature。"/>
-			<line indent="1" yaml="quinn:" description="Quinn 后端的专属配置命名空间。"/>
-			<line indent="2" yaml="congestion_control:" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。"/>
-			<line indent="3" yaml="controller: bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr"/>
-			<line indent="3" yaml="controller: bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="controller=bbr3"/>
-			<line indent="3" yaml="controller: cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="controller=cubic"/>
-			<line indent="3" yaml="controller: newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="controller=newreno"/>
-			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。"/>
-			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。"/>
-			<line indent="2" yaml="max_idle_time: 30s" description="空闲连接关闭等待时间。"/>
-			<line yaml="outbound:" description="出站规则；default 用于未匹配的流量，具名出站可被 ACL 或规则引用。"/>
-			<line indent="1" yaml="default:" description="默认出站。"/>
-			<line indent="2" yaml="type: direct" description="direct 直连，或 socks5 经上游代理。"/>
-			<line indent="2" yaml="ip_mode: v4first" description="直连时的地址族偏好。" when="routing=acl"/>
-			<line yaml="experimental:" description="安全防护开关。"/>
-			<line indent="1" yaml="drop_loopback: true" description="拒绝解析到回环地址的目标。"/>
-			<line indent="1" yaml="drop_private: true" description="拒绝私有、链路本地与 ULA 地址。"/>
-			<line yaml="acl:" description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl"/>
-			<line indent="1" yaml="- addr: private" description="匹配私有地址网段。" when="routing=acl"/>
-			<line indent="2" yaml="outbound: reject" description="命中后拒绝连接。" when="routing=acl"/>
-			<line yaml="rules:" description="Metacubex 风格路由规则，在 ACL 之后求值。" when="routing=acl"/>
-			<line indent="1" yaml="- MATCH,default" description="兜底规则，把剩余流量交给 default 出站。" when="routing=acl"/>
+			<string name="server" value="[::]:8443" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。" />
+			<string name="log_level" value="info" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。" />
+			<boolean name="zero_rtt_handshake" value="false" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。" />
+			<string name="auth_timeout" value="3s" description="等待客户端认证命令的时间。" />
+			<string name="stream_timeout" value="60s" description="TCP/UDP I/O 任务的保留时间。" />
+			<string name="data_dir" value="/var/lib/tuic" description="ACME 证书与账户状态的持久化目录。运行用户必须可写，容器部署时应挂载持久卷。" when="tls=acme" />
+			<object name="users" description="允许连接的 TUIC 用户映射；键是 UUID，值是对应密码。至少配置一个用户。">
+				<string name="00000000-0000-4000-8000-000000000001" value="change-this-password" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。" />
+			</object>
+			<object name="tls" description="服务端 TLS 配置。TUIC 基于 QUIC，TLS 同时负责加密和服务端身份验证。">
+				<string name="hostname" value="tuic.example.com" description="证书对应的 DNS 主机名。ACME 用它申请证书，自签名模式用它生成证书。" />
+				<array name="alpn" description="QUIC TLS 的应用层协议协商列表。当前配置固定使用 h3。">
+					<string value="h3" description="客户端与服务端必须协商相同的 ALPN；生成器使用 h3。" />
+				</array>
+				<string name="certificate" value="/etc/tuic/fullchain.pem" description="已有证书模式下的证书链文件路径。文件必须在服务端运行环境中存在并可读。" when="tls=certificate" />
+				<string name="private_key" value="/etc/tuic/privatekey.pem" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" when="tls=certificate" />
+				<boolean name="auto_ssl" value="true" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" when="tls=acme" />
+				<string name="acme_email" value="admin@example.com" description="ACME 账户联系邮箱，用于证书服务通知。" when="tls=acme" />
+				<boolean name="acme_staging" value="false" description="使用 ACME 预发布环境，仅用于测试证书申请流程。" when="tls=acme" />
+				<boolean name="self_sign" value="true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self" />
+			</object>
+			<object name="backend" description="底层 QUIC 实现及其传输参数。">
+				<string name="mode" value="quinn" description="选择 Quinn 作为 QUIC 后端；quiche 为实验性后端，需要构建时启用对应 feature。" />
+				<object name="quinn" description="Quinn 后端的专属配置命名空间。">
+					<object name="congestion_control" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。">
+						<string name="controller" value="bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr" />
+						<string name="controller" value="bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="controller=bbr3" />
+						<string name="controller" value="cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="controller=cubic" />
+						<string name="controller" value="newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="controller=newreno" />
+					</object>
+					<integer name="send_window" value="16777216" description="未经确认可发送的最大字节数。" />
+					<integer name="receive_window" value="8388608" description="每条流可接收的最大字节数。" />
+					<string name="max_idle_time" value="30s" description="空闲连接关闭等待时间。" />
+				</object>
+			</object>
+			<object name="outbound" description="出站规则；default 用于未匹配的流量，具名出站可被 ACL 或规则引用。">
+				<object name="default" description="默认出站。">
+					<string name="type" value="direct" description="direct 直连，或 socks5 经上游代理。" />
+					<string name="ip_mode" value="v4first" description="直连时的地址族偏好。" when="routing=acl" />
+				</object>
+			</object>
+			<object name="experimental" description="安全防护开关。">
+				<boolean name="drop_loopback" value="true" description="拒绝解析到回环地址的目标。" />
+				<boolean name="drop_private" value="true" description="拒绝私有、链路本地与 ULA 地址。" />
+			</object>
+			<array name="acl" description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl">
+				<object description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl">
+					<string name="addr" value="private" description="匹配私有地址网段。" />
+					<string name="outbound" value="reject" description="命中后拒绝连接。" when="routing=acl" />
+				</object>
+			</array>
+			<array name="rules" description="Metacubex 风格路由规则，在 ACL 之后求值。" when="routing=acl">
+				<string value="MATCH,default" description="兜底规则，把剩余流量交给 default 出站。" when="routing=acl" />
+			</array>
 		</config>
-		<config name="client" label="客户端配置" filename="client.yaml">
+		<config name="client" label="客户端配置" filename="client">
 			<selector name="address" label="服务端地址" default="domain">
 				<choice value="domain" label="域名"/><choice value="ip" label="IP 地址"/>
 			</selector>
@@ -349,43 +362,55 @@
 			<selector name="forward" label="端口转发示例" default="none">
 				<choice value="none" label="不配置"/><choice value="tcp" label="TCP 转发"/><choice value="udp" label="UDP 转发"/>
 			</selector>
-			<line yaml="server: tuic.example.com:8443" description="客户端连接的 TUIC 服务端地址，包含 UDP 端口。域名会在客户端解析。" when="address=domain"/>
-			<line yaml="server: &quot;[2001:db8::1]:8443&quot;" description="直接连接 IPv6 地址时使用方括号包围地址，再追加 UDP 端口。" when="address=ip"/>
-			<line yaml="ip: &quot;2001:db8::1&quot;" description="显式指定服务端 IP，可绕过域名解析；使用域名连接时通常不需要此字段。" when="address=ip"/>
-			<line yaml="uuid: &quot;00000000-0000-4000-8000-000000000001&quot;" description="服务端 users 映射中存在的用户 UUID。配对生成会自动保持两端一致。"/>
-			<line yaml="password: &quot;change-this-password&quot;" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。"/>
-			<line yaml="log_level: info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。"/>
-			<line yaml="udp_relay_mode: native" description="UDP 转发模式，native 为默认，quic 使用 QUIC 流承载。"/>
-			<line yaml="zero_rtt_handshake: false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。"/>
-			<line yaml="heartbeat: 3s" description="保持连接活跃的心跳周期。"/>
-			<line yaml="gc_interval: 3s" description="UDP 分片垃圾回收周期。"/>
-			<line yaml="gc_lifetime: 15s" description="UDP 分片在回收前保留的时间。"/>
-			<line yaml="reconnect: true" description="是否在连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。"/>
-			<line yaml="lazy: true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。"/>
-			<line yaml="reconnect_initial_backoff: 500ms" description="开启自动重连时，首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。"/>
-			<line yaml="reconnect_max_backoff: 30000ms" description="开启自动重连时，指数退避允许增长到的最大等待时间，必须不小于首次等待。"/>
-			<line yaml="tls:" description="客户端 TLS 验证与协议协商配置。"/>
-			<line indent="1" yaml="sni: tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。"/>
-			<line indent="1" yaml="alpn:" description="客户端提出的 ALPN 列表，必须与服务端一致。"/>
-			<line indent="2" yaml="- h3" description="当前生成器使用的 QUIC 应用层协议标识。"/>
-			<line indent="1" yaml="skip_cert_verify: false" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。"/>
-			<line yaml="backend:" description="客户端 QUIC 传输参数。"/>
-			<line indent="1" yaml="quinn:" description="客户端仅支持 Quinn 后端。"/>
-			<line indent="2" yaml="congestion_control:" description="拥塞控制算法。"/>
-			<line indent="3" yaml="controller: bbr" description="默认使用 BBR。" />
-			<line indent="2" yaml="send_window: 16777216" description="未经确认可发送的最大字节数。"/>
-			<line indent="2" yaml="receive_window: 8388608" description="每条流可接收的最大字节数。"/>
-			<line yaml="local:" description="本地代理监听与静态端口转发配置。"/>
-			<line indent="1" yaml="server: 127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。"/>
-			<line indent="1" yaml="username: proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on"/>
-			<line indent="1" yaml="password: &quot;local-proxy-password&quot;" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" when="local-auth=on"/>
-			<line indent="1" yaml="tcp_forward:" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp"/>
-			<line indent="2" yaml="- listen: 127.0.0.1:8080" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" when="forward=tcp"/>
-			<line indent="3" yaml="remote: example.com:80" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" when="forward=tcp"/>
-			<line indent="1" yaml="udp_forward:" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp"/>
-			<line indent="2" yaml="- listen: 127.0.0.1:5353" description="单条 UDP 转发的本地监听地址。" when="forward=udp"/>
-			<line indent="3" yaml="remote: dns.example.com:53" description="UDP 数据报转发到的远端目标地址。" when="forward=udp"/>
-			<line indent="3" yaml="timeout: 60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp"/>
+			<string name="server" value="tuic.example.com:8443" description="客户端连接的 TUIC 服务端地址，包含 UDP 端口。域名会在客户端解析。" when="address=domain" />
+			<string name="server" value="[2001:db8::1]:8443" description="直接连接 IPv6 地址时使用方括号包围地址，再追加 UDP 端口。" when="address=ip" />
+			<string name="ip" value="2001:db8::1" description="显式指定服务端 IP，可绕过域名解析；使用域名连接时通常不需要此字段。" when="address=ip" />
+			<string name="uuid" value="00000000-0000-4000-8000-000000000001" description="服务端 users 映射中存在的用户 UUID。配对生成会自动保持两端一致。" />
+			<string name="password" value="change-this-password" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。" />
+			<string name="log_level" value="info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。" />
+			<string name="udp_relay_mode" value="native" description="UDP 转发模式，native 为默认，quic 使用 QUIC 流承载。" />
+			<boolean name="zero_rtt_handshake" value="false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。" />
+			<string name="heartbeat" value="3s" description="保持连接活跃的心跳周期。" />
+			<string name="gc_interval" value="3s" description="UDP 分片垃圾回收周期。" />
+			<string name="gc_lifetime" value="15s" description="UDP 分片在回收前保留的时间。" />
+			<boolean name="reconnect" value="true" description="是否在连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。" />
+			<boolean name="lazy" value="true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。" />
+			<string name="reconnect_initial_backoff" value="500ms" description="开启自动重连时，首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" />
+			<string name="reconnect_max_backoff" value="30000ms" description="开启自动重连时，指数退避允许增长到的最大等待时间，必须不小于首次等待。" />
+			<object name="tls" description="客户端 TLS 验证与协议协商配置。">
+				<string name="sni" value="tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。" />
+				<array name="alpn" description="客户端提出的 ALPN 列表，必须与服务端一致。">
+					<string value="h3" description="当前生成器使用的 QUIC 应用层协议标识。" />
+				</array>
+				<boolean name="skip_cert_verify" value="false" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。" />
+			</object>
+			<object name="backend" description="客户端 QUIC 传输参数。">
+				<object name="quinn" description="客户端仅支持 Quinn 后端。">
+					<object name="congestion_control" description="拥塞控制算法。">
+						<string name="controller" value="bbr" description="默认使用 BBR。" />
+					</object>
+					<integer name="send_window" value="16777216" description="未经确认可发送的最大字节数。" />
+					<integer name="receive_window" value="8388608" description="每条流可接收的最大字节数。" />
+				</object>
+			</object>
+			<object name="local" description="本地代理监听与静态端口转发配置。">
+				<string name="server" value="127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。" />
+				<string name="username" value="proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on" />
+				<string name="password" value="local-proxy-password" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" when="local-auth=on" />
+				<array name="tcp_forward" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp">
+					<object description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp">
+						<string name="listen" value="127.0.0.1:8080" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" />
+						<string name="remote" value="example.com:80" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" when="forward=tcp" />
+					</object>
+				</array>
+				<array name="udp_forward" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp">
+					<object description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp">
+						<string name="listen" value="127.0.0.1:5353" description="单条 UDP 转发的本地监听地址。" />
+						<string name="remote" value="dns.example.com:53" description="UDP 数据报转发到的远端目标地址。" when="forward=udp" />
+						<string name="timeout" value="60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp" />
+					</object>
+				</array>
+			</object>
 		</config>
 	</config-desc>
 	<!-- TUIC fd7e521 / Wind dee0317: literal output names, no executable code. -->

@@ -41,7 +41,7 @@ tuic-server --init
 
 ### 完整示例
 
-完整且带注释的服务端配置示例由[配置生成器](/config-generator/?schema=tuic-server&mode=detail)的“配置详解”维护：选择证书模式、QUIC 后端、拥塞控制、出站与路由等分支即可查看对应的完整 YAML 结构，悬浮或聚焦任意一行可查看字段说明。
+完整且带注释的服务端配置示例由[配置生成器](/config-generator/?schema=tuic-server&mode=detail)的“配置详解”维护：可切换 YAML 或 TOML，并选择证书模式、QUIC 后端、拥塞控制、出站与路由等分支；悬浮或聚焦任意一行可查看字段说明。
 
 [查看服务端完整配置详解](/config-generator/?schema=tuic-server&mode=detail){ .md-button .md-button--primary }
 

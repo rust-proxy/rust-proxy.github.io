@@ -38,7 +38,7 @@ curl --socks5-hostname 127.0.0.1:1080 https://example.com
 
 ### 完整示例
 
-完整且带注释的客户端配置示例由[配置生成器](/config-generator/?schema=tuic-client&mode=detail)的“配置详解”维护：选择服务端地址、SOCKS5 认证、端口转发、UDP 模式与拥塞控制等分支即可查看对应的完整 YAML 结构，悬浮或聚焦任意一行可查看字段说明。
+完整且带注释的客户端配置示例由[配置生成器](/config-generator/?schema=tuic-client&mode=detail)的“配置详解”维护：可切换 YAML 或 TOML，并选择服务端地址、SOCKS5 认证、端口转发、UDP 模式与拥塞控制等分支；悬浮或聚焦任意一行可查看字段说明。
 
 [查看客户端完整配置详解](/config-generator/?schema=tuic-client&mode=detail){ .md-button .md-button--primary }
 

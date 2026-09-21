@@ -53,25 +53,30 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 ## 配置详解
 
-可选的 `config-desc` 区块为独立的“配置详解”视图提供静态 YAML 示例和逐行说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`，再选择该配置声明的任意 `selector`；右侧只显示 `when` 匹配的 YAML 行。每行可用鼠标悬浮或键盘聚焦查看 `description`。
+可选的 `config-desc` 区块为独立的“配置详解”视图提供结构化示例和逐项说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`、YAML/TOML 格式和该配置声明的任意 `selector`；右侧只显示 `when` 匹配的配置项。每行可用鼠标悬浮或键盘聚焦查看 `description`。
 
 页面级方案来自 `schema/schemas.txt`，与单份 XML 内的输出和 `config-desc/config` 名称无关。页面可通过 `?schema=<schema-id>&mode=generate|detail` 直接选择应用 schema 和生成/详解视图；选择器与页签会同步这些参数并保留其他查询参数和片段。切换 schema 会创建全新会话，不复用上一应用的输入或凭据。
 
 ```xml
 <config-desc title="配置项详解" description="选择分支并查看字段说明。">
-  <config name="server" label="服务端配置" filename="server.yaml">
+  <config name="server" label="服务端配置" filename="server">
     <selector name="backend" label="后端" default="quinn">
       <choice value="quinn" label="Quinn"/>
       <choice value="other" label="其他"/>
     </selector>
-    <line yaml="server: &quot;[::]:8443&quot;" description="UDP 监听地址。"/>
-    <line yaml="backend:" description="后端配置。"/>
-    <line indent="1" yaml="mode: quinn" description="使用 Quinn 后端。" when="backend=quinn"/>
+    <string name="server" value="[::]:8443" description="UDP 监听地址。"/>
+    <object name="backend" description="后端配置。">
+      <string name="mode" value="quinn" description="使用 Quinn 后端。" when="backend=quinn"/>
+    </object>
   </config>
 </config-desc>
 ```
 
-`config-desc` 至少包含一个 `config`，每个配置至少有一行 `line`。`config` 的 `name`、`label`、`filename` 必填。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。`line` 的 `yaml` 和 `description` 必填；`indent` 是可选的 0–16 级结构化缩进，默认 0，界面统一按每级两个空格渲染。`yaml` 本身不接受前导、尾随空白或换行，避免把不可见空格当成结构。可选 `when` 使用逗号分隔的 `selector=value` 条件，所有条件同时满足才显示，例如 `when="tls=certificate,backend=quinn"`。解析器会拒绝重复名称、未知选择器、未知选项、非法缩进、脚本式表达式和未声明属性。
+`config-desc` 至少包含一个 `config`，每个配置至少有一个结构节点。`config` 的 `name`、`label`、`filename` 必填；`filename` 是不含扩展名的安全文件名，界面根据所选格式追加 `.yaml` 或 `.toml`。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。
+
+结构节点包括 `object`、`array`、`string`、`integer` 和 `boolean`。对象成员必须声明 `name`；数组元素不能声明 `name`。标量使用 `value` 表达显式类型，所有可见配置项使用 `description` 提供说明。`array` 可以包含同类标量或 `object`，不能混合两种形态。可选 `when` 可用于任意层级，使用逗号分隔的 `selector=value` 条件；子节点继承父节点条件。相同对象中的同名成员只有在选择器条件互斥时才合法。渲染器统一处理 YAML 缩进、TOML table、对象数组和标量数组，XML 不含格式专用空格或标点。
+
+旧版 `<line yaml="…" indent="…">` 仍可单独用于兼容已有 Config DSL v4 描述，但只提供 YAML；不能与结构节点混用。新描述应使用结构节点以同时获得 YAML 和 TOML。
 
 ## 页面与输入
 

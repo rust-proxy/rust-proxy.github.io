@@ -15,7 +15,35 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	let description = doc.config_description.as_ref().ok_or("missing config description")?;
 	assert_eq!(description.configs[0].label, "完整清单");
 	assert_eq!(description.configs[0].selectors[0].default, "team");
-	assert_eq!(description.configs[0].lines[1].indent, 1);
+	assert_eq!(
+		description.configs[0]
+			.formats
+			.iter()
+			.map(|format| format.name)
+			.collect::<Vec<_>>(),
+		["yaml", "toml"]
+	);
+	assert_eq!(description.configs[0].formats[0].lines[1].text, "  project: \"example\"");
+	assert_eq!(description.configs[0].formats[1].lines[0].text, "[metadata]");
+	let defaults = &description.configs[0].selectors;
+	let selected = |line: &config_generator::dsl::DescriptionLine| {
+		line.conditions.iter().all(|(name, value)| {
+			defaults
+				.iter()
+				.find(|selector| selector.name == *name)
+				.is_some_and(|selector| selector.default == *value)
+		})
+	};
+	let toml = description.configs[0].formats[1]
+		.lines
+		.iter()
+		.filter(|line| selected(line))
+		.map(|line| line.text.as_str())
+		.collect::<Vec<_>>()
+		.join("\n");
+	let parsed: toml::Value = toml::from_str(&toml)?;
+	assert_eq!(parsed["metadata"]["project"].as_str(), Some("example"));
+	assert_eq!(parsed["metadata"]["visibility"].as_str(), Some("team"));
 	let config = build_configs(&doc, &state.data)?;
 	assert_eq!(config["snapshot"]["items"][0]["name"], "item");
 	assert_eq!(config["selected"]["item"], "item");
@@ -104,17 +132,37 @@ fn schema_extensions_fail_closed() {
 		("op=\"gte\"", "op=\"execute\""),
 		("filename=\"snapshot\"", "filename=\"../snapshot\""),
 		("when=\"visibility=team\"", "when=\"missing=team\""),
+		("value=\"example\"", "value=\"example\" unknown=\"true\""),
+		("<object name=\"metadata\"", "<object"),
+		("when=\"visibility=private\"", "when=\"visibility=team\""),
 		(
-			"indent=\"1\" yaml=\"project: example\"",
-			"indent=\"17\" yaml=\"project: example\"",
+			"description=\"清单元数据。\">",
+			"description=\"清单元数据。\" when=\"visibility=team\">",
 		),
-		("yaml=\"project: example\"", "yaml=\" project: example\""),
 	] {
 		assert!(
 			Document::parse(&SOURCE.replace(from, to)).is_err(),
 			"accepted invalid binding: {from}"
 		);
 	}
+}
+
+#[test]
+fn legacy_yaml_descriptions_remain_compatible_but_cannot_mix_with_structured_nodes() -> Result {
+	let source = SOURCE.replace(
+		"<object name=\"metadata\" description=\"清单元数据。\">\n\t\t\t\t<string name=\"project\" value=\"example\" description=\"清单所属项目的名称。\" />\n\t\t\t\t<string name=\"visibility\" value=\"team\" description=\"团队成员可以读取这份清单。\" when=\"visibility=team\" />\n\t\t\t\t<string name=\"visibility\" value=\"private\" description=\"只有清单所有者可以读取。\" when=\"visibility=private\" />\n\t\t\t</object>",
+		"<line yaml=\"metadata:\" description=\"清单元数据。\"/>\n\t\t\t<line indent=\"1\" yaml=\"project: example\" description=\"清单所属项目的名称。\"/>",
+	);
+	let doc = Document::parse(&source)?;
+	let config = &doc.config_description.as_ref().ok_or("missing config description")?.configs[0];
+	assert_eq!(config.formats.len(), 1);
+	assert_eq!(config.formats[0].lines[1].text, "  project: example");
+	let mixed = source.replace(
+		"<line indent=\"1\" yaml=\"project: example\" description=\"清单所属项目的名称。\"/>",
+		"<string name=\"project\" value=\"example\" description=\"清单所属项目的名称。\"/>",
+	);
+	assert!(Document::parse(&mixed).is_err());
+	Ok(())
 }
 
 #[test]

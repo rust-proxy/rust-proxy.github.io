@@ -11,7 +11,7 @@ use std::{
 	net::IpAddr,
 };
 
-pub use description::{ConfigDescription, DescriptionConfig, DescriptionLine, DescriptionSelector};
+pub use description::{ConfigDescription, DescriptionConfig, DescriptionFormat, DescriptionLine, DescriptionSelector};
 pub use metadata::{Export, Generator, Notice, Section, Ui};
 use serde_json::{Map, Value};
 

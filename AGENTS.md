@@ -18,7 +18,7 @@ npm ci --prefix config-generator
 npm run dev --prefix config-generator
 ```
 
-Open `http://127.0.0.1:8080/`. No Python or Zensical server is needed. Its application-schema selector currently provides independent TUIC server and client generators, covering multiple users, three certificate modes, SOCKS5 authentication, logging, connections, TCP/UDP forwarding, Quinn/quiche backends, outbound and ACL routing, DNS/GeoData, RESTful management, and HTTP/3 masquerading; "configuration details" browses the YAML by enum branch and shows per-field explanations on hover or keyboard focus.
+Open `http://127.0.0.1:8080/`. No Python or Zensical server is needed. Its application-schema selector currently provides independent TUIC server and client generators, covering multiple users, three certificate modes, SOCKS5 authentication, logging, connections, TCP/UDP forwarding, Quinn/quiche backends, outbound and ACL routing, DNS/GeoData, RESTful management, and HTTP/3 masquerading; "configuration details" browses structured YAML or TOML by enum branch and shows per-field explanations on hover or keyboard focus.
 
 When [just](https://just.systems/) is installed, the repository root provides shortcuts:
 
