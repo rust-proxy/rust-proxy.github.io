@@ -97,6 +97,19 @@ fn preview_export_resets_and_conditional_output_share_one_engine() -> Result {
 }
 
 #[test]
+fn invalid_inputs_keep_preview_with_placeholders() -> Result {
+	let mut s = Session::new(Document::parse(XML)?);
+	s.initialize(&mut random)?;
+	action(&mut s, json!({"type":"set", "field":"project", "value":""}))?;
+	let view = s.snapshot("snapshot", false);
+	assert!(!view.valid);
+	assert!(view.errors.contains_key("project"));
+	assert_eq!(preview_json(&view)?["title"], "<placeholder>");
+	assert!(s.export("snapshot").is_err());
+	Ok(())
+}
+
+#[test]
 fn failed_randomness_and_invalid_actions_do_not_partially_mutate_state() -> Result {
 	let mut s = Session::new(Document::parse(XML)?);
 	let before = serde_json::to_value(s.snapshot("", true))?;

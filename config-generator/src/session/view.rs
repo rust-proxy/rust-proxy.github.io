@@ -108,6 +108,7 @@ impl Session {
 		let root = &self.state.data;
 		let errors = doc.validate(root);
 		let selected = self.selected(requested);
+		let format = self.format();
 		let built = build_configs(doc, root).and_then(|configs| {
 			let configs = if reveal {
 				configs
@@ -119,8 +120,19 @@ impl Session {
 			Ok((export.name.clone(), config.clone()))
 		});
 		let (valid, preview_lines) = match &built {
-			Ok((name, config)) => (true, preview_lines(doc, name, config, self.format())),
-			Err(_) => (false, Vec::new()),
+			Ok((name, config)) => (true, preview_lines(doc, name, config, format)),
+			// Invalid inputs no longer hide the preview: render the structure with placeholders.
+			Err(_) => (
+				false,
+				selected
+					.and_then(|export| {
+						let configs = doc.project_preview(root)?;
+						let configs = if reveal { configs } else { doc.redact(&configs).ok()? };
+						Some((export.name.clone(), configs.get(&export.name)?.clone()))
+					})
+					.map(|(name, config)| preview_lines(doc, &name, &config, format))
+					.unwrap_or_default(),
+			),
 		};
 		Snapshot {
 			ui: Branding {

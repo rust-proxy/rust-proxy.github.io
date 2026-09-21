@@ -114,6 +114,29 @@ fn named_values_conditions_and_ipv6_endpoint() -> Result {
 }
 
 #[test]
+fn preview_uses_placeholders_for_invalid_inputs() -> Result {
+	let source = description(
+		r#"
+ <field name="name" type="string" default="demo" label="名称" rule="required"/>
+ <field name="timeout" type="string" default="30" label="超时" rule="seconds"/>
+ "#,
+		r#"<validators><validator name="required" kind="required" message="必填。"/><validator name="seconds" kind="integer" min="1" message="必须为正整数。"/></validators>"#,
+		r#"<object name="out"><string name="name" from="/name"/><string name="timeout" from="/timeout" transform="integer" unit="s"/></object>"#,
+	);
+	let doc = Document::parse(&source)?;
+	let mut state = doc.defaults();
+	assert!(doc.project(&state).is_ok());
+	state["name"] = String::new().into();
+	state["timeout"] = "bad".into();
+	assert!(!doc.validate(&state).is_empty());
+	assert!(doc.project(&state).is_err());
+	let preview = doc.project_preview(&state).ok_or("preview")?;
+	assert_eq!(preview["out"]["name"], "<placeholder>");
+	assert_eq!(preview["out"]["timeout"], "<placeholder>");
+	Ok(())
+}
+
+#[test]
 fn output_and_option_descriptions_annotate_the_projection() -> Result {
 	let source = description(
 		r#"<field name="mode" type="enum" default="a" label="模式"><option value="a" label="A" description="选择 A。"/><option value="b" label="B" description="选择 B。"/></field>"#,

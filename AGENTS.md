@@ -18,7 +18,7 @@ npm ci --prefix config-generator
 npm run dev --prefix config-generator
 ```
 
-Open `http://127.0.0.1:8080/`. No Python or Zensical server is needed. Its application-schema selector currently provides independent TUIC server and client generators, covering multiple users, three certificate modes, SOCKS5 authentication, logging, connections, TCP/UDP forwarding, Quinn/quiche backends, outbound and ACL routing, DNS/GeoData, RESTful management, and HTTP/3 masquerading. The page has two regions: a selection region with the generator form, and a preview region that renders the live generated config with syntax highlighting, per-line XML explanations on hover or keyboard focus, validation, and copy/download.
+Open `http://127.0.0.1:8080/`. No Python or Zensical server is needed. Its application-schema selector currently provides independent TUIC server and client generators, covering multiple users, three certificate modes, SOCKS5 authentication, logging, connections, TCP/UDP forwarding, Quinn/quiche backends, outbound and ACL routing, DNS/GeoData, RESTful management, and HTTP/3 masquerading. The page has two regions: a selection region with the generator form, and a preview region that renders the live generated config with syntax highlighting, per-line XML explanations on hover or keyboard focus, validation, and copy/download. Invalid inputs keep the preview visible: flagged values are shown as `<placeholder>` alongside the validation warnings, while copy and download stay disabled until every field is valid.
 
 When [just](https://just.systems/) is installed, the repository root provides shortcuts:
 

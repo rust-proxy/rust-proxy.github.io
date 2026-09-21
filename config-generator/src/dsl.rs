@@ -15,6 +15,9 @@ pub use metadata::{Export, Generator, Notice, Section, Ui};
 pub use preview::PreviewLine;
 use serde_json::{Map, Value};
 
+/// Display-only substitute for invalid input values in the preview. Never exported.
+pub const PLACEHOLDER: &str = "<placeholder>";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DslError(pub String);
 impl fmt::Display for DslError {
@@ -311,6 +314,62 @@ impl Document {
 		self.output(&self.outputs, root, root)?
 			.ok_or_else(|| self.outputs.error("根输出不可省略"))
 	}
+	/// Best-effort projection for the preview: invalid inputs become [`PLACEHOLDER`] so the
+	/// output structure stays visible. Export always uses the strict [`Self::project`].
+	pub fn project_preview(&self, root: &Value) -> Option<Value> {
+		let state = self.preview_state(root);
+		self.output_mode(&self.outputs, &state, &state, true).ok().flatten()
+	}
+	/// Replaces values flagged by validation with the placeholder, leaving structural fields
+	/// (output format, mode, collection selection) untouched.
+	fn preview_state(&self, root: &Value) -> Value {
+		let mut state = root.clone();
+		let errors = self.validate(root);
+		if errors.is_empty() {
+			return state;
+		}
+		let excluded: BTreeSet<&str> = self
+			.ui
+			.mode_field
+			.iter()
+			.chain(self.ui.format_field.iter())
+			.chain(self.collections.iter().filter_map(|c| c.selected_by.as_ref()))
+			.map(String::as_str)
+			.collect();
+		for path in errors.keys() {
+			if let Some((collection, index, key)) = self.row_error_path(path) {
+				if excluded.contains(key)
+					|| !self
+						.collections
+						.iter()
+						.any(|c| c.name == collection && c.fields.iter().any(|f| f.key == key))
+				{
+					continue;
+				}
+				if let Some(object) = state
+					.get_mut(collection)
+					.and_then(Value::as_array_mut)
+					.and_then(|rows| rows.get_mut(index))
+					.and_then(Value::as_object_mut)
+				{
+					object.insert(key.into(), Value::String(PLACEHOLDER.into()));
+				}
+			} else if !excluded.contains(path.as_str()) && self.fields.iter().any(|f| &f.key == path) {
+				state[path.as_str()] = Value::String(PLACEHOLDER.into());
+			}
+		}
+		state
+	}
+	fn row_error_path<'a>(&self, path: &'a str) -> Option<(&'a str, usize, &'a str)> {
+		let mut parts = path.split('.');
+		let collection = parts.next()?;
+		let index = parts.next()?.parse::<usize>().ok()?;
+		let key = parts.next()?;
+		if parts.next().is_some() {
+			return None;
+		}
+		Some((collection, index, key))
+	}
 	/// Renders one top-level output as annotated lines from its declared descriptions.
 	pub fn preview_lines(&self, export: &str, value: &Value, format: &str) -> Result<Vec<PreviewLine>, DslError> {
 		let node = self
@@ -322,6 +381,9 @@ impl Document {
 		preview::render(node, value, &self.fields, format)
 	}
 	fn output(&self, node: &Element, root: &Value, row: &Value) -> Result<Option<Value>, DslError> {
+		self.output_mode(node, root, row, false)
+	}
+	fn output_mode(&self, node: &Element, root: &Value, row: &Value, lenient: bool) -> Result<Option<Value>, DslError> {
 		if !self.visible(node, root, row)? {
 			return Ok(None);
 		}
@@ -330,7 +392,7 @@ impl Document {
 				"outputs" | "object" => {
 					let mut output = Map::new();
 					for child in &node.children {
-						if let Some(value) = self.output(child, root, row)? {
+						if let Some(value) = self.output_mode(child, root, row, lenient)? {
 							output.insert(child.required("name")?.into(), value);
 						}
 					}
@@ -354,20 +416,30 @@ impl Document {
 						{
 							continue;
 						}
-						if let Some(value) = self.output(node.single()?, root, item)? {
+						if let Some(value) = self.output_mode(node.single()?, root, item, lenient)? {
 							if node.tag == "record" {
 								let key = transform(
 									node,
 									lookup(node, node.required("key")?, root, item)?.clone(),
 									node.attr("key-transform"),
-								)?;
-								let key = key
-									.as_str()
-									.filter(|s| !s.is_empty())
-									.ok_or_else(|| node.error("映射键必须是非空字符串"))?;
-								if record.insert(key.into(), value).is_some() {
+								);
+								let key = match key {
+									Ok(key) => key,
+									Err(_) if lenient => Value::String(PLACEHOLDER.into()),
+									Err(error) => return Err(error),
+								};
+								let key = match key.as_str().filter(|s| !s.is_empty()) {
+									Some(key) => key.to_owned(),
+									None if lenient => PLACEHOLDER.into(),
+									None => return Err(node.error("映射键必须是非空字符串")),
+								};
+								if record.contains_key(&key) {
+									if lenient {
+										continue;
+									}
 									return Err(node.error("映射键在规范化后重复"));
 								}
+								record.insert(key, value);
 							} else {
 								items.push(value);
 							}
@@ -379,11 +451,14 @@ impl Document {
 						Value::Array(items)
 					}
 				}
-				_ => {
-					let v = self.eval(node, root, row)?;
+				_ => match self.eval(node, root, row).and_then(|v| {
 					self.scalar_type(node, &v)?;
-					v
-				}
+					Ok(v)
+				}) {
+					Ok(v) => v,
+					Err(_) if lenient => Value::String(PLACEHOLDER.into()),
+					Err(e) => return Err(e),
+				},
 			};
 			if node.attr("omit-empty") == Some("true")
 				&& (value.as_array().is_some_and(Vec::is_empty) || value.as_object().is_some_and(Map::is_empty))
@@ -446,7 +521,9 @@ impl Document {
 				Value::Object(result)
 			}
 			_ => {
-				self.scalar_type(node, value)?;
+				if value.as_str() != Some(PLACEHOLDER) {
+					self.scalar_type(node, value)?;
+				}
 				value.clone()
 			}
 		};

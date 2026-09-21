@@ -21,7 +21,7 @@ try {
 
 `schema/example.xml` 是不含 TUIC 字段的任务清单示例，具有不同的品牌、输入名、集合、三个输出和导出命令。相同 Rust/Svelte 代码直接呈现它，不需要增加分支或修改 HTML。环境变量变更和选中文件变更均会触发 Cargo 重新嵌入；这是构建时切换，网页不下载外部 XML、不读取网络配置。上面的 `--outDir` 相对 `config-generator/`，保留默认 `dist/` 和组合站点产物；最后重新生成默认 `pkg/`，避免后续 Vite 开发会话继续使用示例 WASM。
 
-Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`generate` 和 `generate-row` 操作。Rust `Session` 统一处理状态和 XML 联动，再返回已计算可见性、错误及预览的显示快照。前端不接收条件表达式，也不解释 DSL。集合行以独立字符串标识作为 Svelte 的 keyed each 键，业务字段 `id` 不受影响；复制下载另行请求原始导出文本。此界面重构不改变 DSL v5 语法。
+Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`generate` 和 `generate-row` 操作。Rust `Session` 统一处理状态和 XML 联动，再返回已计算可见性、错误及预览的显示快照。前端不接收条件表达式，也不解释 DSL。集合行以独立字符串标识作为 Svelte 的 keyed each 键，业务字段 `id` 不受影响；复制下载另行请求原始导出文本。校验不通过时预览不再隐藏：无效输入值在预览中显示为 `<placeholder>`，并保留警告；导出仍走严格投影，校验通过前复制和下载保持禁用。此界面重构不改变 DSL v5 语法。
 
 ## DSL 概要
 

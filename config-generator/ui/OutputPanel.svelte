@@ -58,7 +58,7 @@
     </label>
   </div>
   <div class="cg-errors" hidden={!errors.length}>
-    <p>完成以下字段后即可生成：</p>
+    <p>以下字段需要修正，预览中已用 &lt;placeholder&gt; 替代：</p>
     <ul>{#each errors as [key, message] (key)}
       <li><button type="button" onclick={() => focusError(key)}>{message}</button></li>
     {/each}</ul>
@@ -66,7 +66,7 @@
   {#if view.preview_lines.length}
     <PreviewDocument lines={view.preview_lines} {format} />
   {:else}
-    <div class="cg-code"><code>填写左侧配置，预览将在校验通过后显示。</code></div>
+    <div class="cg-code"><code>无法生成预览，请检查配置。</code></div>
   {/if}
   <div class="cg-actions">
     <button type="button" disabled={!view.valid} onclick={copy}>复制配置</button>

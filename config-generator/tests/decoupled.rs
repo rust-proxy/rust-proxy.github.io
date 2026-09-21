@@ -42,6 +42,12 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	state.data["first"] = "20".into();
 	assert!(doc.validate(&state.data).contains_key("last"));
 	assert!(build_configs(&doc, &state.data).is_err());
+	state.data["project"] = String::new().into();
+	assert!(doc.validate(&state.data).contains_key("project"));
+	assert!(build_configs(&doc, &state.data).is_err());
+	let preview = doc.project_preview(&state.data).ok_or("preview")?;
+	assert_eq!(preview["snapshot"]["title"], "<placeholder>");
+	assert_eq!(preview["snapshot"]["items"][0]["name"], "item");
 	Ok(())
 }
 

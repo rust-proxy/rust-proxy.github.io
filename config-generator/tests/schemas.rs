@@ -62,6 +62,34 @@ fn split_schemas_preserve_standalone_tuic_outputs() -> Result {
 }
 
 #[test]
+fn invalid_defaults_still_render_a_placeholder_preview() -> Result {
+	for schema in ["tuic-server", "tuic-client"] {
+		let document = document_for(schema)?;
+		let state = State::new(document);
+		assert!(!document.validate(&state.data).is_empty(), "{schema}");
+		assert!(build_configs(document, &state.data).is_err(), "{schema}");
+		let preview = document.project_preview(&state.data).ok_or("preview")?;
+		for export in &document.exports {
+			let Some(config) = preview.get(export.name.as_str()) else {
+				continue;
+			};
+			let json = document
+				.preview_lines(&export.name, config, "json")?
+				.iter()
+				.map(|line| line.text.clone())
+				.collect::<Vec<_>>()
+				.join("\n");
+			assert!(
+				json.contains("<placeholder>"),
+				"{schema} {}: invalid defaults should surface placeholders",
+				export.name
+			);
+		}
+	}
+	Ok(())
+}
+
+#[test]
 fn generated_tuic_configs_are_annotated_across_formats() -> Result {
 	for (schema, required, value, marker) in [
 		("tuic-server", "hostname", "tuic.example.com", "凭据"),
