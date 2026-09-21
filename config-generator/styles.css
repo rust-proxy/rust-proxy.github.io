@@ -99,6 +99,10 @@ footer { display: flex; justify-content: space-between; border-top: 1px solid va
 .cg-desc-document { min-width: 0; overflow: visible; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 18px #14223404; }
 .cg-desc-document > header { display: flex; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
 .cg-desc-document > header span { color: var(--muted); font-size: 11px; }
+.cg-desc-meta { display: flex; align-items: center; gap: 12px; }
+.cg-desc-document header button { min-height: 30px; padding: 4px 10px; font-size: 12px; }
+.cg-desc-status { margin: 0; padding: 8px 20px 0; color: var(--muted); font-size: 11px; }
+.cg-desc-status:empty { display: none; }
 .cg-desc-code { padding: 14px 0; background: var(--subtle); border-radius: 0 0 12px 12px; }
 .cg-desc-line { position: relative; display: grid; width: 100%; grid-template-columns: 42px minmax(0, 1fr); min-height: 28px; align-items: center; padding: 1px 20px 1px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); text-align: left; font-weight: 400; outline: 0; }
 .cg-desc-line:hover, .cg-desc-line:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
@@ -120,5 +124,5 @@ footer { display: flex; justify-content: space-between; border-top: 1px solid va
   .cg-header { padding: 16px 20px; align-items: flex-start; } .cg-brand-sub, .cg-header nav a, .cg-schema > span { display: none; } .cg-header nav { gap: 3px; font-size: 12px; flex-wrap: wrap; justify-content: flex-end; }
   #config-generator { padding: 28px 20px 20px; } h1 { font-size: 27px; } .cg-heading > p { font-size: 13px; } .cg-heading .cg-privacy { font-size: 10px; }
   .cg-modes button { min-width: 0; flex: 1; font-size: 12px; padding: 8px; } .cg-output { padding: 16px; } .cg-row-title { flex-wrap: wrap; }
-  .cg-desc-document > header { display: block; } .cg-desc-document > header span { display: block; margin-top: 4px; } .cg-tooltip { left: 12px; width: calc(100vw - 64px); }
+  .cg-desc-document > header { display: block; } .cg-desc-document > header span { display: block; margin-top: 4px; } .cg-desc-meta { display: block; } .cg-desc-meta button { margin-top: 8px; } .cg-tooltip { left: 12px; width: calc(100vw - 64px); }
 }

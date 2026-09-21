@@ -6,6 +6,7 @@
   let selected = $state('');
   let selectedFormat = $state('yaml');
   let selections = $state<Record<string, string>>({});
+  let status = $state('');
   const config = $derived(description.configs.find(item => item.name === selected) ?? description.configs[0]);
   const format = $derived(config?.formats.find(item => item.name === selectedFormat) ?? config?.formats[0]);
   const lines = $derived(format?.lines.filter(line => line.conditions.every(([name, value]) => selections[name] === value)) ?? []);
@@ -13,6 +14,7 @@
 
   function selectConfig(name: string) {
     selected = name;
+    status = '';
     const next = description.configs.find(item => item.name === name);
     selections = Object.fromEntries(next?.selectors.map(selector => [selector.name, selector.default]) ?? []);
     if (next && !next.formats.some(item => item.name === selectedFormat)) selectedFormat = next.formats[0]?.name ?? '';
@@ -20,6 +22,16 @@
 
   function setSelection(name: string, value: string) {
     selections = { ...selections, [name]: value };
+    status = '';
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(`${lines.map(line => line.text).join('\n')}\n`);
+      status = '已复制当前显示的配置。';
+    } catch {
+      status = '浏览器未允许复制，请手动选择文本。';
+    }
   }
 
   $effect(() => {
@@ -47,7 +59,7 @@
         {#if config.formats.length > 1}
           <label class="cg-desc-selector" for="cg-desc-format">
             <span>配置格式</span>
-            <select id="cg-desc-format" value={selectedFormat} onchange={(event) => selectedFormat = event.currentTarget.value}>
+            <select id="cg-desc-format" value={selectedFormat} onchange={(event) => { selectedFormat = event.currentTarget.value; status = ''; }}>
               {#each config.formats as item (item.name)}<option value={item.name}>{item.label}</option>{/each}
             </select>
           </label>
@@ -66,7 +78,14 @@
     </aside>
     {#if config && format}
       <article class="cg-desc-document" aria-label={`${config.label} ${format.label} 配置详解`}>
-        <header><strong>{config.filename}.{format.extension}</strong><span>悬浮或聚焦任意配置项查看说明</span></header>
+        <header>
+          <strong>{config.filename}.{format.extension}</strong>
+          <div class="cg-desc-meta">
+            <span>悬浮或聚焦任意配置项查看说明</span>
+            <button type="button" onclick={copy}>复制配置</button>
+          </div>
+        </header>
+        <p class="cg-desc-status" role="status" aria-live="polite">{status}</p>
         <div class="cg-desc-code">
           {#each lines as line, index (`${line.text}-${index}`)}
             <button type="button" class="cg-desc-line" aria-label={`${line.text}。${line.description}`}>

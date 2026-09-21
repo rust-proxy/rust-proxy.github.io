@@ -30,6 +30,7 @@ try {
   assert.equal(await page.getByRole('heading', { name: '任务清单生成器' }).count(), 1);
   await click('配置详解');
   assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
+  assert.equal(await page.getByRole('button', { name: '复制配置', exact: true }).count(), 1);
   await id('desc-visibility').selectOption('private');
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility: "private"')));
   assert.ok(await page.locator('.cg-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');

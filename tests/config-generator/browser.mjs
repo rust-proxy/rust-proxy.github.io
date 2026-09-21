@@ -37,6 +37,10 @@ try {
   assert.ok(await page.locator('.cg-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');
   await page.locator('#cg-desc-forward').selectOption('udp');
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('udp_forward:')));
+  const visible = (await page.locator('.cg-desc-line code').allTextContents()).join('\n');
+  await click('复制配置');
+  const detailCopy = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n');
+  assert.equal(detailCopy, `${visible}\n`);
   await id('desc-format').selectOption('toml');
   assert.equal(await page.locator('article[aria-label="客户端配置 TOML 配置详解"]').count(), 1);
   assert.equal(await page.locator('.cg-desc-document header strong').textContent(), 'client.toml');
