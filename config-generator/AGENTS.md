@@ -53,7 +53,7 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 ## 配置详解
 
-可选的 `config-desc` 区块为独立的“配置详解”视图提供结构化示例和逐项说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`、YAML/TOML 格式和该配置声明的任意 `selector`；右侧只显示 `when` 匹配的配置项。每行可用鼠标悬浮或键盘聚焦查看 `description`。
+可选的 `config-desc` 区块为独立的“配置详解”视图提供结构化示例和逐项说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`、YAML/TOML 格式和该配置声明的任意 `selector`；右侧只显示 `when` 匹配的配置项。每行可用鼠标悬浮或键盘聚焦查看 `description`。前端 `ui/prism.ts` 用 Prism 仅注册 YAML/TOML 语法逐行高亮，颜色由 `--tok-*` 变量在明暗主题下定义；高亮只影响展示，XML 与 Rust 契约不变。
 
 页面级方案来自 `schema/schemas.txt`，与单份 XML 内的输出和 `config-desc/config` 名称无关。页面可通过 `?schema=<schema-id>&mode=generate|detail` 直接选择应用 schema 和生成/详解视图；选择器与页签会同步这些参数并保留其他查询参数和片段。切换 schema 会创建全新会话，不复用上一应用的输入或凭据。
 

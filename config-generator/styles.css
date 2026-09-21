@@ -12,8 +12,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 a { color: var(--accent); text-underline-offset: 4px; }
 input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; accent-color: var(--accent); vertical-align: middle; }
 [hidden] { display: none !important; }
-.cg-shell { --text: #202e40; --muted: #6b7788; --border: #dfe5ed; --surface: #fff; --subtle: #f3f6fa; --page: #fafbfd; --accent: #405dc9; --error: #bc3d42; --success: #26795b; min-height: 100vh; background: var(--page); color: var(--text); font-size: 14px; line-height: 1.65; }
-.cg-shell[data-theme="dark"] { --text: #e0e6f0; --muted: #a0aec1; --border: #354357; --surface: #1b2636; --subtle: #222f41; --page: #131c29; --accent: #9aadff; --error: #ffaaaa; --success: #7cceab; color-scheme: dark; }
+.cg-shell { --text: #202e40; --muted: #6b7788; --border: #dfe5ed; --surface: #fff; --subtle: #f3f6fa; --page: #fafbfd; --accent: #405dc9; --error: #bc3d42; --success: #26795b; --tok-key: #3557b7; --tok-string: #1f6f52; --tok-number: #8a4b00; --tok-literal: #a12c7e; --tok-section: #6b3fa0; --tok-punct: #5a6675; --tok-comment: #7b8798; min-height: 100vh; background: var(--page); color: var(--text); font-size: 14px; line-height: 1.65; }
+.cg-shell[data-theme="dark"] { --text: #e0e6f0; --muted: #a0aec1; --border: #354357; --surface: #1b2636; --subtle: #222f41; --page: #131c29; --accent: #9aadff; --error: #ffaaaa; --success: #7cceab; --tok-key: #9aadff; --tok-string: #7cceab; --tok-number: #e0b060; --tok-literal: #e79ad8; --tok-section: #c6a2ff; --tok-punct: #a0aec1; --tok-comment: #8a97a8; color-scheme: dark; }
 .cg-shell[data-theme="light"] { color-scheme: light; }
 .cg-header { max-width: 1240px; padding: 22px 36px; margin: auto; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
 .cg-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); font-weight: 750; font-size: 19px; letter-spacing: .04em; }
@@ -104,6 +104,13 @@ footer { display: flex; justify-content: space-between; border-top: 1px solid va
 .cg-desc-line:hover, .cg-desc-line:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text); }
 .cg-desc-line:focus-visible { box-shadow: inset 3px 0 var(--accent); }
 .cg-desc-line code { white-space: pre; overflow-x: auto; font-size: 12px; line-height: 1.8; }
+.cg-desc-code .token.property, .cg-desc-code .token.atrule { color: var(--tok-key); }
+.cg-desc-code .token.string { color: var(--tok-string); }
+.cg-desc-code .token.number { color: var(--tok-number); }
+.cg-desc-code .token.boolean, .cg-desc-code .token.important { color: var(--tok-literal); }
+.cg-desc-code .token.class-name, .cg-desc-code .token.table, .cg-desc-code .token.tag { color: var(--tok-section); font-weight: 650; }
+.cg-desc-code .token.punctuation { color: var(--tok-punct); }
+.cg-desc-code .token.comment { color: var(--tok-comment); font-style: italic; }
 .cg-line-number { color: var(--muted); opacity: .65; text-align: right; padding-right: 13px; font: 10px ui-monospace, monospace; user-select: none; }
 .cg-tooltip { position: absolute; z-index: 5; left: 42px; bottom: calc(100% + 7px); width: min(460px, calc(100vw - 120px)); padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--text); color: var(--surface); box-shadow: 0 7px 24px #0003; font-size: 12px; line-height: 1.65; opacity: 0; visibility: hidden; transform: translateY(3px); transition: opacity .12s, transform .12s; pointer-events: none; }
 .cg-desc-line:hover .cg-tooltip, .cg-desc-line:focus-visible .cg-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }

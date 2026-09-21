@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ConfigDescription } from './types';
+  import { highlightLines } from './prism';
 
   let { description }: { description: ConfigDescription } = $props();
   let selected = $state('');
@@ -8,6 +9,7 @@
   const config = $derived(description.configs.find(item => item.name === selected) ?? description.configs[0]);
   const format = $derived(config?.formats.find(item => item.name === selectedFormat) ?? config?.formats[0]);
   const lines = $derived(format?.lines.filter(line => line.conditions.every(([name, value]) => selections[name] === value)) ?? []);
+  const rendered = $derived(highlightLines(lines.map(line => line.text), format?.name ?? 'yaml'));
 
   function selectConfig(name: string) {
     selected = name;
@@ -69,7 +71,7 @@
           {#each lines as line, index (`${line.text}-${index}`)}
             <button type="button" class="cg-desc-line" aria-label={`${line.text}。${line.description}`}>
               <span class="cg-line-number" aria-hidden="true">{index + 1}</span>
-              <code>{line.text}</code>
+              <code class="cg-hl">{@html rendered[index] ?? ''}</code>
               <span class="cg-tooltip" role="tooltip">{line.description}</span>
             </button>
           {/each}

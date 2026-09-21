@@ -32,10 +32,12 @@ try {
   assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
   await id('desc-visibility').selectOption('private');
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility: "private"')));
+  assert.ok(await page.locator('.cg-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');
   await id('desc-format').selectOption('toml');
   assert.equal(await page.locator('.cg-desc-document header strong').textContent(), 'snapshot.toml');
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('[metadata]')));
   assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility = "private"')));
+  assert.ok(await page.locator('.cg-desc-line code .token.class-name').count() > 0, 'TOML tables are highlighted');
   await click('配置生成');
   assert.equal(await id('seed').inputValue().then(v => v.length), 16);
   const seed = await id('seed').inputValue();
