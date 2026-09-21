@@ -1,7 +1,7 @@
-Draft: config-dsl-01
+Draft: config-dsl-02
 Category: Experimental / Specification Draft
 Date: 2026 年 9 月
-Language version: 3
+Language version: 5
 
 # Config DSL：静态配置描述
 
@@ -9,18 +9,18 @@ Language version: 3
 
 ## 本备忘录状态
 
-本文是仓库级标准的提案，不是已采纳的 Wind API 或互联网标准。它从 TUIC 配置生成器的
-静态 XML 方言中提炼出可供其他配置生成器实现的契约。Wind 目前尚未实现此 DSL。
-草案修订号 `config-dsl-01` 和语言属性 `version="3"` 表示不同的版本。
+本文是仓库级标准的提案，不是已采纳的 Wind API 或互联网标准。它描述 TUIC 配置生成器
+使用的静态 XML 方言，供其他配置生成器参考。Wind 目前尚未实现此 DSL。草案修订号
+`config-dsl-02` 和语言属性 `version="5"` 表示不同的版本。
 
-正文要求描述拟议契约。附录 A 列出它与参考实现的差异；仅被参考实现接受，不足以证明
-符合本草案。中英文版本使用对应的章节编号和要求，并同步维护。
+本文聚焦 XML 文档结构与字段用途。正文第 1–13 节是规范性内容，第 15 节列出规范性引用；
+第 14 节和附录 A 为说明性内容。中英文版本使用对应的章节编号，并同步维护。
 
 ## 摘要
 
-Config DSL 静态描述输入、默认值、适用条件、输出结构、固定转换和敏感值脱敏。
-消费者可据此生成表单、校验输入并投影出结构化配置。TOML、JSON 和 YAML 是后续的
-编码格式。描述文件不包含可执行代码。
+Config DSL 用静态 XML 描述输入、默认值、适用条件、输出结构、固定转换和敏感值脱敏。
+消费者据此生成表单、校验输入并投影结构化配置；TOML、JSON 和 YAML 是下游编码。描述
+文件不包含可执行代码。
 
 ## 1. 范围与术语
 
@@ -28,49 +28,24 @@ Config DSL 静态描述输入、默认值、适用条件、输出结构、固定
 不得、应该、不应该、可以，采用 BCP 14 的要求级别
 （[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)、
 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)）。小写用法是普通叙述。
-第 1–11 节和第 12.2 节是本草案的规范性内容；示例与附录 A 为说明性内容。
 
 | 术语 | 含义 |
 | --- | --- |
 | 描述（Description） | 独立于一次输入会话的 DSL 文档 |
-| 消费者（Consumer） | 实现此契约的解析器、校验器和投影器 |
+| 消费者（Consumer） | 解析、校验并投影描述的实现 |
 | 宿主（Host） | 提供编辑、目标专用校验和导出的应用 |
 | 根（Root） | 包含顶层输入字段和集合的对象 |
 | 行（Row） | 当前输入对象；初始为根，在集合映射或选择时被替换 |
-| 投影（Projection） | 从一个不可变输入快照生成的结构化输出 |
-| 缺失（Missing） | 不同于任何数据值的内部缺席标记 |
-| 配置档（Profile） | 单独记载的目标专用规则与宿主要求 |
+| 投影（Projection） | 从一个输入快照生成的结构化输出 |
 
 DSL 不替代目标应用的配置解析器或线路协议。导入、迁移、包含文件、任意函数、赋值、
-递归、网络查询和可执行表达式不属于版本 3。消费者 MUST NOT 将字符串作为 Rust、
-JavaScript、Shell、模板或其他编程语言求值。Serde、quick-xml、Rust 和 Leptos 是实现选择，
+递归、网络查询和可执行表达式不属于版本 5。消费者 MUST NOT 将字符串作为 Rust、
+JavaScript、Shell、模板或其他编程语言求值。Serde、quick-xml 和 Rust 是实现选择，
 不是语言要求。
 
-## 2. 处理流程与数据模型
+## 2. 词法格式
 
-消费者 MUST 执行以下逻辑阶段：
-
-1. 解析整个描述并校验结构。
-2. 注册符号、解析引用，拒绝重复定义和循环，包括未使用的定义。
-3. 使用字面默认值和独立的行模板初始化输入数据。
-4. 校验适用输入及宿主配置档的跨字段约束。
-5. 从一个输入快照投影输出树。
-6. 派生脱敏预览，或序列化原始投影用于导出。
-
-宿主 MAY 保留暂时无效的编辑，但在适用校验通过前 MUST NOT 导出。失败 MUST NOT
-产生部分导出的配置。
-
-值包括 Unicode 字符串、布尔值、精确整数、有序列表以及字符串键唯一的对象。
-版本 3 不包含浮点数和数据 `null`。整数 MUST NOT 经由 binary64 舍入。比较对象时
-不考虑键顺序；列表顺序有意义。
-
-消费者 MUST 区分 `Missing`、假、零、空字符串、空列表和空对象。输入缺失是错误，
-不能隐式使用默认值。默认值用于初始化会话，MUST NOT 静默修补不完整的输入快照。
-`Missing` 不是字面量、输入默认值或可序列化值。
-
-## 3. 词法格式
-
-### 3.1. 编码与结构语法
+### 2.1. 编码与结构语法
 
 文档 MUST 使用无 BOM 的 UTF-8。允许的字符为 U+0009、U+000A、U+000D、
 U+0020–U+D7FF、U+E000–U+FFFD 和 U+10000–U+10FFFF，即
@@ -100,7 +75,7 @@ Quoted    <- '"' ~ (!('"' | "<") ~ ANY)* ~ '"'
            | "'" ~ (!("'" | "<") ~ ANY)* ~ "'"
 ```
 
-### 3.2. 属性解码与字面量语法
+### 2.2. 属性解码与字面量语法
 
 命名实体仅有 `&amp;`、`&lt;`、`&gt;`、`&quot;` 和 `&apos;`。十进制 `&#DIGITS;`
 和十六进制 `&#xHEXDIGITS;` 引用 MUST 至少有一位数字，并指向允许的字符。
@@ -120,278 +95,383 @@ XML 属性空白规范化、换行改写、Unicode 规范化或裁剪。通用 X
 允许前导零，不允许正号、小数或指数形式及两侧空白。数值 `-0` 等于零。
 标签、普通字符串和枚举选项值不必是标识符。
 
-## 4. 文档结构与引用
+## 3. 文档结构
 
-根 MUST 为 `config-dsl`，且仅具有必需的 `version="3"` 和 `target-version` 属性。
-`target-version` 是不透明元数据，不是语言选择器。根包含且仅包含一个 `inputs`
-和一个 `outputs`，以及至多一个 `conditions` 和一个 `values`。这些区块不接受属性，
-顺序无关，允许为空。未知元素或属性即使位于不适用分支，也 MUST 被拒绝。允许向前引用。
+根 MUST 为 `config-dsl`，且仅具有必需的 `version="5"` 和 `target-version` 属性。
+`target-version` 是不透明元数据，不是语言选择器。
 
-`inputs` 中的字段与集合共享顶层标识符命名空间；各集合拥有独立的字段命名空间。
-`conditions` 包含 `condition name="ID"`，每个定义有一个条件元素。
-`values` 包含 `value name="ID"`，每个定义有一个值元素。
-条件名和值名使用不同命名空间。同一命名空间中的重复名称 MUST 被拒绝。
+根包含以下顶层区块。未知或重复区块 MUST 被拒绝；区块顺序无关，除 `inputs` 和
+`outputs` 外均可省略，每个区块至多一个。除 `ui` 外，这些区块 MUST NOT 有属性。
 
-路径只能是 `/ID`（根）或 `ID`（当前行）。不支持点号路径、父级遍历、通配符、
-隐式数组索引或向外层行回退。集合操作之外，行等于根。输出对象不改变输入作用域；
-输出名称不被解释为输入路径。
+| 区块 | 必需 | 作用 |
+| --- | --- | --- |
+| `ui` | 否 | 品牌、分区、提示等界面元数据 |
+| `validators` | 否 | 可复用的字段校验器 |
+| `inputs` | 是 | 顶层输入字段与集合 |
+| `conditions` | 否 | 命名条件 |
+| `values` | 否 | 命名值 |
+| `outputs` | 是 | 输出结构与导出元数据 |
+| `rules` | 否 | 跨字段约束 |
+| `effects` | 否 | 字段联动重置 |
 
-`when` 和 `use ref` 引用条件，其他 `ref` 属性引用命名值。命名条件继承调用者的行；
-命名值始终把根和行均设为根求值，即使它从集合内部被调用。
+## 4. 界面 `ui`
 
-消费者 MUST 拒绝未声明符号，以及在任何允许作用域都不对应已声明输入的路径。
-读取字段时 MUST 检查实际作用域，并且 SHOULD 提前拒绝可静态证明无效的作用域引用。
-循环检测 MUST 包含两个命名空间之间的 `when`、`use` 和值引用边，不受当前输入或定义
-是否使用的影响。
+`ui` 描述页面品牌、分区和提示。全部属性可选，但 `title`、`brand` 在参考实现中必需。
 
-## 5. 输入与默认值
-
-### 5.1. 字段
-
-`field` 的全部属性如下：
-
-| 属性 | 是否必需及含义 |
+| 属性 | 含义 |
 | --- | --- |
-| `name` | 必需，输入标识符 |
-| `type` | 必需，`string`、`boolean`、`integer` 或 `enum` |
-| `default` | 必需，按照 `type` 解码的字面初始值 |
-| `label` | 必需，纯文本 UI 标签 |
-| `placeholder`、`hint`、`section` | 可选 UI 字符串，默认为空 |
-| `widget` | 可选，`text`、`password`、`number` 或 `email`；仅适用于 `string` |
-| `when` | 可选，命名适用条件；默认适用 |
-| `rule` | 可选，校验规则标识符；缺省或空表示无附加规则 |
+| `title` | 页面标题 |
+| `brand` | 品牌名称 |
+| `mark` | 品牌标记字符 |
+| `eyebrow` | 标题上方的小字 |
+| `description` | 标题下的说明 |
+| `export-hint` | 导出区域提示 |
+| `mode-field` | 引用任意顶层 `enum` 字段，渲染为模式按钮 |
+| `format-field` | 引用任意顶层 `enum` 字段，渲染为输出格式选择器 |
 
-字符串默认值保留文本；布尔值遵循第 3.2 节。输入整数范围为 0–18446744073709551615。
-枚举是字符串，具有一个或多个 `option` 子元素；每个选项必须具有 `value`、`label`
-属性且无子元素。选项值 MUST 唯一，默认值 MUST 属于选项。非枚举字段 MUST 没有子元素。
+`mode-field`、`format-field` 引用的字段 MUST 是顶层 `enum`。`format-field` 的选项值
+只能是 `json`、`toml`、`yaml`；未绑定格式时默认 JSON。
 
-控件不改变数据类型：`type="string" widget="number"` 保留可编辑文本。密码控件
-不隐含输出脱敏。元数据 MUST 作为文本显示，不能执行为标记。布局、分区名称和本地化
-属于宿主。
+`ui` 的子元素为 `section` 和 `notice`。
 
-为假的 `when` 将字段排除在普通校验和显示之外，但 MUST NOT 清除其存储值。
-适用条件不是访问控制，也不禁止输出读取该字段；输出条件独立声明。
+`section` 声明一个界面分区：
 
-### 5.2. 集合
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `name` | 是 | 分区标识，绑定输入的 `section` |
+| `label` | 是 | 分区标题 |
+| `detail` | 否 | 标题补充文字 |
+| `collapsed` | 否 | `true` 使用折叠面板，默认 `false` |
+| `when` | 否 | 命名条件，控制整个分区显示 |
 
-`collection` 具有必需的 `name`、`initial-items`，可选的 `when`，以及一个或多个
-名称唯一的 `field` 子元素。不允许嵌套输入集合。`initial-items` 是 0–1000 的无符号
-整数。初始行是模板的独立副本，不受适用条件影响。新增行 MUST 使用同一模板，之后
-才可以应用已记载的宿主交互行为。
+`notice` 显示纯文本提示：
 
-集合 `when` 在根求值；为假时，其行不参与普通校验和显示。字段 `when` 在每个适用行
-中求值。稳定 UI ID、用户选择控件、凭据生成和删除行为属于宿主，不会自动导出。
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `text` | 是 | 提示文字，作为文本呈现，不解析 HTML |
+| `when` | 否 | 命名条件，控制显示 |
 
-### 5.3. 配置档与校验规则
+`notice` 放在 `ui` 下时出现在导出区域，放在 `section` 内时出现在该分区。没有声明
+任何 `section` 时，消费者根据输入的 `section` 生成通用分区；显式声明分区后，所有
+普通字段和集合 MUST 绑定到已声明的分区。
 
-配置档 MUST 记载每个受支持的非空 `rule`。不支持的规则 MUST 被拒绝，不能静默跳过，
-也不能作为运行时函数名解析。版本 3 没有 XML `profile` 属性；宿主另行声明支持的配置档。
-声称兼容 **TUIC 生成器配置档** 的消费者 MUST 支持以下规则：
+## 5. 输入 `inputs`
 
-| 规则 | 对适用字符串输入的约束 |
-| --- | --- |
-| `required` | 裁剪 Unicode 空白后非空 |
-| `password` | 原始长度大于零，空白保持有意义 |
-| `port` | ASCII 十进制数字，范围 1–65535 |
-| `milliseconds`、`seconds` | ASCII 十进制数字，范围 1–9007199254740991，单位由名称指定 |
-| `socks-credential` | 满足 `required`，且裁剪前不超过 255 个 UTF-8 字节 |
-| `uuid` | 裁剪并转小写后，为标准 8-4-4-4-12 连字符形式的非全零 UUID |
-| `socket` | 裁剪后为数字 IP 加合法端口；IPv6 必须加方括号 |
-| `endpoint` | 同 `socket`，还允许用 ASCII 域名替代 IPv4 地址 |
-| `host` | 裁剪并移除一对外层方括号后，为非未指定地址的 IP 或 ASCII 域名 |
-| `email` | 首个 `@` 前非空；其后包含点、没有 `@`、不以点开头或结尾；任何位置均无 Unicode 空白 |
+`inputs` 的子元素为 `field` 和 `collection`。顶层字段与集合共享同一命名空间，名称
+MUST 唯一。
 
-这里 ASCII 域名长度为 1–253 字节，由点分隔的 1–63 字节标签组成；标签首尾为字母或
-数字，内部仅允许字母、数字、连字符。完全由数字和点组成的字符串不属于域名。
-不隐含尾随点、IDNA、DNS 或公共后缀检查。IPv4 使用无前导零的十进制分量；IPv6
-不带区域标识符。带方括号的端点内部必须是 IPv6。这些输入检查不证明可达性、邮件
-可投递性或 TLS 信任。
+### 5.1. 字段 `field`
 
-TUIC 配置档还定义跨字段规则：UUID 唯一、选择有效、SNI、监听冲突、重连上下限，
-以及对自签名证书的明确接受。核心 MUST NOT 仅根据字段名称推导这些约束。
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `name` | 是 | 输入标识符 |
+| `type` | 是 | `string`、`boolean`、`integer` 或 `enum` |
+| `default` | 是 | 按 `type` 解码的初始值 |
+| `label` | 是 | 纯文本标签 |
+| `placeholder` | 否 | 占位文字 |
+| `hint` | 否 | 字段说明 |
+| `section` | 否 | 所属界面分区 |
+| `widget` | 否 | `text`、`password`、`number` 或 `email`；仅 `string` |
+| `when` | 否 | 命名条件，同时控制显示与校验 |
+| `rule` | 否 | 引用的校验器名称 |
+| `generator` | 否 | `uuid-v4` 或 `hex`；仅 `string` |
+| `bytes` | 否 | 仅 `hex`，随机字节数 1–1024，默认 24 |
 
-## 6. 条件
+| 类型 | 默认值 | 控件 |
+| --- | --- | --- |
+| `string` | 原样字符串 | 文本框；由 `widget` 决定具体控件 |
+| `boolean` | 仅 `true` / `false` | 复选框 |
+| `integer` | 非负整数 | 数字输入 |
+| `enum` | 必须属于子元素 `option` | 下拉选择 |
 
-条件元素不能具有 `name`、`when` 或转换：
+`enum` MUST 含一个或多个 `option` 子元素；非枚举字段 MUST NOT 有子元素。
+
+`option`：
+
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `value` | 是 | 枚举值，同一字段内唯一 |
+| `label` | 是 | 选项文字 |
+| `description` | 否 | 该值的预览说明，见第 11.4 节 |
+
+`widget` 不改变数据类型：`type="string" widget="number"` 保留可编辑文本。密码控件
+不隐含输出脱敏；脱敏由输出的 `secret` 声明。
+
+`generator` 在初次载入、新增行和生成按钮触发时产生随机值：`uuid-v4` 固定 16 字节
+并设置版本和 variant 位；`hex` 使用 `bytes` 指定的字节数。XML 默认值不储存生成后的
+凭据。
+
+为假的 `when` 将字段排除在显示和普通校验之外，但 MUST NOT 清除其存储值。适用条件
+不是访问控制，也不禁止输出读取该字段。
+
+### 5.2. 集合 `collection`
+
+`collection` 声明一组可增删的同构行，行字段复用第 5.1 节的 `field` 结构；行内不渲染
+`section`、`hint` 等布局属性。
+
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `name` | 是 | 集合标识 |
+| `initial-items` | 是 | 初始行数，0–1000 |
+| `label` | 否 | 行名称，默认取 `name` |
+| `section` | 否 | 所属界面分区 |
+| `hint` | 否 | 集合说明 |
+| `add-label` | 否 | 添加按钮文字，默认“添加” |
+| `generate-label` | 否 | 随机生成按钮文字，默认“生成随机值” |
+| `min-items` | 否 | 最少保留行数，0–1000，不得超过 `initial-items` |
+| `selected-by` | 否 | 指向顶层 `integer` 字段，显示行选择器 |
+| `all-when` | 否 | 满足时允许全部行编辑与校验；否则仅显示并校验选中行 |
+| `select-when` | 否 | 行选择器及索引校验的启用条件；缺省始终启用 |
+| `when` | 否 | 集合的显示与校验条件 |
+
+`selected-by` MUST 引用顶层 `integer` 字段，且每个字段至多被一个集合使用；`all-when`、
+`select-when` 仅在声明 `selected-by` 时可用。集合 `when` 在根求值；字段 `when` 在
+每个适用行中求值。删除选中行后索引归零；删除其前面的行会递减索引。稳定 UI 行标识、
+选择控件、凭据生成和删除行为属于宿主，不自动导出。
+
+## 6. 条件 `conditions`
+
+`conditions` 包含 `condition name="ID"`，每个定义恰好有一个条件子元素。条件名 MUST
+唯一。条件元素不能具有 `name`、`when` 或转换：
 
 | 元素 | 属性 | 子元素与结果 |
 | --- | --- | --- |
-| `all` / `any` | 无 | 一个或多个条件，全部/任意条件为真 |
-| `not` | 无 | 一个条件，对结果取反 |
-| `use` | 必需 `ref` | 无子元素，在调用者行求值命名条件 |
-| `eq` | `from`/`ref` 恰选一个，必需 `value` | 无子元素，比较标量文本与字面量 |
-| `truthy` | `from`/`ref` 恰选一个 | 无子元素，要求并返回布尔值 |
-| `ip` | `from`/`ref` 恰选一个 | 无子元素，要求字符串并检查 IPv4/IPv6 字面地址 |
+| `all` / `any` | 无 | 一个或多个条件；全部/任意为真 |
+| `not` | 无 | 恰好一个条件；取反 |
+| `use` | 必需 `ref` | 无子元素；引用命名条件 |
+| `eq` | `from`/`ref` 恰选一个，必需 `value` | 无子元素；比较标量文本与字面量 |
+| `truthy` | `from`/`ref` 恰选一个 | 无子元素；要求并返回布尔值 |
+| `ip` | `from`/`ref` 恰选一个 | 无子元素；检查 IPv4/IPv6 字面地址 |
+| `valid` | `from`/`ref` 恰选一个，必需 `rule` | 无子元素；应用声明的校验器 |
+| `compare` | 必需 `op="ne|gte"` | 恰好两个值元素；非负整数比较或值不等 |
 
-`all`/`any` MUST 从左向右短路求值。遇到错误时传播错误，而不是当作假。
-`eq` 保留字符串，将布尔值表示为 `true`/`false`、整数表示为规范十进制。
-字符串 `"01"` 不等于 `value="1"`，而整数 1 相等。对象、列表或缺失值是错误。
-`truthy` 不转换数字或字符串。`ip` 不裁剪、不移除方括号、不查询 DNS，也不接受 CIDR
-或区域后缀。
+`all`/`any` MUST 从左向右短路求值，遇到错误时传播错误而不是当作假。`eq` 比较标量的
+文本表示：字符串保留，布尔值表示为 `true`/`false`，整数使用规范十进制；字符串 `"01"`
+不等于 `value="1"`，而整数 1 相等。`truthy` 不转换数字或字符串。`ip` 不裁剪、不移除
+方括号、不查询 DNS。
 
-## 7. 值描述与转换
+任意节点（字段、集合、输出、规则等）的 `when` 属性 MUST 引用已声明的条件；未声明的
+引用 MUST 被拒绝。
 
-### 7.1. 值元素
+## 7. 值 `values`
 
-所有值元素接受可选的 `when`，在任何来源或子元素求值前检查；为假时产生 `Missing`。
-其余属性及子元素如下：
+`values` 包含 `value name="ID"`，每个定义恰好有一个值元素。值名 MUST 唯一，并与条件
+名分属不同命名空间。所有值元素接受可选 `when`，在任何来源或子元素求值前检查；为假
+时产生缺失值。
 
 | 元素 | `when` 之外的属性 | 子元素 |
 | --- | --- | --- |
 | `source` | `from`/`ref` 恰选一个，可选 `transform` | 无 |
 | `coalesce` | 无 | 一个或多个值元素 |
 | `endpoint` | 无 | 恰好两个值元素：主机与端口 |
-| `select` | 必需 `from`、`index`，二者均为数据路径 | 恰好一个值元素 |
+| `select` | 必需 `from`、`index` | 恰好一个值元素 |
 
-`coalesce` 返回首个既非 `Missing` 又非空字符串的结果。假、零、空列表和空对象 MUST
-保留。没有候选时返回 `""`。查找、转换、类型错误 MUST 传播，不能继续尝试下一个子元素。
+`coalesce` 返回首个既非缺失又非空字符串的结果，保留假、零、空列表和空对象；没有
+候选时返回空字符串。`endpoint` 要求主机字符串和 1–65535 的整数端口，主机为无括号
+IPv6 时产生 `[host]:port`，否则产生 `host:port`。`select` 在调用者上下文读取列表与
+从零开始的非负整数索引，再用选定行求值子元素；缺失数据、类型错误或索引越界 MUST
+被拒绝。
 
-`endpoint` 要求主机字符串和 1–65535 的无符号整数端口。识别为无括号 IPv6 字面地址时
-产生 `[host]:port`，否则产生 `host:port`；保留主机拼写，端口使用规范十进制。
-它不查询 DNS，也不额外校验主机名；由输入配置档提供相应校验。
+### 7.1. 固定转换 `transform`
 
-`select` 在调用者上下文中读取列表与从零开始的非负整数索引，并使用选定行及不变的根
-求值子元素。缺失数据、类型错误或索引越界都是错误。数字字符串不是整数索引。
-
-### 7.2. 固定转换
-
-`transform` 和 `key-transform` 存在时，包含由 Unicode `White_Space` 分隔的非空
-有序操作序列。缺省属性表示不转换。每个操作均要求字符串输入：
+`transform` 和 `key-transform` 存在时，包含由空白分隔的非空操作序列；缺省表示不
+转换。每个操作均要求字符串输入：
 
 | 操作 | 结果 |
 | --- | --- |
-| `trim` | 移除首尾 Unicode `White_Space` |
-| `lowercase` | 与语言环境无关的 Unicode 小写转换，不是 case folding |
+| `trim` | 移除首尾空白 |
+| `lowercase` | 与语言环境无关的小写转换 |
 | `unbracket` | 同时存在前导 `[` 和末尾 `]` 时移除一对，否则保留文本 |
-| `integer` | 将 ASCII 十进制数字解析为 0–18446744073709551615 的精确整数 |
+| `integer` | 解析十进制非负整数 |
+| `socket` | 把 IP 端点规范化为用于比较的键 |
+| `port` | 从 IP 端点提取整数端口 |
 
-消费者 MUST 标明使用的 Unicode 数据版本。要求非 ASCII 转换互操作的配置档 MUST
-约定该版本；ASCII 转换是可移植基线。MUST NOT 隐式规范化、回绕、饱和截断、解析浮点
-或在错误时回退到零。`integer` 之后执行字符串操作会因中间值为数字而失败。
+没有隐式类型转换；`integer` 之后执行字符串操作会因中间值为数字而失败。`unit` 仅用于
+`string` 输出，值 MUST 为 `s` 或 `ms`：转换后要求整数，并在其规范十进制表示后追加
+后缀，不执行缩放。
 
-只有 `string` 输出接受 `unit`，其值 MUST 为 `s` 或 `ms`。转换后要求整数，并在其
-规范十进制表示后追加后缀。不执行缩放或正值检查；这些约束由输入规则提供。
+## 8. 校验器 `validators`
 
-## 8. 输出投影
+`validators` 包含 `validator`，定义可复用的字段检查：
 
-### 8.1. 公共规则与标量
-
-`outputs` 无属性，构造根输出对象。它的子元素以及 `object` 的子元素 MUST 具有唯一
-的 `name` 标识符。列表/映射项 MUST NOT 有 `name`。除 `outputs` 外的所有输出节点
-接受可选 `when` 和布尔 `secret`（默认为假）。
-
-首先检查 `when`；为假则省略整个节点，不读取内容。假、零、空字符串 MUST NOT 隐含
-省略。到达标量类型校验的 `Missing` 是错误，不是隐式省略。
-
-标量元素为 `string`、`boolean`、`integer`、`enum`。它们接受公共属性及 `from`、
-`ref`、`value`、`transform`，还有下表的类型专用属性。来源 MUST 恰好为以下一种：
-`from`、`ref`、字面 `value`，或恰好一个子值元素。来源冲突是错误。
-
-字面 `value` 使用元素类型：字符串/枚举文本、布尔语法或有符号整数语法。
-处理顺序为来源/字面量/子元素，然后 `transform`，然后存在的 `unit`，最后类型校验。
-
-| 类型 | 所需结果 | 附加属性 |
+| 属性 | 必需 | 含义 |
 | --- | --- | --- |
-| `string` | 字符串 | 可选 `unit` |
-| `boolean` | 布尔值，不转换字符串 | 无 |
-| `integer` | -9223372036854775808–9223372036854775807 的整数 | 无 |
-| `enum` | 属于所引用枚举的字符串 | 必需 `options`，引用顶层枚举输入 |
+| `name` | 是 | 校验器标识，名称唯一 |
+| `kind` | 是 | 检查类型，见下表 |
+| `message` | 是 | 失败时的错误文案 |
+| `min` / `max` | 否 | 非负整数范围 |
+| `transform` | 否 | 校验前应用的转换 |
+| `nonblank` | 否 | `true` 时要求字符串去除首尾空白后非空 |
 
-超过有符号输出范围的输入整数 MUST 导致 `integer` 投影失败，不能回绕或截断。
+| kind | 检查 |
+| --- | --- |
+| `required` | 字符串去除首尾空白后非空 |
+| `length` | 字符串 UTF-8 字节数或列表项数满足 min/max |
+| `integer` | 非负十进制安全解析为 u64，并应用 min/max |
+| `optional-integer` | 空字符串通过；非空时按 `integer` 检查 |
+| `host` | 可连接的域名或 IP，不是通配监听地址 |
+| `socket` | IP:端口 |
+| `endpoint` | 域名或 IP:端口 |
+| `email` | 基本邮箱格式 |
+| `uuid` | 非零、标准连字符 UUID |
+| `domain` | DNS 名称 |
+| `public-domain` | 含点的 DNS 名称 |
+| `loopback-socket` | 监听端点的 IP 是回环地址 |
 
-### 8.2. 对象与集合
+字段的 `rule` MUST 引用已声明的校验器；未声明的规则 MUST 被拒绝，不能静默跳过。
+这些检查只做语法校验，不查询 DNS，也不证明可达性、邮件可投递性或 TLS 信任。
 
-`object` 仅接受公共属性，以及零个或多个命名输出子元素。它不改变输入作用域。
-通过嵌套对象显式形成输出嵌套。
+## 9. 跨字段规则 `rules`
 
-`list` 接受公共属性和可选的 `from`、`where-field`、`equals`、`omit-empty`。
-它 MUST 恰有一个未命名输出子元素作为项模板。有 `from` 时来源 MUST 为列表，各来源
-行依次成为当前行，保留顺序。没有 `from` 时，在调用者行求值模板一次，产生零项或
-一项；这不是接受多个字面子元素的语法。
+`rules` 包含 `assert` 或 `unique`：
 
-`where-field` 与 `equals` MUST 同时出现并要求 `from`。映射项之前，在其行中读取
-字段路径，按 `eq` 的标量文本语义比较。不匹配的行或被 `when` 省略的子项不贡献元素，
-也不产生 `null`。
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `key` | 是 | 错误绑定字段 |
+| `message` | 是 | 失败文案 |
+| `when` | 否 | 命名条件 |
+| `collection` | 否 | 逐行检查的集合 |
 
-`record` 接受公共属性、必需的 `from` 和 `key`，以及可选 `key-transform`、
-`omit-empty`。它 MUST 恰有一个未命名输出子元素。对于来源列表的每行，先求值子元素；
-没有省略时，在该行读取 `key`、执行转换并要求非空字符串。转换后重复的键 MUST
-导致投影失败，绝不能覆盖。动态键是普通字符串，不必是标识符。
+- `assert` 恰好有一个条件子元素；条件为假时报告错误。
+- `unique` 有一个或多个值元素；对可见且参与校验的行，检查这些值组成的键是否唯一。
 
-列表/映射的 `omit-empty` 默认为假；为真时省略已完成的空集合。对象/标量不接受此
-属性。其他情况下，空对象和空集合保留为数据。输出子元素 MUST 按声明顺序求值；
-这决定短路及遇到错误的顺序，不限定序列化后的键顺序。
+`key` 是错误绑定字段：顶层错误使用字段名，行错误自动形成 `collection.index.field`。
+已有同字段错误时保留先前错误。比较前可用 `valid` 条件排除尚未合法的数字或端点。
 
-## 9. 校验与诊断
+## 10. 联动 `effects`
 
-描述可用之前，消费者 MUST 拒绝词法/结构错误、不支持的版本、未知标签/属性、
-非法子元素数量、重复名称、默认类型或枚举默认值错误、不支持的规则/转换、未声明引用、
-循环及冲突来源。默认值 MAY 不满足 `required` 等配置档规则：空表单可以是合法描述。
+`effects` 包含 `reset`：
 
-求值 MUST 拒绝缺失字段、类型错误、无效索引、转换失败、输出类型不兼容和规范化后
-重复的映射键。宿主 MUST 额外实施配置档的跨字段约束。条件错误 MUST NOT 静默隐藏
-字段或被视为校验成功。
+| 属性 | 必需 | 含义 |
+| --- | --- | --- |
+| `on` | 是 | 触发字段 |
+| `target` | 是 | 被重置字段 |
 
-诊断 MUST 标明阶段（描述、输入、投影、序列化），以及描述位置或安全的逻辑路径。
-诊断 SHOULD 使用从一开始的行列号。措辞和机器错误码不作统一规定。无法定位时，
-限制错误 MAY 指向整个文档。
+当 `on` 字段的实际值发生变化时，把 `target` 恢复到它的 XML 默认值。不支持脚本，
+也不递归触发重置。`on`、`target` MUST 引用已声明的顶层字段。
 
-诊断和日志 MUST NOT 包含提交的字段值、由敏感值派生的映射键或敏感源码片段。
-描述字段名和数字行索引足够定位问题；不得为说明错误而转储配置内容。
+## 11. 输出 `outputs`
 
-## 10. 脱敏与序列化
+`outputs` 无属性，其子元素是顶层输出；通常为具名 `object`，对应一个导出文件。
 
-预览脱敏作用于成功的投影。消费者 MUST 对照已声明输出结构检查值，拒绝未知对象字段
-或错误类型，并将每个 `secret="true"` 节点替换为八个 U+2022 字符：`••••••••`。
-整个对象/集合也可以标记为敏感。映射键仍可见；版本 3 没有敏感键标记。依赖脱敏机制
-保护预览的宿主 MUST NOT 把敏感数据放入这种键。
+| 输出元素 | 作用 |
+| --- | --- |
+| `object` | 对象；子节点名称唯一 |
+| `list` | 列表；恰好一个未命名子元素作为项模板 |
+| `record` | 动态键映射；恰好一个未命名子元素 |
+| `string` / `boolean` / `integer` | 严格标量类型 |
+| `enum` | 引用顶层枚举的字符串 |
 
-脱敏 MUST NOT 再次求值条件、读取输入、修改投影，或成为导出/校验的输入。
-脱敏后类型可以不同，仅用于显示。密码控件或暗示敏感性的字段名不能替代显式输出标记。
+除 `outputs` 外的所有输出节点接受以下公共属性：
 
-导出使用原始投影。每个宣称支持的序列化器 MUST 在往返中保留字符串、布尔值、精确
-整数、列表顺序和嵌套，或明确报告不支持的值。字符串和动态键 MUST 转义，不能插值为
-源码。格式化方式和对象键顺序可以不同。
+| 属性 | 含义 |
+| --- | --- |
+| `name` | 具名节点的字段名，同级唯一 |
+| `when` | 命名条件；为假时省略整个节点且不读取内容 |
+| `secret` | `true` 时该节点的值在预览中脱敏 |
+| `description` | 该节点/该行的预览说明，见第 11.4 节 |
 
-TUIC 生成器配置档还要求为其 JSON5 读取器转义 JSON 字符串中的 U+007F、U+0085、
-U+2028 和 U+2029。选择某个顶层对象导出必须明确执行：`server` 和 `client` 是配置档
-名称，不是核心保留字。
+顶层 `object` 还可声明导出元数据：
 
-## 11. 版本、限制与安全
+| 属性 | 含义 |
+| --- | --- |
+| `label` | 输出显示名称 |
+| `filename` | 不含扩展名的安全文件名；扩展名由格式决定 |
+| `command` | 只显示的启动命令；`{filename}` 替换为完整文件名 |
 
-版本 3 消费者 MUST 拒绝其他版本和未知语法。`target-version` 不隐式选择校验器或
-启用功能。语法新增及语义变更在采纳前需要作出语言版本决策；不存在通过命名空间绕过
-检查的扩展机制。
+### 11.1. 标量
 
-描述 MUST NOT 超过 1,048,576 个 UTF-8 字节。`config-dsl` 元素深度从零开始，
-超过 64 的深度 MUST 被拒绝。各集合初始行数最多为 1000。宿主若限制输入行数、
-输出大小、依赖深度和处理时间，MUST 公布这些限制。超限 MUST 明确失败，不得截断
-数据或部分导出。消费者 MUST 在不受控递归/分配之前执行限制，不能仅在递归解析后检查。
+标量元素为 `string`、`boolean`、`integer`、`enum`。它们接受公共属性以及：
 
-符合性报告 MUST 标明草案修订、支持的配置档/规则、序列化器、Unicode 数据版本和
-实现限制。仅解析器符合语法，不等于完整生成器符合规范。
+| 属性 | 适用 | 含义 |
+| --- | --- | --- |
+| `from` / `ref` | 全部 | 数据来源；与 `value`、子值元素三选一 |
+| `value` | 全部 | 字面常量，按元素类型解码 |
+| `transform` | 全部 | 输出前应用的转换序列 |
+| `unit` | `string` | `s` 或 `ms`，为整数来源追加单位 |
+| `options` | `enum` | 必需；引用顶层枚举输入 |
 
-描述 MUST NOT 发起文件访问、DNS、HTTP、子进程、环境变量展开或代码执行。
-输出路径仍是供目标应用解释的数据。凭据生成与导出是 DSL 之外的显式宿主操作。
-生成配置不验证部署环境的 DNS、文件、防火墙、TLS 或连接。本草案不定义 IANA 注册、
-MIME 注册或线路消息。
+来源 MUST 恰好为 `from`、`ref`、字面 `value` 或恰好一个子值元素之一。处理顺序为
+来源，然后 `transform`，然后 `unit`，最后类型校验。`enum` 的值 MUST 属于所引用的
+顶层枚举；`unit` 只用于 `string`。
 
-## 12. 示例与符合性用例
+### 11.2. 对象与集合
 
-### 12.1. 完整示例（说明性）
+`object` 接受公共属性以及零个或多个具名输出子元素，不改变输入作用域。
+
+`list` 接受公共属性和可选 `from`、`where-field`、`equals`、`omit-empty`。有 `from`
+时来源 MUST 为列表，各来源行依次成为当前行并保留顺序；没有 `from` 时在调用者行求值
+模板一次，产生零项或一项。`where-field` 与 `equals` MUST 同时出现并要求 `from`，按
+`eq` 的标量文本语义过滤。
+
+`record` 接受公共属性、必需 `from` 和 `key`，以及可选 `key-transform`、`omit-empty`。
+对来源列表的每行，先求值子元素，再读取 `key`、执行转换并要求非空字符串；转换后重复
+的键 MUST 导致投影失败，绝不覆盖。动态键是普通字符串，不必是标识符。
+
+`omit-empty` 仅用于 `list`、`record`，为真时省略已完成的空集合；默认假。对象和标量
+不接受此属性。其他情况下，空对象和空集合保留为数据。假、零、空字符串 MUST NOT 隐含
+省略；隐藏输出不读取来源。
+
+### 11.3. 脱敏
+
+预览脱敏作用于成功的投影：消费者 MUST 对照声明的输出结构检查值，拒绝未知字段或错误
+类型，并把每个 `secret="true"` 节点替换为八个 U+2022 字符 `••••••••`。整个对象或
+集合也可以标记为敏感；映射键仍可见，版本 5 没有敏感键标记。脱敏 MUST NOT 再次求值
+条件、读取输入或修改投影，也不是导出或校验的输入。复制、下载始终使用原始输出。
+
+### 11.4. 预览说明
+
+`description` 是展示元数据，MUST NOT 参与投影、校验、脱敏或序列化，也 MUST NOT 被
+解释为标记或代码。预览按输出结构逐行渲染，每行显示对应节点的 `description`：
+
+- `object` 按成员名匹配；
+- `list` 复用唯一的项模板；
+- `record` 用动态键渲染每个条目并复用唯一子模板；
+- `enum` 输出优先显示所选选项的 `description`，节点自身的 `description` 作为回退。
+
+## 12. 路径与作用域
+
+数据路径只能是 `/name`（根）或 `name`（当前行）。只接受单段名称，字符为 ASCII 字母、
+数字、`_`、`-`；不支持点号路径、父级遍历、通配符或隐式数组索引。集合操作之外，行
+等于根；输出对象不改变输入作用域，输出名称也不被解释为输入路径。
+
+`when`、`use ref` 引用条件，其他 `ref` 属性引用命名值。命名条件继承调用者的行；
+命名值始终把根和行都设为根求值，即使从集合内部调用。消费者 MUST 拒绝未声明符号和
+引用不存在输入的路径，并 MUST 检测两个命名空间之间的循环依赖，不受定义是否使用
+影响。
+
+## 13. 限制与安全
+
+描述 MUST NOT 超过 1,048,576 个 UTF-8 字节。`config-dsl` 元素深度从零开始，超过 64
+的深度 MUST 被拒绝。各集合初始行数最多 1000。消费者 MUST 在递归/分配之前执行限制，
+超限 MUST 明确失败，不得截断数据或部分导出。
+
+描述 MUST NOT 发起文件访问、DNS、HTTP、子进程、环境变量展开或代码执行。输出路径仍是
+供目标应用解释的数据。诊断 MUST NOT 包含提交的字段值或敏感源码片段，SHOULD 标明阶段
+（描述、输入、投影、序列化）和安全的逻辑路径，并 SHOULD 使用从一开始的行列号。
+生成配置不验证部署环境的 DNS、文件、防火墙、TLS 或连接。
+
+## 14. 完整示例
 
 此示例使用空敏感值，不是可部署的 TUIC 配置。
 
 ```xml
-<config-dsl version="3" target-version="example">
+<config-dsl version="5" target-version="example">
+  <ui title="示例配置" brand="Example" mark="E" format-field="encoding">
+    <section name="general" label="常规"/>
+  </ui>
   <inputs>
-    <field name="host" type="string" default=" [2001:db8::1] " label="Host"/>
-    <field name="port" type="string" default="0443" label="Port" widget="number"/>
-    <field name="auth" type="boolean" default="false" label="Authentication"/>
-    <field name="active" type="integer" default="0" label="Selected row"/>
-    <collection name="users" initial-items="1">
-      <field name="key" type="string" default="demo" label="Key"/>
-      <field name="secret" type="string" default="" label="Secret" widget="password"/>
+    <field name="encoding" type="enum" default="json" label="输出格式">
+      <option value="json" label="JSON"/>
+      <option value="toml" label="TOML"/>
+    </field>
+    <field name="host" type="string" default=" [2001:db8::1] " label="主机" section="general"/>
+    <field name="port" type="string" default="0443" label="端口" section="general" widget="number"/>
+    <field name="auth" type="boolean" default="false" label="认证" section="general"/>
+    <field name="active" type="integer" default="0" label="选中行" section="general"/>
+    <collection name="users" initial-items="1" section="general">
+      <field name="key" type="string" default="demo" label="键"/>
+      <field name="secret" type="string" default="" label="密钥" widget="password"/>
     </collection>
   </inputs>
   <conditions>
@@ -401,89 +481,56 @@ MIME 注册或线路消息。
     <value name="host"><source from="/host" transform="trim unbracket"/></value>
   </values>
   <outputs>
-    <object name="example">
-      <string name="server">
+    <object name="example" label="示例" filename="example" command="example --config {filename}">
+      <string name="server" description="服务端端点。">
         <endpoint><source ref="host"/><source from="/port" transform="integer"/></endpoint>
       </string>
-      <boolean name="enabled" from="/auth"/>
-      <integer name="retries" value="0"/>
-      <list name="alpn"><string value="h3"/></list>
-      <string name="selected">
+      <boolean name="enabled" from="/auth" description="是否启用。"/>
+      <list name="alpn" description="ALPN 列表。"><string value="h3" description="HTTP/3 标识。"/></list>
+      <string name="selected" description="当前选中的用户键。">
         <select from="/users" index="/active"><source from="key"/></select>
       </string>
-      <record name="users" from="/users" key="key" key-transform="trim lowercase" when="auth">
-        <string from="secret" secret="true"/>
+      <record name="users" from="/users" key="key" key-transform="trim lowercase" when="auth" description="用户映射。">
+        <string from="secret" secret="true" description="用户密钥。"/>
       </record>
     </object>
   </outputs>
 </config-dsl>
 ```
 
-默认投影：
+默认投影（`auth` 为假）：
 
 ```json
-{"example":{"server":"[2001:db8::1]:443","enabled":false,"retries":0,"alpn":["h3"],"selected":"demo"}}
+{"example":{"server":"[2001:db8::1]:443","enabled":false,"alpn":["h3"],"selected":"demo"}}
 ```
 
-仅把 `auth` 改为真，会使 `enabled` 变为真，并在原始输出中增加
-`users: {"demo":""}`。脱敏预览为：
+## 15. 参考资料
 
-```json
-{"example":{"server":"[2001:db8::1]:443","enabled":true,"retries":0,"alpn":["h3"],"selected":"demo","users":{"demo":"••••••••"}}}
-```
-
-### 12.2. 必需的符合性覆盖
-
-符合本草案的消费者 MUST 至少覆盖以下用例。错误措辞可以不同，但成功/失败和结构化
-结果不能不同。
-
-| ID | 用例 | 所需结果 |
-| --- | --- | --- |
-| C01 | 第 12.1 节默认值与编辑 | 上述结果 |
-| C02 | 重复属性/输出名、标签不匹配、尾部内容 | 描述错误 |
-| C03 | 假分支内的未知语法 | 描述错误 |
-| C04 | DTD/外部实体/未知实体 | 错误，无外部访问 |
-| C05 | `&amp;lt;`、数字引用、字面空白 | 单次解码并精确保留 |
-| C06 | 带符号字符引用、代理码点、U+0000、溢出 | 错误 |
-| C07 | 直接、间接、未使用及跨命名空间循环 | 描述错误 |
-| C08 | 求值分支缺失来源与省略分支对照 | 错误与不读取来源 |
-| C09 | Coalesce 假/零/空容器/空字符串/错误 | 保留数据，仅跳过缺失和空字符串，传播错误 |
-| C10 | 正号、小数/指数、非法索引、有符号输出溢出 | 错误，不强制转换或截断 |
-| C11 | 规范化后相同的映射键 | 错误，不覆盖 |
-| C12 | 过滤/省略项及两种 omit-empty 模式 | 保留顺序，显式省略 |
-| C13 | 嵌套敏感值、未知预览键、修改检查 | 正确脱敏，拒绝未知键，保留原始数据 |
-| C14 | 映射、选择、条件、命名值中的根/局部路径 | 遵循第 4 节作用域 |
-| C15 | 大小/深度/数量/资源限制 | 明确且有界的失败 |
-| C16 | 序列化中的引号、控制字符、Unicode、动态键和整数边界 | 往返保留或明确格式错误 |
-
-## 13. 参考资料
-
-规范性引用为用于要求术语的 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)
-和 [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)，以及第 3.1 节使用的
+规范性引用为用于要求术语的 [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) 和
+[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)，以及第 2.1 节使用的
 [XML 1.0 字符范围](https://www.w3.org/TR/xml/#charsets)。其他词法行为由本文定义。
 
-## 附录 A. 参考实现与草案决策（说明性）
+## 附录 A. 元素与属性速查（说明性）
 
-原始基线为 `rust-proxy.github.io`（原 `tuic-docs`）提交 `775a176`；本地参考实现随后从 pest 迁移到了
-quick-xml + Serde。相对于其 `config-generator/` 目录的相关文件为 `src/dsl/xml.rs`、
-`src/dsl/wire.rs`、`src/dsl/parser.rs`、`src/dsl.rs`、`src/validation.rs` 和
-`schema/tuic.xml`。这些路径标识本地工作区实现，并不表示迁移已有发布修订。事件扫描在
-Serde 读取标签节点、词法属性和有序子节点之前检查 XML 子集与深度。语义校验与投影
-仍然独立，解析结果被缓存并绑定 Rust/Leptos 宿主。v3 的属性空白行为保持不变，
-并有回归测试覆盖。本草案不把实现迁入 Wind，也不更新子模块指针。
+顶层区块：`ui`、`validators`、`inputs`*、`conditions`、`values`、`outputs`*、`rules`、
+`effects`（`*` 为必需）。
 
-参考实现若要宣称完全符合本草案，以下方面需要审查或加强：
-
-| 方面 | 现有行为 / 草案决策 |
-| --- | --- |
-| 标识符 | 部分属性标识符允许连字符开头；草案要求首字符为字母或下划线。 |
-| 数字拼写 | 部分宿主整数解析器接受前导 `+`；草案禁止。字符引用已拒绝正负号。 |
-| 空转换 | 仅含空白的转换可作为恒等操作；草案要求存在操作。 |
-| 过滤类型 | 当前过滤会把非标量表示为空文本；草案要求与 `eq` 相同的标量检查。 |
-| 行作用域 | 某些无效局部引用仅在求值时发现；建议提前检查可证明无效的引用。 |
-| 资源限制 | XML 字节数与深度在递归反序列化前检查；依赖展开与输入状态预算仍需预先约束。 |
-| 诊断 | 已有文本位置/路径，但稳定的阶段报告和安全的动态键处理需要显式宿主支持。 |
-| Unicode 版本 | 继承 Rust 字符表；符合性报告必须标明版本。 |
-
-这些是草案决策，并不表示参考实现已拒绝所有负例。在宣布稳定标准前，还应明确
-非 ASCII 转换的版本约定，并补充共享的机器可读符合性用例集。
+| 元素 | 关键属性 | 子元素 |
+| --- | --- | --- |
+| `config-dsl` | `version`、`target-version` | 顶层区块 |
+| `ui` | `title`、`brand`、`mode-field`、`format-field` | `section`、`notice` |
+| `section` | `name`、`label`、`detail`、`collapsed`、`when` | `notice` |
+| `notice` | `text`、`when` | — |
+| `field` | `name`、`type`、`default`、`label`、`widget`、`when`、`rule`、`generator` | `option` |
+| `option` | `value`、`label`、`description` | — |
+| `collection` | `name`、`initial-items`、`min-items`、`selected-by`、`all-when`、`select-when` | `field` |
+| `condition` | `name` | 条件元素 |
+| `value` | `name` | 值元素 |
+| `validator` | `name`、`kind`、`message`、`min`、`max`、`transform`、`nonblank` | — |
+| `assert` / `unique` | `key`、`message`、`when`、`collection` | 条件 / 值元素 |
+| `reset` | `on`、`target` | — |
+| `outputs` | — | 输出元素 |
+| `object` | `name`、`when`、`secret`、`label`、`filename`、`command`、`description` | 输出元素 |
+| `list` | `name`、`when`、`secret`、`from`、`where-field`、`equals`、`omit-empty`、`description` | 一个未命名输出元素 |
+| `record` | `name`、`when`、`secret`、`from`、`key`、`key-transform`、`omit-empty`、`description` | 一个未命名输出元素 |
+| `string` / `boolean` / `integer` / `enum` | `name`、`when`、`secret`、`from`/`ref`/`value`、`transform`、`unit`、`options`、`description` | 至多一个值元素 |

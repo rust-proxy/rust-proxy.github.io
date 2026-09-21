@@ -3,7 +3,7 @@ use serde_json::json;
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 fn description(inputs: &str, definitions: &str, outputs: &str) -> String {
 	format!(
-		r#"<config-dsl version="4" target-version="test"><inputs>{inputs}</inputs>{definitions}<outputs>{outputs}</outputs></config-dsl>"#
+		r#"<config-dsl version="5" target-version="test"><inputs>{inputs}</inputs>{definitions}<outputs>{outputs}</outputs></config-dsl>"#
 	)
 }
 
@@ -114,6 +114,31 @@ fn named_values_conditions_and_ipv6_endpoint() -> Result {
 }
 
 #[test]
+fn output_and_option_descriptions_annotate_the_projection() -> Result {
+	let source = description(
+		r#"<field name="mode" type="enum" default="a" label="模式"><option value="a" label="A" description="选择 A。"/><option value="b" label="B" description="选择 B。"/></field>"#,
+		"",
+		r#"<object name="out"><enum name="mode" from="/mode" options="mode"/><string name="plain" value="x" description="常量说明。"/></object>"#,
+	);
+	let doc = Document::parse(&source)?;
+	let config = doc.project(&doc.defaults())?;
+	let yaml = doc.preview_lines("out", &config["out"], "yaml")?;
+	assert_eq!(yaml[0].text, "mode: \"a\"");
+	assert_eq!(yaml[0].description, "选择 A。");
+	assert_eq!(yaml[1].text, "plain: \"x\"");
+	assert_eq!(yaml[1].description, "常量说明。");
+	assert_eq!(doc.preview_lines("out", &config["out"], "toml")?[0].text, "mode = \"a\"");
+	assert!(doc.preview_lines("missing", &config["out"], "yaml").is_err());
+	Ok(())
+}
+
+#[test]
+fn config_desc_is_rejected() {
+	let source = description("", "", "").replace("<outputs>", "<config-desc title='d'/><outputs>");
+	assert!(Document::parse(&source).is_err());
+}
+
+#[test]
 fn syntax_and_semantic_errors_are_rejected() {
 	for invalid in [
 		"<config-dsl>",
@@ -176,7 +201,7 @@ fn reject_cycles_including_cross_kind_and_unused_definitions() {
 
 #[test]
 fn diagnostics_have_location_and_never_include_field_values() -> Result {
-	let bad = "<config-dsl version='4' target-version='test'>\n<inputs/>\n<outputs><string name='token' value='never-log-this' unknown='true'/></outputs></config-dsl>";
+	let bad = "<config-dsl version='5' target-version='test'>\n<inputs/>\n<outputs><string name='token' value='never-log-this' unknown='true'/></outputs></config-dsl>";
 	let error = Document::parse(bad).err().ok_or("expected error")?.to_string();
 	assert!(error.contains("3:") && !error.contains("never-log-this"));
 	let source = description(

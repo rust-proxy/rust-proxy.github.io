@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use super::*;
 use crate::{
-	dsl::{Collection, InputKind, Notice, Section},
+	dsl::{Collection, InputKind, Notice, PreviewLine, Section},
 	validation::Errors,
 };
 
@@ -83,12 +83,6 @@ pub struct OutputView {
 pub struct ExportFile {
 	pub filename: String,
 	pub text: String,
-}
-
-#[derive(Serialize)]
-pub struct PreviewLine {
-	pub text: String,
-	pub description: String,
 }
 
 #[derive(Serialize)]
@@ -277,23 +271,12 @@ impl Session {
 	}
 }
 
-/// Annotates the generated output with the descriptions of the matching `config-desc` entry.
+/// Annotates the generated output with the descriptions declared on its output nodes.
 ///
-/// Outputs without a documented entry fall back to plain serialized lines without tooltips.
+/// Falls back to plain serialized lines without tooltips if annotation is impossible.
 fn preview_lines(doc: &Document, name: &str, config: &Value, format: &str) -> Vec<PreviewLine> {
-	if let Some(lines) = doc
-		.config_description
-		.as_ref()
-		.and_then(|description| description.configs.iter().find(|entry| entry.name == name))
-		.and_then(|entry| entry.render_annotated(config, format).ok())
-	{
-		return lines
-			.into_iter()
-			.map(|line| PreviewLine {
-				text: line.text,
-				description: line.description,
-			})
-			.collect();
+	if let Ok(lines) = doc.preview_lines(name, config, format) {
+		return lines;
 	}
 	serialize(config, format)
 		.unwrap_or_default()

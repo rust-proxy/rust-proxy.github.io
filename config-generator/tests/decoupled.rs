@@ -12,22 +12,16 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	assert_eq!(doc.ui.brand, "Notebook");
 	assert_eq!(doc.ui.sections.len(), 2);
 	assert_eq!(doc.exports.len(), 3);
-	let description = doc.config_description.as_ref().ok_or("missing config description")?;
-	assert_eq!(description.configs[0].label, "完整清单");
-	assert_eq!(
-		description.configs[0]
-			.formats
-			.iter()
-			.map(|format| format.name)
-			.collect::<Vec<_>>(),
-		["yaml", "toml"]
-	);
-	assert_eq!(description.configs[0].formats[0].lines[0].text, "title: \"example\"");
-	assert_eq!(description.configs[0].formats[0].lines[1].text, "items:");
-	assert_eq!(description.configs[0].formats[1].lines[0].text, "title = \"example\"");
-	assert_eq!(description.configs[0].formats[1].lines[1].text, "[[items]]");
-	let toml = description.configs[0].formats[1]
-		.lines
+	let config = build_configs(&doc, &state.data)?;
+	assert_eq!(config["snapshot"]["items"][0]["name"], "item");
+	assert_eq!(config["selected"]["item"], "item");
+	assert!(config.get("audit").is_none());
+	let preview = doc.preview_lines("snapshot", &config["snapshot"], "yaml")?;
+	assert_eq!(preview[0].text, "title: \"example\"");
+	assert_eq!(preview[0].description, "清单所属项目的名称。");
+	assert_eq!(preview[1].text, "items:");
+	let toml = doc
+		.preview_lines("snapshot", &config["snapshot"], "toml")?
 		.iter()
 		.map(|line| line.text.as_str())
 		.collect::<Vec<_>>()
@@ -35,10 +29,6 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	let parsed: toml::Value = toml::from_str(&toml)?;
 	assert_eq!(parsed["title"].as_str(), Some("example"));
 	assert_eq!(parsed["items"][0]["name"].as_str(), Some("item"));
-	let config = build_configs(&doc, &state.data)?;
-	assert_eq!(config["snapshot"]["items"][0]["name"], "item");
-	assert_eq!(config["selected"]["item"], "item");
-	assert!(config.get("audit").is_none());
 	assert_eq!(doc.exports[0].command("toml"), "notebook --input snapshot.toml");
 	state.data["entries"][0]["token"] = "ephemeral".into();
 	let config = build_configs(&doc, &state.data)?;
@@ -59,10 +49,9 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 fn generated_config_is_annotated_from_the_documented_tree() -> Result {
 	let doc = Document::parse(SOURCE)?;
 	let state = State::new(&doc);
-	let description = doc.config_description.as_ref().ok_or("missing config description")?;
 	let config = build_configs(&doc, &state.data)?;
 	let snapshot = &config["snapshot"];
-	let yaml = description.configs[0].render_annotated(snapshot, "yaml")?;
+	let yaml = doc.preview_lines("snapshot", snapshot, "yaml")?;
 	let find = |prefix: &str| {
 		yaml.iter()
 			.find(|line| line.text.trim_start().starts_with(prefix))
@@ -72,8 +61,8 @@ fn generated_config_is_annotated_from_the_documented_tree() -> Result {
 	assert!(find("name:").is_some_and(|description| description.contains("唯一")));
 	assert!(find("secret:").is_some_and(|description| description.contains("敏感")));
 	for format in ["json", "toml"] {
-		let text = description.configs[0]
-			.render_annotated(snapshot, format)?
+		let text = doc
+			.preview_lines("snapshot", snapshot, format)?
 			.iter()
 			.map(|line| line.text.as_str())
 			.collect::<Vec<_>>()
@@ -154,7 +143,7 @@ fn schema_extensions_fail_closed() {
 		("min=\"1\" max=\"100\"", "min=\"100\" max=\"1\""),
 		("op=\"gte\"", "op=\"execute\""),
 		("filename=\"snapshot\"", "filename=\"../snapshot\""),
-		("value=\"example\"", "value=\"example\" unknown=\"true\""),
+		("from=\"/project\"", "from=\"/project\" unknown=\"true\""),
 	] {
 		assert!(
 			Document::parse(&SOURCE.replace(from, to)).is_err(),
@@ -163,40 +152,18 @@ fn schema_extensions_fail_closed() {
 	}
 }
 
-const DESC: &str = r#"<config-dsl version="4" target-version="t">
-	<ui title="t" brand="b"><section name="general" label="g"/></ui>
-	<inputs><field name="mode" type="enum" default="a" section="general" label="m"><option value="a" label="A"/><option value="b" label="B"/></field></inputs>
-	<outputs><object name="out" label="o" filename="out"><string name="x" from="/mode"/></object></outputs>
-	<config-desc title="d"><config name="out" label="o" filename="out">
-		<selector name="mode" label="模式" default="a"><choice value="a" label="A"/><choice value="b" label="B"/></selector>
-		<string name="x" value="a" description="xa" when="mode=a"/>
-		<string name="x" value="b" description="xb" when="mode=b"/>
-	</config></config-desc>
-</config-dsl>"#;
-
 #[test]
-fn config_desc_bindings_fail_closed() {
-	for (from, to) in [
-		("when=\"mode=a\"", "when=\"missing=a\""),
-		("when=\"mode=b\"", "when=\"mode=a\""),
-		("description=\"xa\"", "description=\"xa\" unknown=\"1\""),
-		("<string name=\"x\"", "<string"),
-	] {
-		assert!(
-			Document::parse(&DESC.replace(from, to)).is_err(),
-			"accepted invalid config-desc binding: {from}"
-		);
-	}
-}
-
-#[test]
-fn legacy_line_descriptions_are_rejected() -> Result {
-	let source = SOURCE.replace(
-		"<string name=\"title\" value=\"example\" description=\"清单所属项目的名称。\" />",
+fn config_desc_and_legacy_lines_are_rejected() {
+	let described = SOURCE.replace(
+		"<outputs>",
+		"<config-desc title=\"d\"><config name=\"out\" label=\"o\" filename=\"out\"><string name=\"x\" value=\"a\" description=\"x\"/></config></config-desc><outputs>",
+	);
+	assert!(Document::parse(&described).is_err(), "config-desc must be rejected");
+	let legacy = SOURCE.replace(
+		"<string name=\"title\" from=\"/project\" description=\"清单所属项目的名称。\"/>",
 		"<line yaml=\"title: example\" description=\"清单所属项目的名称。\"/>",
 	);
-	assert!(Document::parse(&source).is_err());
-	Ok(())
+	assert!(Document::parse(&legacy).is_err(), "legacy line descriptions must be rejected");
 }
 
 #[test]
@@ -262,7 +229,7 @@ fn production_code_contains_no_product_identifiers() {
 		include_str!("../src/validation.rs"),
 		include_str!("../src/model.rs"),
 		include_str!("../src/dsl.rs"),
-		include_str!("../src/dsl/description.rs"),
+		include_str!("../src/dsl/preview.rs"),
 		include_str!("../src/dsl/parser.rs"),
 		include_str!("../src/dsl/metadata.rs"),
 		include_str!("../src/dsl/rules.rs"),

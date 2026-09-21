@@ -1,4 +1,4 @@
-<config-dsl version="4" target-version="example-1">
+<config-dsl version="5" target-version="example-1">
 	<ui title="任务清单生成器" brand="Notebook" mark="N" eyebrow="XML 复用示例" description="同一生成器读取另一份 XML。" mode-field="deployment" format-field="encoding" export-hint="保存所需的清单。">
 		<section name="general" label="清单设置"/>
 		<section name="entries" label="清单项目"/>
@@ -38,32 +38,20 @@
 		<assert key="last" when="range" message="结束数量不能小于起始数量。"><compare op="gte"><source from="/last" transform="integer"/><source from="/first" transform="integer"/></compare></assert>
 		<unique collection="entries" key="id" message="项目名称重复。"><source from="id" transform="trim lowercase"/></unique>
 	</rules>
-	<config-desc title="清单格式详解" description="预览区按当前填写内容生成配置，并逐行显示字段说明。">
-		<config name="snapshot" label="完整清单" filename="snapshot">
-			<string name="title" value="example" description="清单所属项目的名称。" />
-			<array name="items" description="清单项目列表，按填写顺序输出。">
-				<object description="单个清单项目。">
-					<string name="name" value="item" description="项目名称，必须唯一。" />
-					<boolean name="enabled" value="true" description="项目是否启用。" />
-					<string name="secret" value="change-this-token" description="项目密钥，属于敏感信息，预览默认脱敏。" />
-				</object>
-			</array>
-		</config>
-		<config name="selected" label="单项清单" filename="selected">
-			<string name="item" value="item" description="当前选中项目的名称。" />
-		</config>
-		<config name="audit" label="审计信息" filename="audit">
-			<boolean name="confirmed" value="true" description="清单是否已确认。" />
-		</config>
-	</config-desc>
 	<outputs>
 		<object name="snapshot" label="完整清单" filename="snapshot" command="notebook --input {filename}" when="all">
-			<string name="title" from="/project"/>
-			<list name="items" from="/entries"><object><string name="name" from="id"/><boolean name="enabled" from="enabled"/><string name="secret" from="token" secret="true"/></object></list>
+			<string name="title" from="/project" description="清单所属项目的名称。"/>
+			<list name="items" from="/entries" description="清单项目列表，按填写顺序输出。">
+				<object description="单个清单项目。">
+					<string name="name" from="id" description="项目名称，必须唯一。"/>
+					<boolean name="enabled" from="enabled" description="项目是否启用。"/>
+					<string name="secret" from="token" secret="true" description="项目密钥，属于敏感信息，预览默认脱敏。"/>
+				</object>
+			</list>
 		</object>
 		<object name="selected" label="单项清单" filename="selected">
-			<string name="item"><select from="/entries" index="/chosen"><source from="id"/></select></string>
+			<string name="item" description="当前选中项目的名称。"><select from="/entries" index="/chosen"><source from="id"/></select></string>
 		</object>
-		<object name="audit" label="审计信息" filename="audit" when="confirmed"><boolean name="confirmed" from="/confirm"/></object>
+		<object name="audit" label="审计信息" filename="audit" when="confirmed"><boolean name="confirmed" from="/confirm" description="清单是否已确认。"/></object>
 	</outputs>
 </config-dsl>

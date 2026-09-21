@@ -1,4 +1,4 @@
-<config-dsl version="4" target-version="2.0.0-dev7">
+<config-dsl version="5" target-version="2.0.0-dev7">
 	<ui title="服务端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写监听、认证与路由信息，生成 TUIC 服务端配置。" format-field="format" export-hint="复制和下载始终包含真实密码。">
 		<section name="addresses" label="连接信息" />
 		<section name="authentication" label="用户认证" />
@@ -95,14 +95,14 @@
 		<field name="serverAuthTimeout" type="string" default="3" section="transport" label="认证超时（秒）" placeholder="3" hint="等待客户端认证命令的时间。" widget="number" rule="seconds" />
 		<field name="serverStreamTimeout" type="string" default="60" section="transport" label="流超时（秒）" placeholder="60" hint="TCP/UDP I/O 任务的保留时间。" widget="number" rule="seconds" />
 		<field name="backendMode" type="enum" default="quinn" section="backend" label="服务端 QUIC 后端">
-			<option value="quinn" label="Quinn（默认）" />
-			<option value="quiche" label="quiche（实验性）" />
+			<option value="quinn" label="Quinn（默认）" description="选择 Quinn 作为 QUIC 后端。" />
+			<option value="quiche" label="quiche（实验性）" description="选择 quiche 作为 QUIC 后端；实验性，需要构建时启用对应 feature。" />
 		</field>
 		<field name="controller" type="enum" default="bbr" section="backend" label="服务端拥塞控制">
-			<option value="bbr" label="BBR" />
-			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" />
-			<option value="cubic" label="CUBIC" />
-			<option value="newreno" label="New Reno" />
+			<option value="bbr" label="BBR" description="BBR 以带宽和往返时延建模，适合多数代理链路。" />
+			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" />
+			<option value="cubic" label="CUBIC" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" />
+			<option value="newreno" label="New Reno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" />
 		</field>
 		<field name="quinnInitialWindow" type="integer" default="1048576" section="backend" label="初始拥塞窗口（字节）" hint="Quinn 后端的初始拥塞窗口。" when="backendQuinn" />
 		<field name="quinnInitialMtu" type="integer" default="1200" section="backend" label="初始 MTU" hint="Quinn 后端的初始 UDP 载荷大小。" when="backendQuinn" />
@@ -285,277 +285,115 @@
 			</coalesce>
 		</value>
 	</values>
-	<config-desc title="配置项详解" description="选择 YAML 或 TOML 及枚举分支，查看完整配置结构；悬浮或聚焦任意一行可了解字段作用。">
-		<config name="server" label="服务端配置" filename="server">
-			<selector name="tls" label="证书模式" default="certificate">
-				<choice value="certificate" label="已有证书" />
-				<choice value="acme" label="ACME 自动证书" />
-				<choice value="self" label="自签名测试" />
-			</selector>
-			<selector name="backend" label="QUIC 后端" default="quinn">
-				<choice value="quinn" label="Quinn" />
-				<choice value="quiche" label="quiche" />
-			</selector>
-			<selector name="controller" label="拥塞控制" default="bbr">
-				<choice value="bbr" label="BBR" />
-				<choice value="bbr3" label="BBR3" />
-				<choice value="cubic" label="CUBIC" />
-				<choice value="newreno" label="New Reno" />
-			</selector>
-			<selector name="logging" label="文件日志" default="off">
-				<choice value="off" label="关闭" />
-				<choice value="file" label="写入 log 表" />
-			</selector>
-			<selector name="outbound" label="默认出站" default="direct">
-				<choice value="direct" label="direct 直连" />
-				<choice value="socks5" label="socks5 上游" />
-			</selector>
-			<selector name="routing" label="ACL 与规则" default="off">
-				<choice value="off" label="不配置" />
-				<choice value="acl" label="ACL 与规则" />
-			</selector>
-			<selector name="dns" label="DNS" default="off">
-				<choice value="off" label="系统解析" />
-				<choice value="custom" label="自定义 DNS" />
-			</selector>
-			<selector name="geodata" label="GeoData" default="off">
-				<choice value="off" label="不配置" />
-				<choice value="on" label="加载数据库" />
-			</selector>
-			<selector name="restful" label="管理 API" default="off">
-				<choice value="off" label="关闭" />
-				<choice value="on" label="启用" />
-			</selector>
-			<selector name="masquerade" label="HTTP/3 伪装" default="off">
-				<choice value="off" label="关闭" />
-				<choice value="on" label="启用" />
-			</selector>
-			<string name="server" value="[::]:8443" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。" />
-			<string name="log_level" value="info" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。" />
-			<object name="log" description="文件日志配置；未启用时不会输出该表。" when="logging=file">
-				<string name="format" value="text" description="日志输出格式：text 为可读文本，json 为结构化日志。" when="logging=file" />
-				<boolean name="compact" value="true" description="单行紧凑输出，仅对 text 格式生效。" when="logging=file" />
-				<string name="log_file" value="/var/log/tuic/server.log" description="可选日志文件路径；设置后同时写入文件与标准输出。" when="logging=file" />
-				<string name="log_rotation" value="never" description="日志轮转策略：never、hourly 或 daily。" when="logging=file" />
-			</object>
-			<boolean name="zero_rtt_handshake" value="false" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。" />
-			<string name="auth_timeout" value="3s" description="等待客户端认证命令的时间。" />
-			<string name="stream_timeout" value="60s" description="TCP/UDP I/O 任务的保留时间。" />
-			<string name="data_dir" value="/var/lib/tuic" description="ACME 证书与账户状态的持久化目录。运行用户必须可写，容器部署时应挂载持久卷。" when="tls=acme" />
-			<object name="users" description="允许连接的 TUIC 用户映射；键是 UUID，值是对应密码。至少配置一个用户。">
-				<string name="00000000-0000-4000-8000-000000000001" value="change-this-password" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。" />
-			</object>
-			<object name="tls" description="服务端 TLS 配置。TUIC 基于 QUIC，TLS 同时负责加密和服务端身份验证。">
-				<string name="hostname" value="tuic.example.com" description="证书对应的 DNS 主机名。ACME 用它申请证书，自签名模式用它生成证书。" />
-				<array name="alpn" description="QUIC TLS 的应用层协议协商列表。当前配置固定使用 h3。">
-					<string value="h3" description="客户端与服务端必须协商相同的 ALPN；生成器使用 h3。" />
-				</array>
-				<string name="certificate" value="/etc/tuic/fullchain.pem" description="已有证书模式下的证书链文件路径。文件必须在服务端运行环境中存在并可读。" when="tls=certificate" />
-				<string name="private_key" value="/etc/tuic/privatekey.pem" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" when="tls=certificate" />
-				<boolean name="auto_ssl" value="true" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" when="tls=acme" />
-				<string name="acme_email" value="admin@example.com" description="ACME 账户联系邮箱，用于证书服务通知。" when="tls=acme" />
-				<boolean name="acme_staging" value="false" description="使用 ACME 预发布环境，仅用于测试证书申请流程。" when="tls=acme" />
-				<boolean name="self_sign" value="true" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" when="tls=self" />
-			</object>
-			<object name="backend" description="底层 QUIC 实现及其传输参数。">
-				<string name="mode" value="quinn" description="选择 Quinn 作为 QUIC 后端。" when="backend=quinn" />
-				<string name="mode" value="quiche" description="选择 quiche 作为 QUIC 后端；实验性，需要构建时启用对应 feature。" when="backend=quiche" />
-				<object name="quinn" description="Quinn 后端的专属配置命名空间。" when="backend=quinn">
-					<object name="congestion_control" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。" when="backend=quinn">
-						<string name="controller" value="bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="backend=quinn,controller=bbr" />
-						<string name="controller" value="bbr3" description="BBR3 选项；当前版本与 BBR 共用实现，行为差异以对应 TUIC 版本为准。" when="backend=quinn,controller=bbr3" />
-						<string name="controller" value="cubic" description="CUBIC 是常见的基于丢包的拥塞控制，在传统网络环境中兼容性较好。" when="backend=quinn,controller=cubic" />
-						<string name="controller" value="newreno" description="New Reno 是较保守的基于丢包算法，适合用于兼容性比较和诊断。" when="backend=quinn,controller=newreno" />
-						<integer name="initial_window" value="1048576" description="初始拥塞窗口（字节）。" when="backend=quinn" />
-					</object>
-					<integer name="initial_mtu" value="1200" description="MTU 发现前的初始 UDP 载荷。" when="backend=quinn" />
-					<integer name="min_mtu" value="1200" description="网络保证支持的最小 UDP 载荷，须不小于 1200 且不大于 initial_mtu。" when="backend=quinn" />
-					<boolean name="gso" value="true" description="启用通用分段卸载（GSO）。" when="backend=quinn" />
-					<boolean name="pmtu" value="true" description="启用路径 MTU 发现。" when="backend=quinn" />
-					<integer name="send_window" value="16777216" description="未确认情况下允许发送的最大字节数。" when="backend=quinn" />
-					<integer name="receive_window" value="8388608" description="对端每条流未确认情况下允许发送的最大字节数。" when="backend=quinn" />
-					<string name="max_idle_time" value="30s" description="空闲连接关闭前的等待时间。" when="backend=quinn" />
-				</object>
-				<object name="quiche" description="quiche 后端的专属配置命名空间。" when="backend=quiche">
-					<object name="congestion_control" description="拥塞控制配置。" when="backend=quiche">
-						<string name="controller" value="bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="backend=quiche,controller=bbr" />
-						<string name="controller" value="bbr3" description="BBR3 选项；当前版本与 BBR 共用实现。" when="backend=quiche,controller=bbr3" />
-						<string name="controller" value="cubic" description="CUBIC 是常见的基于丢包的拥塞控制。" when="backend=quiche,controller=cubic" />
-						<string name="controller" value="newreno" description="New Reno 是较保守的基于丢包算法。" when="backend=quiche,controller=newreno" />
-					</object>
-					<string name="max_idle_time" value="30s" description="空闲连接关闭前的等待时间。" when="backend=quiche" />
-					<integer name="max_concurrent_bi_streams" value="100" description="允许的并发双向流数量。" when="backend=quiche" />
-					<integer name="max_concurrent_uni_streams" value="100" description="允许的并发单向流数量。" when="backend=quiche" />
-					<integer name="send_window" value="16777216" description="未确认情况下允许发送的最大字节数。" when="backend=quiche" />
-					<integer name="receive_window" value="8388608" description="对端每条流未确认情况下允许发送的最大字节数。" when="backend=quiche" />
-					<boolean name="zero_rtt" value="false" description="quiche 后端的 0-RTT 早期数据开关。" when="backend=quiche" />
-				</object>
-			</object>
-			<object name="outbound" description="出站规则；default 用于未匹配的流量，具名出站可被 ACL 或规则引用。">
-				<object name="default" description="默认出站。">
-					<string name="type" value="direct" description="direct 直连。" when="outbound=direct" />
-					<string name="ip_mode" value="v4first" description="直连时的地址族偏好：v4first、v6first、v4only 或 v6only。" when="outbound=direct" />
-					<string name="bind_ipv4" value="1.2.3.4" description="可选：绑定出站 IPv4 源地址；多个地址需手动改为数组。" when="outbound=direct" />
-					<string name="bind_ipv6" value="2001:db8::1" description="可选：绑定出站 IPv6 源地址；多个地址需手动改为数组。" when="outbound=direct" />
-					<string name="bind_device" value="eth0" description="可选：绑定 Linux 网络接口。" when="outbound=direct" />
-					<boolean name="tfo" value="false" description="是否启用 TCP Fast Open，需要内核支持。" when="outbound=direct" />
-					<integer name="routing_mark" value="100" description="可选：Linux SO_MARK 路由标记，用于策略路由。" when="outbound=direct" />
-					<string name="type" value="socks5" description="socks5 经上游代理出站。" when="outbound=socks5" />
-					<string name="addr" value="127.0.0.1:1080" description="上游 SOCKS5 服务器地址。" when="outbound=socks5" />
-					<string name="username" value="proxy-user" description="可选：上游 SOCKS5 用户名。" when="outbound=socks5" />
-					<string name="password" value="proxy-password" description="可选：上游 SOCKS5 密码，属于敏感信息。" when="outbound=socks5" />
-					<boolean name="allow_udp" value="false" description="是否允许该出站承载 UDP；当前 UDP 仍直连，尚未实现 SOCKS5 UDP 转发。" when="outbound=socks5" />
-				</object>
-			</object>
-			<object name="experimental" description="安全防护开关。">
-				<boolean name="drop_loopback" value="true" description="拒绝解析到回环地址的目标。" />
-				<boolean name="drop_private" value="true" description="拒绝私有、链路本地与 ULA 地址。" />
-			</object>
-			<array name="acl" description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl">
-				<object description="旧式 ACL 规则，在 Metacubex 规则之前求值。" when="routing=acl">
-					<string name="addr" value="private" description="匹配私有地址网段；地址支持 IP、CIDR、域名、localhost、private 与 *。" />
-					<string name="outbound" value="reject" description="命中后拒绝连接；也可写 default 或具名出站。" when="routing=acl" />
-					<string name="ports" value="udp/53,tcp/80,443" description="可选：限制端口，可带 tcp/ 或 udp/ 前缀并支持范围。" when="routing=acl" />
-					<string name="hijack" value="1.1.1.1" description="可选：命中后重定向到指定地址；当前版本尚未生效，仅保留字段。" when="routing=acl" />
-				</object>
-			</array>
-			<array name="rules" description="Metacubex 风格路由规则，在 ACL 之后求值。" when="routing=acl">
-				<string value="MATCH,default" description="兜底规则，把剩余流量交给 default 出站。" when="routing=acl" />
-			</array>
-			<object name="dns" description="DNS 解析配置；未启用时使用操作系统解析器。" when="dns=custom">
-				<string name="mode" value="custom" description="DNS 模式：system、cloudflare、google、quad9、custom 及对应的 DoT/DoH 变体。" when="dns=custom" />
-				<array name="servers" description="自定义 DNS 服务器列表，仅在 custom 模式输出。" when="dns=custom">
-					<string value="tls://1.1.1.1#cloudflare-dns.com" description="服务器 URL，支持 1.1.1.1、udp://、tcp://、tls:// 与 https://。" />
-				</array>
-				<string name="timeout" value="5s" description="可选：单次查询超时；留空使用库默认值。" when="dns=custom" />
-				<integer name="attempts" value="2" description="可选：单次查询的重试次数；留空使用库默认值。" when="dns=custom" />
-				<string name="stack_prefer" value="v4first" description="解析结果的地址族偏好。" when="dns=custom" />
-			</object>
-			<object name="geodata" description="GEOIP/GEOSITE 规则所需的数据库路径。" when="geodata=on">
-				<string name="geosite" value="/var/lib/tuic/geosite.dat" description="v2ray 域名分类数据库路径。" when="geodata=on" />
-				<string name="geoip" value="/var/lib/tuic/geoip.dat" description="v2ray IP 国家数据库路径。" when="geodata=on" />
-			</object>
-			<object name="restful" description="RESTful 管理 API。" when="restful=on">
-				<boolean name="enabled" value="true" description="启用管理 API。" when="restful=on" />
-				<string name="addr" value="127.0.0.1:13471" description="管理 API 监听地址；建议只监听本机。" when="restful=on" />
-				<string name="secret" value="YOUR_SECRET_HERE" description="Bearer 令牌；留空表示不校验，不建议在公网暴露。" when="restful=on" />
-				<integer name="maximum_clients_per_user" value="0" description="每用户最大并发连接数；0 表示不限，当前版本未强制生效。" when="restful=on" />
-			</object>
-			<object name="masquerade" description="把非 TUIC 的 HTTP/3 探测流量反向代理到真实网站。" when="masquerade=on">
-				<boolean name="enabled" value="true" description="启用 HTTP/3 伪装。" when="masquerade=on" />
-				<string name="upstream" value="https://example.com" description="反向代理的上游站点。" when="masquerade=on" />
-			</object>
-		</config>
-	</config-desc>
 	<!-- TUIC fd7e521 / Wind dee0317: literal output names, no executable code. -->
 	<outputs>
 		<object name="server" label="服务端" filename="server" command="tuic-server -c {filename}">
-			<string name="server" from="/listen" transform="trim" />
-			<enum name="log_level" from="/logLevel" options="logLevel" />
-			<object name="log" when="logEnabled">
-				<string name="format" from="/logFormat" />
-				<boolean name="compact" from="/logCompact" />
-				<string name="log_file" from="/logFile" transform="trim" when="logFileSet" />
-				<string name="log_rotation" from="/logRotation" />
+			<string name="server" from="/listen" transform="trim" description="TUIC 服务端监听的 UDP 地址。IPv6 监听地址需要方括号；防火墙也必须放行对应 UDP 端口。" />
+			<enum name="log_level" from="/logLevel" options="logLevel" description="运行日志级别，可使用 trace、debug、info、warn、error 或 off。生产环境通常使用 info。" />
+			<object name="log" when="logEnabled" description="文件日志配置；未启用时不会输出该表。">
+				<string name="format" from="/logFormat" description="日志输出格式：text 为可读文本，json 为结构化日志。" />
+				<boolean name="compact" from="/logCompact" description="单行紧凑输出，仅对 text 格式生效。" />
+				<string name="log_file" from="/logFile" transform="trim" when="logFileSet" description="可选日志文件路径；设置后同时写入文件与标准输出。" />
+				<string name="log_rotation" from="/logRotation" description="日志轮转策略：never、hourly 或 daily。" />
 			</object>
-			<string name="data_dir" from="/dataDir" transform="trim" when="acme" />
-			<record name="users" from="/users" key="uuid" key-transform="trim lowercase">
-				<string from="password" secret="true" />
+			<string name="data_dir" from="/dataDir" transform="trim" when="acme" description="ACME 证书与账户状态的持久化目录。运行用户必须可写，容器部署时应挂载持久卷。" />
+			<record name="users" from="/users" key="uuid" key-transform="trim lowercase" description="允许连接的 TUIC 用户映射；键是 UUID，值是对应密码。至少配置一个用户。">
+				<string from="password" secret="true" description="单个用户凭据。UUID 必须唯一且非全零，密码应使用高强度随机值；客户端必须使用完全相同的一组凭据。" />
 			</record>
-			<object name="tls">
-				<string name="hostname" ref="serverHostname" />
-				<list name="alpn">
-					<string value="h3" />
+			<object name="tls" description="服务端 TLS 配置。TUIC 基于 QUIC，TLS 同时负责加密和服务端身份验证。">
+				<string name="hostname" ref="serverHostname" description="证书对应的 DNS 主机名。ACME 用它申请证书，自签名模式用它生成证书。" />
+				<list name="alpn" description="QUIC TLS 的应用层协议协商列表。当前配置固定使用 h3。">
+					<string value="h3" description="客户端与服务端必须协商相同的 ALPN；生成器使用 h3。" />
 				</list>
-				<string name="certificate" from="/certificate" transform="trim" when="certificate" />
-				<string name="private_key" from="/privateKey" transform="trim" when="certificate" />
-				<boolean name="auto_ssl" value="true" when="acme" />
-				<string name="acme_email" from="/email" transform="trim" when="acme" />
-				<boolean name="acme_staging" from="/acmeStaging" when="acme" />
-				<boolean name="self_sign" value="true" when="self" />
+				<string name="certificate" from="/certificate" transform="trim" when="certificate" description="已有证书模式下的证书链文件路径。文件必须在服务端运行环境中存在并可读。" />
+				<string name="private_key" from="/privateKey" transform="trim" when="certificate" description="已有证书模式下的私钥文件路径。请限制文件权限，不要把私钥内容直接写进配置。" />
+				<boolean name="auto_ssl" value="true" when="acme" description="启用 ACME 自动申请和续期证书。域名需指向服务器，并开放 HTTP-01 所需的 TCP 80。" />
+				<string name="acme_email" from="/email" transform="trim" when="acme" description="ACME 账户联系邮箱，用于证书服务通知。" />
+				<boolean name="acme_staging" from="/acmeStaging" when="acme" description="使用 ACME 预发布环境，仅用于测试证书申请流程。" />
+				<boolean name="self_sign" value="true" when="self" description="启动时生成自签名证书，仅适合受控测试；客户端必须显式跳过验证，因此不应在生产环境使用。" />
 			</object>
-			<object name="backend">
+			<object name="backend" description="底层 QUIC 实现及其传输参数。">
 				<enum name="mode" from="/backendMode" options="backendMode" />
-				<object name="quinn" when="backendQuinn">
-					<object name="congestion_control">
+				<object name="quinn" when="backendQuinn" description="Quinn 后端的专属配置命名空间。">
+					<object name="congestion_control" description="拥塞控制配置，决定发送速率如何响应网络容量和丢包。">
 						<enum name="controller" from="/controller" options="controller" />
-						<integer name="initial_window" from="/quinnInitialWindow" />
+						<integer name="initial_window" from="/quinnInitialWindow" description="初始拥塞窗口（字节）。" />
 					</object>
-					<integer name="initial_mtu" from="/quinnInitialMtu" />
-					<integer name="min_mtu" from="/quinnMinMtu" />
-					<boolean name="gso" from="/quinnGso" />
-					<boolean name="pmtu" from="/quinnPmtu" />
-					<integer name="send_window" from="/quinnSendWindow" />
-					<integer name="receive_window" from="/quinnReceiveWindow" />
-					<string name="max_idle_time" from="/quinnMaxIdleTime" transform="integer" unit="s" />
+					<integer name="initial_mtu" from="/quinnInitialMtu" description="MTU 发现前的初始 UDP 载荷。" />
+					<integer name="min_mtu" from="/quinnMinMtu" description="网络保证支持的最小 UDP 载荷，须不小于 1200 且不大于 initial_mtu。" />
+					<boolean name="gso" from="/quinnGso" description="启用通用分段卸载（GSO）。" />
+					<boolean name="pmtu" from="/quinnPmtu" description="启用路径 MTU 发现。" />
+					<integer name="send_window" from="/quinnSendWindow" description="未确认情况下允许发送的最大字节数。" />
+					<integer name="receive_window" from="/quinnReceiveWindow" description="对端每条流未确认情况下允许发送的最大字节数。" />
+					<string name="max_idle_time" from="/quinnMaxIdleTime" transform="integer" unit="s" description="空闲连接关闭前的等待时间。" />
 				</object>
-				<object name="quiche" when="backendQuiche">
-					<object name="congestion_control">
+				<object name="quiche" when="backendQuiche" description="quiche 后端的专属配置命名空间。">
+					<object name="congestion_control" description="拥塞控制配置。">
 						<enum name="controller" from="/controller" options="controller" />
 					</object>
-					<string name="max_idle_time" from="/quicheMaxIdleTime" transform="integer" unit="s" />
-					<integer name="max_concurrent_bi_streams" from="/quicheBiStreams" />
-					<integer name="max_concurrent_uni_streams" from="/quicheUniStreams" />
-					<integer name="send_window" from="/quicheSendWindow" />
-					<integer name="receive_window" from="/quicheReceiveWindow" />
-					<boolean name="zero_rtt" from="/quicheZeroRtt" />
+					<string name="max_idle_time" from="/quicheMaxIdleTime" transform="integer" unit="s" description="空闲连接关闭前的等待时间。" />
+					<integer name="max_concurrent_bi_streams" from="/quicheBiStreams" description="允许的并发双向流数量。" />
+					<integer name="max_concurrent_uni_streams" from="/quicheUniStreams" description="允许的并发单向流数量。" />
+					<integer name="send_window" from="/quicheSendWindow" description="未确认情况下允许发送的最大字节数。" />
+					<integer name="receive_window" from="/quicheReceiveWindow" description="对端每条流未确认情况下允许发送的最大字节数。" />
+					<boolean name="zero_rtt" from="/quicheZeroRtt" description="quiche 后端的 0-RTT 早期数据开关。" />
 				</object>
 			</object>
-			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt" />
-			<string name="auth_timeout" from="/serverAuthTimeout" transform="integer" unit="s" />
-			<string name="stream_timeout" from="/serverStreamTimeout" transform="integer" unit="s" />
-			<record name="outbound" from="/outbounds" key="name" key-transform="trim">
-				<object>
-					<string name="type" from="type" />
-					<string name="ip_mode" from="ipMode" when="direct" />
-					<string name="bind_ipv4" from="bindIpv4" transform="trim" when="bindV4Set" />
-					<string name="bind_ipv6" from="bindIpv6" transform="trim" when="bindV6Set" />
-					<string name="bind_device" from="bindDevice" transform="trim" when="bindDeviceSet" />
-					<boolean name="tfo" from="tfo" when="direct" />
-					<integer name="routing_mark" from="routingMark" transform="integer" when="routingMarkSet" />
-					<string name="addr" from="socksAddr" transform="trim" when="socks5" />
-					<string name="username" from="socksUsername" when="socks5" />
-					<string name="password" from="socksPassword" secret="true" when="socks5" />
-					<boolean name="allow_udp" from="allowUdp" when="socks5" />
+			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt" description="是否允许 QUIC 0-RTT 早期数据。设为 true 可降低重连延迟，但早期数据可能被重放；默认应保持 false。" />
+			<string name="auth_timeout" from="/serverAuthTimeout" transform="integer" unit="s" description="等待客户端认证命令的时间。" />
+			<string name="stream_timeout" from="/serverStreamTimeout" transform="integer" unit="s" description="TCP/UDP I/O 任务的保留时间。" />
+			<record name="outbound" from="/outbounds" key="name" key-transform="trim" description="出站规则；default 用于未匹配的流量，具名出站可被 ACL 或规则引用。">
+				<object description="单个出站配置。">
+					<string name="type" from="type" description="出站类型：direct 直连或 socks5 经上游代理出站。" />
+					<string name="ip_mode" from="ipMode" when="direct" description="直连时的地址族偏好：v4first、v6first、v4only 或 v6only。" />
+					<string name="bind_ipv4" from="bindIpv4" transform="trim" when="bindV4Set" description="可选：绑定出站 IPv4 源地址；多个地址需手动改为数组。" />
+					<string name="bind_ipv6" from="bindIpv6" transform="trim" when="bindV6Set" description="可选：绑定出站 IPv6 源地址；多个地址需手动改为数组。" />
+					<string name="bind_device" from="bindDevice" transform="trim" when="bindDeviceSet" description="可选：绑定 Linux 网络接口。" />
+					<boolean name="tfo" from="tfo" when="direct" description="是否启用 TCP Fast Open，需要内核支持。" />
+					<integer name="routing_mark" from="routingMark" transform="integer" when="routingMarkSet" description="可选：Linux SO_MARK 路由标记，用于策略路由。" />
+					<string name="addr" from="socksAddr" transform="trim" when="socks5" description="上游 SOCKS5 服务器地址。" />
+					<string name="username" from="socksUsername" when="socks5" description="可选：上游 SOCKS5 用户名。" />
+					<string name="password" from="socksPassword" secret="true" when="socks5" description="可选：上游 SOCKS5 密码，属于敏感信息。" />
+					<boolean name="allow_udp" from="allowUdp" when="socks5" description="是否允许该出站承载 UDP；当前 UDP 仍直连，尚未实现 SOCKS5 UDP 转发。" />
 				</object>
 			</record>
-			<list name="acl" from="/acls" omit-empty="true">
-				<object>
-					<string name="addr" from="addr" transform="trim" />
-					<string name="outbound" from="outbound" transform="trim" />
-					<string name="ports" from="ports" transform="trim" when="aclPortsSet" />
-					<string name="hijack" from="hijack" transform="trim" when="aclHijackSet" />
+			<list name="acl" from="/acls" omit-empty="true" description="旧式 ACL 规则，在 Metacubex 规则之前求值。">
+				<object description="旧式 ACL 规则，在 Metacubex 规则之前求值。">
+					<string name="addr" from="addr" transform="trim" description="匹配私有地址网段；地址支持 IP、CIDR、域名、localhost、private 与 *。" />
+					<string name="outbound" from="outbound" transform="trim" description="命中后拒绝连接；也可写 default 或具名出站。" />
+					<string name="ports" from="ports" transform="trim" when="aclPortsSet" description="可选：限制端口，可带 tcp/ 或 udp/ 前缀并支持范围。" />
+					<string name="hijack" from="hijack" transform="trim" when="aclHijackSet" description="可选：命中后重定向到指定地址；当前版本尚未生效，仅保留字段。" />
 				</object>
 			</list>
-			<list name="rules" from="/rules" omit-empty="true">
-				<string from="rule" transform="trim" />
+			<list name="rules" from="/rules" omit-empty="true" description="Metacubex 风格路由规则，在 ACL 之后求值。">
+				<string from="rule" transform="trim" description="单条 Metacubex 风格规则。" />
 			</list>
-			<object name="dns" when="dnsEnabled">
-				<enum name="mode" from="/dnsMode" options="dnsMode" />
-				<list name="servers" from="/dnsServers" omit-empty="true" when="dnsCustom">
-					<string from="server" transform="trim" />
+			<object name="dns" when="dnsEnabled" description="DNS 解析配置；未启用时使用操作系统解析器。">
+				<enum name="mode" from="/dnsMode" options="dnsMode" description="DNS 模式：system、cloudflare、google、quad9、custom 及对应的 DoT/DoH 变体。" />
+				<list name="servers" from="/dnsServers" omit-empty="true" when="dnsCustom" description="自定义 DNS 服务器列表，仅在 custom 模式输出。">
+					<string from="server" transform="trim" description="服务器 URL，支持 1.1.1.1、udp://、tcp://、tls:// 与 https://。" />
 				</list>
-				<string name="timeout" from="/dnsTimeout" transform="integer" unit="s" when="dnsTimeoutSet" />
-				<integer name="attempts" from="/dnsAttempts" transform="integer" when="dnsAttemptsSet" />
-				<enum name="stack_prefer" from="/dnsStackPrefer" options="dnsStackPrefer" />
+				<string name="timeout" from="/dnsTimeout" transform="integer" unit="s" when="dnsTimeoutSet" description="可选：单次查询超时；留空使用库默认值。" />
+				<integer name="attempts" from="/dnsAttempts" transform="integer" when="dnsAttemptsSet" description="可选：单次查询的重试次数；留空使用库默认值。" />
+				<enum name="stack_prefer" from="/dnsStackPrefer" options="dnsStackPrefer" description="解析结果的地址族偏好。" />
 			</object>
-			<object name="geodata" when="geodataEnabled">
-				<string name="geosite" from="/geosite" transform="trim" when="geositeSet" />
-				<string name="geoip" from="/geoip" transform="trim" when="geoipSet" />
+			<object name="geodata" when="geodataEnabled" description="GEOIP/GEOSITE 规则所需的数据库路径。">
+				<string name="geosite" from="/geosite" transform="trim" when="geositeSet" description="v2ray 域名分类数据库路径。" />
+				<string name="geoip" from="/geoip" transform="trim" when="geoipSet" description="v2ray IP 国家数据库路径。" />
 			</object>
-			<object name="experimental">
-				<boolean name="drop_loopback" from="/dropLoopback" />
-				<boolean name="drop_private" from="/dropPrivate" />
+			<object name="experimental" description="安全防护开关。">
+				<boolean name="drop_loopback" from="/dropLoopback" description="拒绝解析到回环地址的目标。" />
+				<boolean name="drop_private" from="/dropPrivate" description="拒绝私有、链路本地与 ULA 地址。" />
 			</object>
-			<object name="restful" when="restfulEnabled">
-				<boolean name="enabled" value="true" />
-				<string name="addr" from="/restfulAddr" transform="trim" />
-				<string name="secret" from="/restfulSecret" secret="true" when="restfulSecretSet" />
-				<integer name="maximum_clients_per_user" from="/restfulMaxClients" />
+			<object name="restful" when="restfulEnabled" description="RESTful 管理 API。">
+				<boolean name="enabled" value="true" description="启用管理 API。" />
+				<string name="addr" from="/restfulAddr" transform="trim" description="管理 API 监听地址；建议只监听本机。" />
+				<string name="secret" from="/restfulSecret" secret="true" when="restfulSecretSet" description="Bearer 令牌；留空表示不校验，不建议在公网暴露。" />
+				<integer name="maximum_clients_per_user" from="/restfulMaxClients" description="每用户最大并发连接数；0 表示不限，当前版本未强制生效。" />
 			</object>
-			<object name="masquerade" when="masqueradeEnabled">
-				<boolean name="enabled" value="true" />
-				<string name="upstream" from="/masqueradeUpstream" transform="trim" />
+			<object name="masquerade" when="masqueradeEnabled" description="把非 TUIC 的 HTTP/3 探测流量反向代理到真实网站。">
+				<boolean name="enabled" value="true" description="启用 HTTP/3 伪装。" />
+				<string name="upstream" from="/masqueradeUpstream" transform="trim" description="反向代理的上游站点。" />
 			</object>
 		</object>
 	</outputs>

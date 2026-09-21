@@ -7,8 +7,8 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 		return Err(root.error("根元素必须为 config-dsl"));
 	}
 	attrs(&root, &["version", "target-version"])?;
-	if root.required("version")? != "4" {
-		return Err(root.error("仅支持 DSL version=4"));
+	if root.required("version")? != "5" {
+		return Err(root.error("仅支持 DSL version=5"));
 	}
 	let mut sections = BTreeMap::new();
 	for child in &root.children {
@@ -21,13 +21,12 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 			"validators",
 			"rules",
 			"effects",
-			"config-desc",
 		]
 		.contains(&child.tag.as_str())
 		{
 			return Err(child.error("未知文档区块"));
 		}
-		if !["ui", "config-desc"].contains(&child.tag.as_str()) {
+		if child.tag != "ui" {
 			attrs(child, &[])?;
 		}
 		if sections.insert(child.tag.as_str(), child).is_some() {
@@ -127,7 +126,6 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 	let mut doc = Document {
 		target_version: root.required("target-version")?.into(),
 		ui: metadata::parse_ui(sections.get("ui").copied())?,
-		config_description: description::parse(sections.get("config-desc").copied())?,
 		exports: metadata::exports(outputs)?,
 		validators: metadata::validators(sections.get("validators").copied())?,
 		rules: metadata::rules(sections.get("rules").copied())?,
@@ -222,16 +220,20 @@ fn field(node: &Element) -> Result<InputField, DslError> {
 	)?;
 	let key = identifier(node, "name")?.into();
 	let mut options = Vec::new();
+	let mut option_descriptions = BTreeMap::new();
 	let mut seen = BTreeSet::new();
 	for child in &node.children {
 		if child.tag != "option" {
 			return Err(child.error("field 只接受 option"));
 		}
-		attrs(child, &["value", "label"])?;
+		attrs(child, &["value", "label", "description"])?;
 		empty(child)?;
 		let value = child.required("value")?;
 		if !seen.insert(value) {
 			return Err(child.error("重复枚举值"));
+		}
+		if let Some(description) = child.attr("description") {
+			option_descriptions.insert(value.into(), description.into());
 		}
 		options.push((value.into(), child.required("label")?.into()));
 	}
@@ -282,6 +284,7 @@ fn field(node: &Element) -> Result<InputField, DslError> {
 		section: node.attr("section").unwrap_or_default().into(),
 		kind,
 		options,
+		option_descriptions,
 		rule: rule.into(),
 		generator: metadata::generator(node)?,
 		default,
@@ -380,7 +383,7 @@ fn output(node: &Element, named: bool) -> Result<(), DslError> {
 				if node.tag == "outputs" {
 					&[]
 				} else {
-					&["name", "when", "secret", "label", "filename", "command"]
+					&["name", "when", "secret", "label", "filename", "command", "description"]
 				},
 			)?;
 			let mut names = BTreeSet::new();
@@ -395,9 +398,27 @@ fn output(node: &Element, named: bool) -> Result<(), DslError> {
 			attrs(
 				node,
 				if node.tag == "record" {
-					&["name", "when", "secret", "from", "key", "key-transform", "omit-empty"]
+					&[
+						"name",
+						"when",
+						"secret",
+						"from",
+						"key",
+						"key-transform",
+						"omit-empty",
+						"description",
+					]
 				} else {
-					&["name", "when", "secret", "from", "where-field", "equals", "omit-empty"]
+					&[
+						"name",
+						"when",
+						"secret",
+						"from",
+						"where-field",
+						"equals",
+						"omit-empty",
+						"description",
+					]
 				},
 			)?;
 			if node.tag == "record" {
@@ -424,6 +445,7 @@ fn output(node: &Element, named: bool) -> Result<(), DslError> {
 					"transform",
 					"unit",
 					"options",
+					"description",
 				],
 			)?;
 			let count = ["from", "ref", "value"].iter().filter(|a| node.attr(a).is_some()).count()
@@ -465,11 +487,6 @@ fn references(node: &Element, result: &mut BTreeSet<String>) {
 	}
 }
 fn check_references(node: &Element, doc: &Document) -> Result<(), DslError> {
-	// The static config description has its own selector/value validation and
-	// never participates in runtime conditions, values, or input projection.
-	if node.tag == "config-desc" {
-		return Ok(());
-	}
 	for attr in ["all-when", "select-when"] {
 		if let Some(name) = node.attr(attr)
 			&& !doc.conditions.contains_key(name)

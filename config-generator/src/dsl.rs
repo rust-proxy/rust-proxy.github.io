@@ -1,7 +1,7 @@
 //! Static XML configuration descriptions, deserialized with Serde. No callbacks or scripts.
-mod description;
 mod metadata;
 mod parser;
+mod preview;
 mod rules;
 mod wire;
 mod xml;
@@ -11,8 +11,8 @@ use std::{
 	net::IpAddr,
 };
 
-pub use description::{ConfigDescription, DescriptionConfig, DescriptionFormat, DescriptionLine, DescriptionSelector};
 pub use metadata::{Export, Generator, Notice, Section, Ui};
+pub use preview::PreviewLine;
 use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +68,7 @@ pub struct InputField {
 	pub section: String,
 	pub kind: InputKind,
 	pub options: Vec<(String, String)>,
+	pub option_descriptions: BTreeMap<String, String>,
 	pub rule: String,
 	pub generator: Option<Generator>,
 	default: Value,
@@ -132,7 +133,6 @@ impl Collection {
 pub struct Document {
 	pub target_version: String,
 	pub ui: Ui,
-	pub config_description: Option<ConfigDescription>,
 	pub exports: Vec<Export>,
 	validators: BTreeMap<String, Element>,
 	rules: Vec<Element>,
@@ -310,6 +310,16 @@ impl Document {
 	pub fn project(&self, root: &Value) -> Result<Value, DslError> {
 		self.output(&self.outputs, root, root)?
 			.ok_or_else(|| self.outputs.error("根输出不可省略"))
+	}
+	/// Renders one top-level output as annotated lines from its declared descriptions.
+	pub fn preview_lines(&self, export: &str, value: &Value, format: &str) -> Result<Vec<PreviewLine>, DslError> {
+		let node = self
+			.outputs
+			.children
+			.iter()
+			.find(|candidate| candidate.attr("name") == Some(export))
+			.ok_or_else(|| DslError("请选择输出。".into()))?;
+		preview::render(node, value, &self.fields, format)
 	}
 	fn output(&self, node: &Element, root: &Value, row: &Value) -> Result<Option<Value>, DslError> {
 		if !self.visible(node, root, row)? {

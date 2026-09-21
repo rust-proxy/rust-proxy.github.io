@@ -1,4 +1,4 @@
-<config-dsl version="4" target-version="2.0.0-dev7">
+<config-dsl version="5" target-version="2.0.0-dev7">
 	<ui title="客户端配置文件生成器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写服务器与本地代理信息，生成 TUIC 客户端配置。" format-field="format" export-hint="复制和下载始终包含真实密码。">
 		<section name="addresses" label="连接信息" />
 		<section name="authentication" label="用户认证" />
@@ -85,17 +85,17 @@
 		<field name="initialBackoff" type="string" default="500" section="transport" label="首次重连等待（毫秒）" placeholder="500" hint="首次重连前等待的时间。" widget="number" when="reconnect" rule="milliseconds" />
 		<field name="maxBackoff" type="string" default="30000" section="transport" label="最大重连等待（毫秒）" placeholder="30000" hint="应大于或等于首次等待时间。" widget="number" when="reconnect" rule="milliseconds" />
 		<field name="udpRelayMode" type="enum" default="native" section="transport" label="UDP 转发模式">
-			<option value="native" label="native" />
-			<option value="quic" label="quic" />
+			<option value="native" label="native" description="UDP 转发模式，native 为默认。" />
+			<option value="quic" label="quic" description="quic 使用 QUIC 流承载 UDP。" />
 		</field>
 		<field name="clientHeartbeat" type="string" default="3" section="transport" label="心跳间隔（秒）" placeholder="3" hint="保持连接活跃的心跳周期。" widget="number" rule="seconds" />
 		<field name="clientGcInterval" type="string" default="3" section="transport" label="分片回收间隔（秒）" placeholder="3" hint="UDP 分片垃圾回收周期。" widget="number" rule="seconds" />
 		<field name="clientGcLifetime" type="string" default="15" section="transport" label="分片保留时间（秒）" placeholder="15" hint="UDP 分片在回收前保留的时间。" widget="number" rule="seconds" />
 		<field name="clientController" type="enum" default="bbr" section="backend" label="客户端拥塞控制">
-			<option value="bbr" label="BBR" />
-			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" />
-			<option value="cubic" label="CUBIC" />
-			<option value="newreno" label="New Reno" />
+			<option value="bbr" label="BBR" description="BBR 以带宽和往返时延建模，适合多数代理链路。" />
+			<option value="bbr3" label="BBR3（当前与 BBR 共用实现）" description="BBR3 选项；当前版本与 BBR 共用实现。" />
+			<option value="cubic" label="CUBIC" description="CUBIC 是常见的基于丢包的拥塞控制。" />
+			<option value="newreno" label="New Reno" description="New Reno 是较保守的基于丢包算法。" />
 		</field>
 		<field name="clientSendWindow" type="integer" default="16777216" section="backend" label="客户端发送窗口（字节）" hint="未经确认可发送的最大字节数。" />
 		<field name="clientReceiveWindow" type="integer" default="8388608" section="backend" label="客户端接收窗口（字节）" hint="每条流可接收的最大字节数。" />
@@ -178,154 +178,69 @@
 			</coalesce>
 		</value>
 	</values>
-	<config-desc title="配置项详解" description="选择 YAML 或 TOML 及枚举分支，查看完整配置结构；悬浮或聚焦任意一行可了解字段作用。">
-		<config name="client" label="客户端配置" filename="client">
-			<selector name="address" label="服务端地址" default="domain">
-				<choice value="domain" label="域名" />
-				<choice value="ip" label="IP 地址" />
-			</selector>
-			<selector name="local-auth" label="SOCKS5 认证" default="off">
-				<choice value="off" label="关闭" />
-				<choice value="on" label="用户名与密码" />
-			</selector>
-			<selector name="forward" label="端口转发示例" default="none">
-				<choice value="none" label="不配置" />
-				<choice value="tcp" label="TCP 转发" />
-				<choice value="udp" label="UDP 转发" />
-			</selector>
-			<selector name="reconnect" label="断线重连" default="on">
-				<choice value="on" label="自动重连" />
-				<choice value="off" label="不重连" />
-			</selector>
-			<selector name="udp-relay" label="UDP 模式" default="native">
-				<choice value="native" label="native" />
-				<choice value="quic" label="quic" />
-			</selector>
-			<selector name="controller" label="拥塞控制" default="bbr">
-				<choice value="bbr" label="BBR" />
-				<choice value="bbr3" label="BBR3" />
-				<choice value="cubic" label="CUBIC" />
-				<choice value="newreno" label="New Reno" />
-			</selector>
-			<string name="server" value="tuic.example.com:8443" description="客户端连接的 TUIC 服务端地址，包含 UDP 端口。域名会在客户端解析。" when="address=domain" />
-			<string name="server" value="[2001:db8::1]:8443" description="直接连接 IPv6 地址时使用方括号包围地址，再追加 UDP 端口。" when="address=ip" />
-			<string name="ip" value="2001:db8::1" description="显式指定服务端 IP，可绕过域名解析；使用域名连接时通常不需要此字段。" when="address=ip" />
-			<string name="uuid" value="00000000-0000-4000-8000-000000000001" description="必须与服务端 users 映射中存在的用户 UUID 一致。" />
-			<string name="password" value="change-this-password" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。" />
-			<string name="log_level" value="info" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。" />
-			<string name="udp_relay_mode" value="native" description="UDP 转发模式，native 为默认。" when="udp-relay=native" />
-			<string name="udp_relay_mode" value="quic" description="quic 使用 QUIC 流承载 UDP。" when="udp-relay=quic" />
-			<boolean name="zero_rtt_handshake" value="false" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。" />
-			<string name="heartbeat" value="3s" description="保持连接活跃的心跳周期。" />
-			<string name="gc_interval" value="3s" description="UDP 分片垃圾回收周期。" />
-			<string name="gc_lifetime" value="15s" description="UDP 分片在回收前保留的时间。" />
-			<boolean name="reconnect" value="true" description="连接中断后自动重试。长期运行的本地代理通常保持 true；由外部进程管理器控制时可设为 false。" when="reconnect=on" />
-			<boolean name="reconnect" value="false" description="不自动重连，连接中断后退出或等待外部进程管理器重启。" when="reconnect=off" />
-			<boolean name="lazy" value="true" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。" />
-			<string name="reconnect_initial_backoff" value="500ms" description="首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" when="reconnect=on" />
-			<string name="reconnect_max_backoff" value="30000ms" description="指数退避允许增长到的最大等待时间，必须不小于首次等待。" when="reconnect=on" />
-			<object name="tls" description="客户端 TLS 验证与协议协商配置。">
-				<string name="sni" value="tuic.example.com" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。" />
-				<array name="alpn" description="客户端提出的 ALPN 列表，必须与服务端一致。">
-					<string value="h3" description="当前生成器使用的 QUIC 应用层协议标识。" />
-				</array>
-				<boolean name="skip_cert_verify" value="false" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。" />
-			</object>
-			<object name="backend" description="客户端 QUIC 传输参数。">
-				<object name="quinn" description="客户端仅支持 Quinn 后端。">
-					<object name="congestion_control" description="拥塞控制算法。">
-						<string name="controller" value="bbr" description="BBR 以带宽和往返时延建模，适合多数代理链路。" when="controller=bbr" />
-						<string name="controller" value="bbr3" description="BBR3 选项；当前版本与 BBR 共用实现。" when="controller=bbr3" />
-						<string name="controller" value="cubic" description="CUBIC 是常见的基于丢包的拥塞控制。" when="controller=cubic" />
-						<string name="controller" value="newreno" description="New Reno 是较保守的基于丢包算法。" when="controller=newreno" />
-					</object>
-					<integer name="send_window" value="16777216" description="未经确认可发送的最大字节数。" />
-					<integer name="receive_window" value="8388608" description="每条流可接收的最大字节数。" />
-				</object>
-			</object>
-			<object name="local" description="本地代理监听与静态端口转发配置。">
-				<string name="server" value="127.0.0.1:1080" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。" />
-				<string name="username" value="proxy-user" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" when="local-auth=on" />
-				<string name="password" value="local-proxy-password" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" when="local-auth=on" />
-				<array name="tcp_forward" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp">
-					<object description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。" when="forward=tcp">
-						<string name="listen" value="127.0.0.1:8080" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" />
-						<string name="remote" value="example.com:80" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" when="forward=tcp" />
-					</object>
-				</array>
-				<array name="udp_forward" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp">
-					<object description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。" when="forward=udp">
-						<string name="listen" value="127.0.0.1:5353" description="单条 UDP 转发的本地监听地址。" />
-						<string name="remote" value="dns.example.com:53" description="UDP 数据报转发到的远端目标地址。" when="forward=udp" />
-						<string name="timeout" value="60s" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" when="forward=udp" />
-					</object>
-				</array>
-			</object>
-		</config>
-	</config-desc>
 	<!-- TUIC fd7e521 / Wind dee0317: literal output names, no executable code. -->
 	<outputs>
 		<object name="client" label="客户端" filename="client" command="tuic-client -c {filename}">
-			<string name="server">
+			<string name="server" description="客户端连接的 TUIC 服务端地址，包含 UDP 端口；域名会在客户端解析，IPv6 地址使用方括号。">
 				<endpoint>
 					<source ref="host" />
 					<source from="/port" transform="integer" />
 				</endpoint>
 			</string>
 			<!-- Explicit IP also avoids the baseline client's IPv6 DNS formatting issue. -->
-			<string name="ip" ref="host" when="ip" />
-			<string name="uuid">
+			<string name="ip" ref="host" when="ip" description="显式指定服务端 IP，可绕过域名解析；使用域名连接时通常不需要此字段。" />
+			<string name="uuid" description="必须与服务端 users 映射中存在的用户 UUID 一致。">
 				<select from="/users" index="/activeUser">
 					<source from="uuid" transform="trim lowercase" />
 				</select>
 			</string>
-			<string name="password" secret="true">
+			<string name="password" secret="true" description="UUID 对应的 TUIC 密码。它属于敏感信息，配置文件应限制读取权限。">
 				<select from="/users" index="/activeUser">
 					<source from="password" />
 				</select>
 			</string>
-			<enum name="log_level" from="/logLevel" options="logLevel" />
+			<enum name="log_level" from="/logLevel" options="logLevel" description="客户端日志级别。排障时可暂时提高到 debug 或 trace，但日志量会明显增加。" />
 			<enum name="udp_relay_mode" from="/udpRelayMode" options="udpRelayMode" />
-			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt" />
-			<string name="heartbeat" from="/clientHeartbeat" transform="integer" unit="s" />
-			<string name="gc_interval" from="/clientGcInterval" transform="integer" unit="s" />
-			<string name="gc_lifetime" from="/clientGcLifetime" transform="integer" unit="s" />
-			<boolean name="reconnect" from="/reconnect" />
-			<boolean name="lazy" from="/lazy" />
-			<string name="reconnect_initial_backoff" from="/initialBackoff" transform="integer" unit="ms" when="reconnect" />
-			<string name="reconnect_max_backoff" from="/maxBackoff" transform="integer" unit="ms" when="reconnect" />
-			<object name="tls">
-				<string name="sni" ref="clientSni" />
-				<list name="alpn">
-					<string value="h3" />
+			<boolean name="zero_rtt_handshake" value="true" when="zeroRtt" description="是否在恢复会话时发送 0-RTT 早期数据。设为 true 需服务端同时开启，并接受早期数据可能被重放的风险。" />
+			<string name="heartbeat" from="/clientHeartbeat" transform="integer" unit="s" description="保持连接活跃的心跳周期。" />
+			<string name="gc_interval" from="/clientGcInterval" transform="integer" unit="s" description="UDP 分片垃圾回收周期。" />
+			<string name="gc_lifetime" from="/clientGcLifetime" transform="integer" unit="s" description="UDP 分片在回收前保留的时间。" />
+			<boolean name="reconnect" from="/reconnect" description="连接中断后是否自动重试。长期运行的本地代理通常保持开启；由外部进程管理器控制时可关闭。" />
+			<boolean name="lazy" from="/lazy" description="按需建立到服务端的连接；首次代理请求到来前不主动连接。" />
+			<string name="reconnect_initial_backoff" from="/initialBackoff" transform="integer" unit="ms" when="reconnect" description="首次重试前的等待时间。短暂网络抖动时，退避可以避免立即反复建连。" />
+			<string name="reconnect_max_backoff" from="/maxBackoff" transform="integer" unit="ms" when="reconnect" description="指数退避允许增长到的最大等待时间，必须不小于首次等待。" />
+			<object name="tls" description="客户端 TLS 验证与协议协商配置。">
+				<string name="sni" ref="clientSni" description="TLS SNI 与证书主机名。即使通过 IP 连接，也应填写证书对应的 DNS 名称。" />
+				<list name="alpn" description="客户端提出的 ALPN 列表，必须与服务端一致。">
+					<string value="h3" description="当前生成器使用的 QUIC 应用层协议标识。" />
 				</list>
-				<boolean name="skip_cert_verify" from="/insecure" />
+				<boolean name="skip_cert_verify" from="/insecure" description="是否跳过证书链和主机名验证。生产环境必须保持 false；设为 true 会失去服务端身份保证，只能用于受控测试。" />
 			</object>
-			<object name="backend">
-				<object name="quinn">
-					<object name="congestion_control">
+			<object name="backend" description="客户端 QUIC 传输参数。">
+				<object name="quinn" description="客户端仅支持 Quinn 后端。">
+					<object name="congestion_control" description="拥塞控制算法。">
 						<enum name="controller" from="/clientController" options="clientController" />
 					</object>
-					<integer name="send_window" from="/clientSendWindow" />
-					<integer name="receive_window" from="/clientReceiveWindow" />
+					<integer name="send_window" from="/clientSendWindow" description="未经确认可发送的最大字节数。" />
+					<integer name="receive_window" from="/clientReceiveWindow" description="每条流可接收的最大字节数。" />
 				</object>
 			</object>
-			<object name="local">
-				<string name="server" from="/local" transform="trim" />
-				<string name="username" from="/localUsername" when="localAuth" />
-				<string name="password" from="/localPassword" when="localAuth" secret="true" />
-				<list name="tcp_forward" from="/forwards" where-field="protocol" equals="tcp" omit-empty="true">
+			<object name="local" description="本地代理监听与静态端口转发配置。">
+				<string name="server" from="/local" transform="trim" description="本地 SOCKS5 监听地址。默认仅允许本机访问；对外监听时应启用认证并配置防火墙。" />
+				<string name="username" from="/localUsername" when="localAuth" description="本地 SOCKS5 用户名，与 TUIC 服务端的 UUID 认证相互独立。" />
+				<string name="password" from="/localPassword" when="localAuth" secret="true" description="本地 SOCKS5 密码。它同样是敏感信息，应使用随机值并保护配置文件。" />
+				<list name="tcp_forward" from="/forwards" where-field="protocol" equals="tcp" omit-empty="true" description="TCP 静态转发规则列表；每条规则把本地 TCP 监听转发到远端目标。">
 					<object>
-						<string name="listen" from="listen" transform="trim" />
-						<string name="remote" from="remote" transform="trim" />
+						<string name="listen" from="listen" transform="trim" description="单条 TCP 转发的本地监听地址。使用回环地址可避免意外暴露服务。" />
+						<string name="remote" from="remote" transform="trim" description="TCP 转发的远端目标地址，由服务端侧发起连接；服务端 ACL 仍可能阻止私有或回环目标。" />
 						<string name="timeout" from="timeout" transform="integer" unit="s" when="udp" />
 					</object>
 				</list>
-				<list name="udp_forward" from="/forwards" where-field="protocol" equals="udp" omit-empty="true">
+				<list name="udp_forward" from="/forwards" where-field="protocol" equals="udp" omit-empty="true" description="UDP 静态转发规则列表；UDP 无连接，因此还需要会话超时。">
 					<object>
-						<string name="listen" from="listen" transform="trim" />
-						<string name="remote" from="remote" transform="trim" />
-						<string name="timeout" from="timeout" transform="integer" unit="s" when="udp" />
+						<string name="listen" from="listen" transform="trim" description="单条 UDP 转发的本地监听地址。" />
+						<string name="remote" from="remote" transform="trim" description="UDP 数据报转发到的远端目标地址。" />
+						<string name="timeout" from="timeout" transform="integer" unit="s" when="udp" description="无数据后保留 UDP 会话的时间；到期后释放相关状态。" />
 					</object>
 				</list>
 			</object>

@@ -6,26 +6,6 @@ use config_generator::{
 
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 
-fn rendered_toml(config: &config_generator::dsl::DescriptionConfig, selected: &[(&str, &str)]) -> String {
-	config
-		.formats
-		.iter()
-		.find(|format| format.name == "toml")
-		.into_iter()
-		.flat_map(|format| &format.lines)
-		.filter(|line| {
-			line.conditions.iter().all(|(name, value)| {
-				selected
-					.iter()
-					.find(|(candidate, _)| *candidate == name)
-					.is_some_and(|(_, chosen)| *chosen == value)
-			})
-		})
-		.map(|line| line.text.as_str())
-		.collect::<Vec<_>>()
-		.join("\n")
-}
-
 #[test]
 fn embedded_application_schemas_are_independent() -> Result {
 	assert_eq!(
@@ -41,10 +21,6 @@ fn embedded_application_schemas_are_independent() -> Result {
 	);
 	assert!(server.fields.iter().any(|field| field.key == "listen"));
 	assert!(!server.fields.iter().any(|field| field.key == "host"));
-	assert_eq!(
-		server.config_description.as_ref().map(|desc| desc.configs[0].name.as_str()),
-		Some("server")
-	);
 
 	let client = document_for("tuic-client")?;
 	assert!(client.ui.mode_field.is_none());
@@ -54,10 +30,6 @@ fn embedded_application_schemas_are_independent() -> Result {
 	);
 	assert!(client.fields.iter().any(|field| field.key == "host"));
 	assert!(!client.fields.iter().any(|field| field.key == "listen"));
-	assert_eq!(
-		client.config_description.as_ref().map(|desc| desc.configs[0].name.as_str()),
-		Some("client")
-	);
 	assert!(document_for("missing").is_err());
 	Ok(())
 }
@@ -101,63 +73,35 @@ fn generated_tuic_configs_are_annotated_across_formats() -> Result {
 		state.data["users"][0]["uuid"] = "00000000-0000-4000-8000-000000000001".into();
 		state.data["users"][0]["password"] = "test-password".into();
 		let configs = build_configs(document, &state.data)?;
-		let description = document.config_description.as_ref().ok_or("missing config description")?;
-		for entry in &description.configs {
-			let Some(config) = configs.get(entry.name.as_str()) else {
+		for export in &document.exports {
+			let Some(config) = configs.get(export.name.as_str()) else {
 				continue;
 			};
-			let yaml = entry.render_annotated(config, "yaml")?;
+			let yaml = document.preview_lines(&export.name, config, "yaml")?;
 			assert!(
 				yaml.iter().filter(|line| !line.description.is_empty()).count() > 5,
 				"{schema} {}: generated config is not annotated",
-				entry.name
+				export.name
 			);
 			assert!(
 				yaml.iter().any(|line| line.description.contains(marker)),
 				"{schema} {}: documented descriptions are missing",
-				entry.name
+				export.name
 			);
-			let toml_text = entry
-				.render_annotated(config, "toml")?
+			let toml_text = document
+				.preview_lines(&export.name, config, "toml")?
 				.iter()
 				.map(|line| line.text.clone())
 				.collect::<Vec<_>>()
 				.join("\n");
 			assert_eq!(serde_json::to_value(toml::from_str::<toml::Value>(&toml_text)?)?, *config);
-			let json_text = entry
-				.render_annotated(config, "json")?
+			let json_text = document
+				.preview_lines(&export.name, config, "json")?
 				.iter()
 				.map(|line| line.text.clone())
 				.collect::<Vec<_>>()
 				.join("\n");
 			assert_eq!(serde_json::from_str::<serde_json::Value>(&json_text)?, *config);
-		}
-	}
-	Ok(())
-}
-
-#[test]
-fn structured_descriptions_render_valid_toml_across_selector_choices() -> Result {
-	for schema in ["tuic-server", "tuic-client"] {
-		let document = document_for(schema)?;
-		let description = document.config_description.as_ref().ok_or("missing config description")?;
-		for config in &description.configs {
-			let defaults = config
-				.selectors
-				.iter()
-				.map(|selector| (selector.name.as_str(), selector.default.as_str()))
-				.collect::<Vec<_>>();
-			toml::from_str::<toml::Value>(&rendered_toml(config, &defaults))?;
-			for selector in &config.selectors {
-				for (choice, _) in &selector.choices {
-					let mut selected = defaults.clone();
-					let Some((_, value)) = selected.iter_mut().find(|(name, _)| *name == selector.name) else {
-						return Err("selector default is missing".into());
-					};
-					*value = choice;
-					toml::from_str::<toml::Value>(&rendered_toml(config, &selected))?;
-				}
-			}
 		}
 	}
 	Ok(())
