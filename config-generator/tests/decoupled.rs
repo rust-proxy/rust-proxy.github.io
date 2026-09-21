@@ -148,20 +148,12 @@ fn schema_extensions_fail_closed() {
 }
 
 #[test]
-fn legacy_yaml_descriptions_remain_compatible_but_cannot_mix_with_structured_nodes() -> Result {
+fn legacy_line_descriptions_are_rejected() -> Result {
 	let source = SOURCE.replace(
 		"<object name=\"metadata\" description=\"清单元数据。\">\n\t\t\t\t<string name=\"project\" value=\"example\" description=\"清单所属项目的名称。\" />\n\t\t\t\t<string name=\"visibility\" value=\"team\" description=\"团队成员可以读取这份清单。\" when=\"visibility=team\" />\n\t\t\t\t<string name=\"visibility\" value=\"private\" description=\"只有清单所有者可以读取。\" when=\"visibility=private\" />\n\t\t\t</object>",
 		"<line yaml=\"metadata:\" description=\"清单元数据。\"/>\n\t\t\t<line indent=\"1\" yaml=\"project: example\" description=\"清单所属项目的名称。\"/>",
 	);
-	let doc = Document::parse(&source)?;
-	let config = &doc.config_description.as_ref().ok_or("missing config description")?.configs[0];
-	assert_eq!(config.formats.len(), 1);
-	assert_eq!(config.formats[0].lines[1].text, "  project: example");
-	let mixed = source.replace(
-		"<line indent=\"1\" yaml=\"project: example\" description=\"清单所属项目的名称。\"/>",
-		"<string name=\"project\" value=\"example\" description=\"清单所属项目的名称。\"/>",
-	);
-	assert!(Document::parse(&mixed).is_err());
+	assert!(Document::parse(&source).is_err());
 	Ok(())
 }
 

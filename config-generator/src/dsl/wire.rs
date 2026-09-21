@@ -29,7 +29,6 @@ enum Node {
 	Config(Body),
 	Selector(Body),
 	Choice(Body),
-	Line(Body),
 
 	Inputs(Body),
 	Conditions(Body),
@@ -122,7 +121,6 @@ impl Node {
 			Self::Config(body) => ("config", body),
 			Self::Selector(body) => ("selector", body),
 			Self::Choice(body) => ("choice", body),
-			Self::Line(body) => ("line", body),
 			Self::ConfigDsl(body) => ("config-dsl", body),
 			Self::Inputs(body) => ("inputs", body),
 			Self::Conditions(body) => ("conditions", body),

@@ -110,46 +110,26 @@ pub(super) fn parse(node: Option<&Element>) -> Result<Option<ConfigDescription>,
 		if content.is_empty() {
 			return Err(config.error("配置说明至少需要一个节点"));
 		}
-		let legacy = content.iter().all(|child| child.tag == "line");
-		if !legacy && content.iter().any(|child| child.tag == "line") {
-			return Err(config.error("结构化配置说明不能与旧版 line 混用"));
-		}
-		let (filename, formats) = if legacy {
-			let lines = parse_legacy_lines(&content, &selector_map)?;
-			(
-				legacy_filename(config.required("filename")?).into(),
-				vec![DescriptionFormat {
-					name: "yaml",
-					label: "YAML",
-					extension: "yaml",
-					lines,
-				}],
-			)
-		} else {
-			let filename = filename(config.required("filename")?, config)?;
-			let nodes = content
-				.iter()
-				.map(|child| parse_node(child, true, &selector_map))
-				.collect::<Result<Vec<_>, _>>()?;
-			check_duplicate_names(&nodes, &[], config)?;
-			(
-				filename,
-				vec![
-					DescriptionFormat {
-						name: "yaml",
-						label: "YAML",
-						extension: "yaml",
-						lines: render_yaml(&nodes)?,
-					},
-					DescriptionFormat {
-						name: "toml",
-						label: "TOML",
-						extension: "toml",
-						lines: render_toml(&nodes)?,
-					},
-				],
-			)
-		};
+		let filename = filename(config.required("filename")?, config)?;
+		let nodes = content
+			.iter()
+			.map(|child| parse_node(child, true, &selector_map))
+			.collect::<Result<Vec<_>, _>>()?;
+		check_duplicate_names(&nodes, &[], config)?;
+		let formats = vec![
+			DescriptionFormat {
+				name: "yaml",
+				label: "YAML",
+				extension: "yaml",
+				lines: render_yaml(&nodes)?,
+			},
+			DescriptionFormat {
+				name: "toml",
+				label: "TOML",
+				extension: "toml",
+				lines: render_toml(&nodes)?,
+			},
+		];
 		configs.push(DescriptionConfig {
 			name: name.into(),
 			label: config.required("label")?.into(),
@@ -166,13 +146,6 @@ pub(super) fn parse(node: Option<&Element>) -> Result<Option<ConfigDescription>,
 		description: node.attr("description").unwrap_or_default().into(),
 		configs,
 	}))
-}
-
-fn legacy_filename(value: &str) -> &str {
-	value
-		.strip_suffix(".yaml")
-		.or_else(|| value.strip_suffix(".yml"))
-		.unwrap_or(value)
 }
 
 fn filename(value: &str, node: &Element) -> Result<String, DslError> {
@@ -216,38 +189,6 @@ fn parse_selectors(config: &Element) -> Result<Vec<DescriptionSelector>, DslErro
 		});
 	}
 	Ok(selectors)
-}
-
-fn parse_legacy_lines(
-	content: &[&Element],
-	selectors: &BTreeMap<&str, &DescriptionSelector>,
-) -> Result<Vec<DescriptionLine>, DslError> {
-	content
-		.iter()
-		.map(|child| {
-			attrs(child, &["yaml", "indent", "description", "when"])?;
-			if !child.children.is_empty() {
-				return Err(child.error("line 不接受子元素"));
-			}
-			let yaml = child.required("yaml")?;
-			if yaml.trim() != yaml || yaml.contains(['\r', '\n']) {
-				return Err(child.error("YAML 行不能包含前后空白或换行，请使用 indent 控制缩进"));
-			}
-			let indent = child
-				.attr("indent")
-				.unwrap_or("0")
-				.parse::<usize>()
-				.ok()
-				.filter(|value| *value <= 16)
-				.ok_or_else(|| child.error("indent 必须为 0..16 的整数"))?;
-			let conditions = parse_conditions(child, selectors)?;
-			Ok(DescriptionLine {
-				text: format!("{}{yaml}", "  ".repeat(indent)),
-				description: child.required("description")?.into(),
-				conditions,
-			})
-		})
-		.collect()
 }
 
 fn parse_node(

@@ -76,8 +76,6 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 结构节点包括 `object`、`array`、`string`、`integer` 和 `boolean`。对象成员必须声明 `name`；数组元素不能声明 `name`。标量使用 `value` 表达显式类型，所有可见配置项使用 `description` 提供说明。`array` 可以包含同类标量或 `object`，不能混合两种形态。可选 `when` 可用于任意层级，使用逗号分隔的 `selector=value` 条件；子节点继承父节点条件。相同对象中的同名成员只有在选择器条件互斥时才合法。渲染器统一处理 YAML 缩进、TOML table、对象数组和标量数组，XML 不含格式专用空格或标点。
 
-旧版 `<line yaml="…" indent="…">` 仍可单独用于兼容已有 Config DSL v4 描述，但只提供 YAML；不能与结构节点混用。新描述应使用结构节点以同时获得 YAML 和 TOML。
-
 ## 页面与输入
 
 `ui` 属性：`title`、`brand` 必填；可选 `mark`、`eyebrow`、`description`、`export-hint`、`mode-field`、`format-field`。后两者引用任意顶层枚举，分别显示为模式按钮和输出格式选择器，不要求字段名为 mode 或 format。格式枚举只能包含 `toml`、`json`、`yaml`；未绑定格式时默认 JSON。
