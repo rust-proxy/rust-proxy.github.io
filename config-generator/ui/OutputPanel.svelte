@@ -2,11 +2,13 @@
   import type { Controller } from './controller.svelte';
   import { download, focusError } from './browser';
   import Notices from './Notices.svelte';
+  import PreviewDocument from './PreviewDocument.svelte';
 
   let { controller }: { controller: Controller } = $props();
   const view = $derived(controller.view);
   const errors = $derived(Object.entries(view.errors));
   let reveal = $state(false);
+  const format = $derived(view.format?.value ?? 'json');
 
   async function copy() {
     try {
@@ -24,7 +26,7 @@
   }
 </script>
 
-<aside class="cg-output" aria-label="生成结果">
+<aside class="cg-output" aria-label="配置预览区">
   <div class="cg-output-top">
     <strong>配置预览</strong>
     <span class="cg-validity" role="status" data-valid={String(view.valid)}>
@@ -39,10 +41,10 @@
       {/each}
     </div>
     {#if view.format}
-      {@const format = view.format}
-      <select id={`cg-${format.key}`} aria-label={format.label} value={format.value}
-        onchange={(event) => controller.dispatch({ type: 'set', field: format.key, value: event.currentTarget.value })}>
-        {#each format.options as [value, label] (value)}
+      {@const field = view.format}
+      <select id={`cg-${field.key}`} aria-label={field.label} value={field.value}
+        onchange={(event) => controller.dispatch({ type: 'set', field: field.key, value: event.currentTarget.value })}>
+        {#each field.options as [value, label] (value)}
           <option {value}>{label}</option>
         {/each}
       </select>
@@ -61,7 +63,11 @@
       <li><button type="button" onclick={() => focusError(key)}>{message}</button></li>
     {/each}</ul>
   </div>
-  <div class="cg-code" role="textbox" aria-readonly="true" aria-multiline="true" tabindex="0" aria-label="配置内容"><code id="cg-preview-code">{view.preview}</code></div>
+  {#if view.preview_lines.length}
+    <PreviewDocument lines={view.preview_lines} {format} />
+  {:else}
+    <div class="cg-code"><code>填写左侧配置，预览将在校验通过后显示。</code></div>
+  {/if}
   <div class="cg-actions">
     <button type="button" disabled={!view.valid} onclick={copy}>复制配置</button>
     <button type="button" class="cg-primary" disabled={!view.valid} onclick={save}>下载配置</button>

@@ -135,7 +135,7 @@ timeout = "60s"
 
 [打开配置生成器](/config-generator/){ .md-button .md-button--primary }
 
-该生成器在您的浏览器中本地运行，通过顶部的配置方案选择器分别生成服务端与客户端配置。它支持多用户、TLS、SOCKS5 身份验证、出站与路由以及端口转发，并输出 TOML、JSON 或 YAML 格式。需要带注释的完整示例时，可直接打开[服务端配置详解](/config-generator/?schema=tuic-server&mode=detail)或[客户端配置详解](/config-generator/?schema=tuic-client&mode=detail)。
+该生成器在您的浏览器中本地运行，通过顶部的配置方案选择器分别生成服务端与客户端配置。它支持多用户、TLS、SOCKS5 身份验证、出站与路由以及端口转发，并输出 TOML、JSON 或 YAML 格式。左侧“选择配置区”用于填写参数，右侧“预览区”实时显示生成结果，逐行悬浮或聚焦即可查看字段说明。
 
 ## 验证
 

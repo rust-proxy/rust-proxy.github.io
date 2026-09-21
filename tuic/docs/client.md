@@ -2,7 +2,7 @@
 
 `tuic-client` 是 TUIC 协议的客户端实现，提供本地 SOCKS5 服务与 TCP/UDP 端口转发。它保持精简，只包含一个可用 TUIC 客户端所需的核心能力；如需 HTTP 入站、负载均衡等功能，可自行实现或选用其它实现。
 
-本页介绍客户端的安装、启动与配置。服务端请见[服务端](server.md)；最小配置与验证步骤见[快速入门](getting-started.md)；完整示例与字段说明见[配置生成器](/config-generator/?schema=tuic-client&mode=detail)。
+本页介绍客户端的安装、启动与配置。服务端请见[服务端](server.md)；最小配置与验证步骤见[快速入门](getting-started.md)；完整示例与字段说明见[配置生成器](/config-generator/?schema=tuic-client)。
 
 ## 安装
 
@@ -38,11 +38,11 @@ curl --socks5-hostname 127.0.0.1:1080 https://example.com
 
 ### 完整示例
 
-完整且带注释的客户端配置示例由[配置生成器](/config-generator/?schema=tuic-client&mode=detail)的“配置详解”维护：可切换 YAML 或 TOML，并选择服务端地址、SOCKS5 认证、端口转发、UDP 模式与拥塞控制等分支；悬浮或聚焦任意一行可查看字段说明。
+完整且带注释的客户端配置由[配置生成器](/config-generator/?schema=tuic-client)的预览区维护：在左侧表单填写参数，右侧实时生成配置，逐行悬浮或聚焦可查看字段说明，并同步显示校验结果与复制、下载入口。
 
-[查看客户端完整配置详解](/config-generator/?schema=tuic-client&mode=detail){ .md-button .md-button--primary }
+[打开客户端配置生成器](/config-generator/?schema=tuic-client){ .md-button .md-button--primary }
 
-生成器默认输出 TOML，也可切换为 JSON 或 YAML，并可在“配置生成”视图中填写参数后直接复制或下载。它只输出已接入运行逻辑的字段；`ipstack_prefer`、`timeout`、`[proxy]`、`dual_stack` 等预留字段不会被生成。
+生成器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。它只输出已接入运行逻辑的字段；`ipstack_prefer`、`timeout`、`[proxy]`、`dual_stack` 等预留字段不会被生成。
 
 ### 端口转发
 

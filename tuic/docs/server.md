@@ -2,7 +2,7 @@
 
 `tuic-server` 是一个积极维护的 TUIC 协议服务端实现。它 fork 自原始 TUIC 项目，在保持协议简洁、低握手开销的同时，增加了 Docker 支持、自签证书、ACME 自动签发、证书热重载、ACL/路由、出站与管理 API 等生产可用能力。
 
-本页介绍服务端的安装、启动与配置。客户端请见[客户端](client.md)；Docker 部署请见 [Docker](docker.md)；完整示例与字段说明见[配置生成器](/config-generator/?schema=tuic-server&mode=detail)。
+本页介绍服务端的安装、启动与配置。客户端请见[客户端](client.md)；Docker 部署请见 [Docker](docker.md)；完整示例与字段说明见[配置生成器](/config-generator/?schema=tuic-server)。
 
 ## 安装
 
@@ -41,11 +41,11 @@ tuic-server --init
 
 ### 完整示例
 
-完整且带注释的服务端配置示例由[配置生成器](/config-generator/?schema=tuic-server&mode=detail)的“配置详解”维护：可切换 YAML 或 TOML，并选择证书模式、QUIC 后端、拥塞控制、出站与路由等分支；悬浮或聚焦任意一行可查看字段说明。
+完整且带注释的服务端配置由[配置生成器](/config-generator/?schema=tuic-server)的预览区维护：在左侧表单填写参数，右侧实时生成配置，逐行悬浮或聚焦可查看字段说明，并同步显示校验结果与复制、下载入口。
 
-[查看服务端完整配置详解](/config-generator/?schema=tuic-server&mode=detail){ .md-button .md-button--primary }
+[打开服务端配置生成器](/config-generator/?schema=tuic-server){ .md-button .md-button--primary }
 
-生成器默认输出 TOML，也可切换为 JSON 或 YAML，并可在“配置生成”视图中填写参数后直接复制或下载。`rules`、`[dns]`、`[geodata]`、`[restful]`、`[masquerade]` 等段落同样可以在生成器中配置。
+生成器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。`rules`、`[dns]`、`[geodata]`、`[restful]`、`[masquerade]` 等段落同样可以在生成器中配置。
 
 !!! note "预留字段"
 

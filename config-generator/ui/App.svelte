@@ -2,44 +2,26 @@
   import type { Controller } from './controller.svelte';
   import FormSection from './FormSection.svelte';
   import OutputPanel from './OutputPanel.svelte';
-  import ConfigDescription from './ConfigDescription.svelte';
 
   let { controller }: { controller: Controller } = $props();
   const view = $derived(controller.view);
   let dark = $state(window.matchMedia('(prefers-color-scheme: dark)').matches);
-  type Page = 'generator' | 'description';
 
   const query = new URLSearchParams(window.location.search);
-  const requestedMode = query.get('mode');
-  let page = $state<Page>(requestedMode === 'detail' || requestedMode === 'description' ? 'description' : 'generator');
 
   function updateUrl() {
     const url = new URL(window.location.href);
-    url.searchParams.set('mode', page === 'description' ? 'detail' : 'generate');
     url.searchParams.set('schema', controller.schema);
     window.history.replaceState(window.history.state, '', url);
   }
 
   function selectSchema(name: string) {
     controller.selectSchema(name);
-    if (page === 'description' && !controller.view.config_description) page = 'generator';
-    updateUrl();
-  }
-
-  function selectPage(next: Page) {
-    page = next;
     updateUrl();
   }
 
   queueMicrotask(() => {
     if (query.has('schema') && query.get('schema') !== controller.schema) updateUrl();
-  });
-
-  $effect(() => {
-    if (page === 'description' && !view.config_description) {
-      page = 'generator';
-      updateUrl();
-    }
   });
 </script>
 
@@ -58,17 +40,12 @@
           </select>
         </label>
       {/if}
-      <button type="button" class="cg-nav" aria-pressed={page === 'generator'} onclick={() => selectPage('generator')}>配置生成</button>
-      {#if view.config_description}<button type="button" class="cg-nav" aria-pressed={page === 'description'} onclick={() => selectPage('description')}>配置详解</button>{/if}
       <button type="button" class="cg-theme" aria-label="切换主题" aria-pressed={dark} onclick={() => dark = !dark}>
         {dark ? '浅色' : '深色'}
       </button>
     </nav>
   </header>
   <main id="config-generator" data-ready="true">
-    {#if page === 'description' && view.config_description}
-      <ConfigDescription description={view.config_description} />
-    {:else}
     <div class="cg-heading">
       <p class="cg-eyebrow">{view.ui.eyebrow}</p><h1>{view.ui.title}</h1><p>{view.ui.description}</p>
       <p class="cg-privacy"><span class="cg-dot"></span>在浏览器本地处理 · 不保存输入 · 不上传凭据</p>
@@ -84,6 +61,7 @@
     {/if}
     <div class="cg-workspace">
       <form class="cg-form" autocomplete="off" onsubmit={(event) => event.preventDefault()}>
+        <p class="cg-region-label">选择配置</p>
         {#each view.sections as section, index (section.name)}
           <FormSection {section} number={index + 1} dispatch={controller.dispatch} />
         {/each}
@@ -91,7 +69,6 @@
       <OutputPanel {controller} />
     </div>
     <p class="cg-status" role="status" aria-live="polite">{controller.status}</p>
-    {/if}
     <footer>{view.ui.brand} 配置工具<span>本地生成，按需导出。</span></footer>
   </main>
 </div>

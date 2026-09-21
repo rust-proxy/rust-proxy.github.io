@@ -1,6 +1,6 @@
 use config_generator::{
 	dsl::Document,
-	session::{Action, Session},
+	session::{Action, Session, Snapshot},
 };
 use serde_json::{Value, json};
 
@@ -10,6 +10,16 @@ const XML: &str = include_str!("../schema/example.xml");
 fn random(bytes: &mut [u8]) -> std::result::Result<(), String> {
 	bytes.fill(0xab);
 	Ok(())
+}
+
+fn preview_json(view: &Snapshot) -> std::result::Result<Value, Box<dyn std::error::Error>> {
+	let text = view
+		.preview_lines
+		.iter()
+		.map(|line| line.text.as_str())
+		.collect::<Vec<_>>()
+		.join("\n");
+	Ok(serde_json::from_str(&text)?)
 }
 fn action(session: &mut Session, value: Value) -> Result {
 	session.dispatch(serde_json::from_value(value)?, &mut random)?;
@@ -36,7 +46,7 @@ fn wire_actions_preserve_row_identity_selection_and_business_id() -> Result {
 	assert_eq!(collection.rows[0].fields[0].path, "entries.0.id");
 	assert_eq!(collection.selector.as_ref().ok_or("missing selector")?.value, "0");
 	assert!(!collection.removable);
-	assert_eq!(serde_json::from_str::<Value>(&view.preview)?["item"], "kept");
+	assert_eq!(preview_json(&view)?["item"], "kept");
 	// Stale DOM events cannot silently write to the remaining row.
 	let before = serde_json::to_value(s.snapshot("", true))?;
 	assert!(
@@ -56,10 +66,7 @@ fn preview_export_resets_and_conditional_output_share_one_engine() -> Result {
 	let mut s = Session::new(Document::parse(XML)?);
 	s.initialize(&mut random)?;
 	let view = s.snapshot("snapshot", false);
-	assert_eq!(
-		serde_json::from_str::<Value>(&view.preview)?["items"][0]["secret"],
-		"••••••••"
-	);
+	assert_eq!(preview_json(&view)?["items"][0]["secret"], "••••••••");
 	let file = s.export("snapshot")?;
 	assert_eq!(file.filename, "snapshot.json");
 	assert_eq!(

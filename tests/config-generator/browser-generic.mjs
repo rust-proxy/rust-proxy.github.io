@@ -17,29 +17,26 @@ await page.route('**/*', route => {
   return route.abort();
 });
 const id = key => page.locator(`[id="cg-${key}"]`);
+const lines = () => page.locator('.cg-desc-line');
 const click = name => page.getByRole('button', { name, exact: true }).click();
-const output = async () => JSON.parse(await page.locator('#cg-preview-code').textContent());
+const output = async () => JSON.parse((await page.locator('.cg-desc-line code').allTextContents()).join('\n'));
 try {
-  await page.goto(`${base}?schema=example&mode=detail`);
+  await page.goto(`${base}?schema=example`);
   await page.waitForSelector('#config-generator[data-ready="true"]');
   assert.equal(await page.title(), 'Notebook 任务清单生成器');
   assert.equal(await id('schema').inputValue(), 'example');
-  assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
-  await click('配置生成');
-  assert.equal(new URL(page.url()).searchParams.get('mode'), 'generate');
-  assert.equal(await page.getByRole('heading', { name: '任务清单生成器' }).count(), 1);
-  await click('配置详解');
-  assert.equal(await page.getByRole('heading', { name: '清单格式详解' }).count(), 1);
-  assert.equal(await page.getByRole('button', { name: '复制配置', exact: true }).count(), 1);
-  await id('desc-visibility').selectOption('private');
-  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility: "private"')));
-  assert.ok(await page.locator('.cg-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');
-  await id('desc-format').selectOption('toml');
-  assert.equal(await page.locator('.cg-desc-document header strong').textContent(), 'snapshot.toml');
-  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('[metadata]')));
-  assert.ok((await page.locator('.cg-desc-line').allTextContents()).some(line => line.includes('visibility = "private"')));
+  assert.equal(await id('project').count(), 1, 'selection region shows the generic form');
+  assert.ok((await lines().allTextContents()).some(line => line.includes('"title"')), 'preview region shows the generated snapshot');
+  const secretLine = lines().filter({ hasText: '"secret"' }).first();
+  assert.match(await secretLine.getAttribute('aria-label'), /敏感/, 'generic preview lines carry XML descriptions');
+  await id('encoding').selectOption('toml');
+  assert.ok((await lines().allTextContents()).some(line => line.includes('[[items]]')));
   assert.ok(await page.locator('.cg-desc-line code .token.class-name').count() > 0, 'TOML tables are highlighted');
-  await click('配置生成');
+  await id('encoding').selectOption('yaml');
+  assert.ok((await lines().allTextContents()).some(line => line.includes('title: "example"')));
+  assert.ok(await page.locator('.cg-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');
+  await id('encoding').selectOption('json');
+
   assert.equal(await id('seed').inputValue().then(v => v.length), 16);
   const seed = await id('seed').inputValue();
   await id('confirm').check();
@@ -92,7 +89,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
-  console.log('PASS: alternate XML branding, arbitrary fields/collections, generated values, resets, validation and three outputs');
+  console.log('PASS: alternate XML branding, merged preview descriptions, arbitrary fields/collections, generated values, resets, validation and three outputs');
 
   const failurePage = await browser.newPage();
   failurePage.on('pageerror', e => errors.push(e.message));

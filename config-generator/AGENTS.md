@@ -53,12 +53,14 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 ## 配置详解
 
-可选的 `config-desc` 区块为独立的“配置详解”视图提供结构化示例和逐项说明。它不读取表单状态，也不参与配置投影、校验或导出；产品字段、示例值和说明仍全部留在 XML 中。页面左侧先选择 `config`、YAML/TOML 格式和该配置声明的任意 `selector`；右侧只显示 `when` 匹配的配置项。每行可用鼠标悬浮或键盘聚焦查看 `description`。前端 `ui/prism.ts` 用 Prism 仅注册 YAML/TOML 语法逐行高亮，颜色由 `--tok-*` 变量在明暗主题下定义；高亮只影响展示，XML 与 Rust 契约不变。右侧头部提供“复制配置”，复制当前 config、格式与 selector 过滤后可见的纯文本。
+可选的 `config-desc` 区块为“预览区”提供逐行说明。合并后的页面只有“选择配置区”（表单）和“预览区”两个区域，没有独立的“配置详解”视图或页签；预览区按配置详解的样式显示**表单实时生成**的配置：行号、Prism 逐行高亮、悬浮或键盘聚焦查看 `description`，并叠加生成器的校验结果（可导出状态、错误列表、复制与下载）。`ui/prism.ts` 注册 YAML/TOML/JSON 语法，颜色由 `--tok-*` 变量在明暗主题下定义；高亮只影响展示。
 
-页面级方案来自 `schema/schemas.txt`，与单份 XML 内的输出和 `config-desc/config` 名称无关。页面可通过 `?schema=<schema-id>&mode=generate|detail` 直接选择应用 schema 和生成/详解视图；选择器与页签会同步这些参数并保留其他查询参数和片段。切换 schema 会创建全新会话，不复用上一应用的输入或凭据。
+`config-desc` 的 `config` 按 `name` 与顶层输出对应，没有对应说明的输出回退为无说明的纯文本行。生成配置与说明模板按成员名匹配：同名成员互斥时用示例 `value` 选择，记录等动态键（如 `users`、具名 `outbound`）复用对象中唯一的成员作为模板，数组按位置复用元素模板。因此 `config-desc` 的结构应与 `outputs` 保持一致；分支由表单控制，`selector` 不再驱动界面，仅保留用于解析与静态校验。
+
+页面级方案来自 `schema/schemas.txt`，与单份 XML 内的输出和 `config-desc/config` 名称无关。页面可通过 `?schema=<schema-id>` 直接选择应用方案，并保留其他查询参数和片段；`?mode=generate|detail` 兼容读取但不再切换视图。切换 schema 会创建全新会话，不复用上一应用的输入或凭据。
 
 ```xml
-<config-desc title="配置项详解" description="选择分支并查看字段说明。">
+<config-desc title="配置项详解" description="逐行说明生成的配置。">
   <config name="server" label="服务端配置" filename="server">
     <selector name="backend" label="后端" default="quinn">
       <choice value="quinn" label="Quinn"/>
@@ -72,7 +74,7 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 </config-desc>
 ```
 
-`config-desc` 至少包含一个 `config`，每个配置至少有一个结构节点。`config` 的 `name`、`label`、`filename` 必填；`filename` 是不含扩展名的安全文件名，界面根据所选格式追加 `.yaml` 或 `.toml`。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。
+`config-desc` 至少包含一个 `config`，每个配置至少有一个结构节点。`config` 的 `name`、`label`、`filename` 必填；`filename` 是不含扩展名的安全文件名。`selector` 的 `name`、`label`、`default` 必填，且默认值必须属于其非空 `choice` 列表。
 
 结构节点包括 `object`、`array`、`string`、`integer` 和 `boolean`。对象成员必须声明 `name`；数组元素不能声明 `name`。标量使用 `value` 表达显式类型，所有可见配置项使用 `description` 提供说明。`array` 可以包含同类标量或 `object`，不能混合两种形态。可选 `when` 可用于任意层级，使用逗号分隔的 `selector=value` 条件；子节点继承父节点条件。相同对象中的同名成员只有在选择器条件互斥时才合法。渲染器统一处理 YAML 缩进、TOML table、对象数组和标量数组，XML 不含格式专用空格或标点。
 

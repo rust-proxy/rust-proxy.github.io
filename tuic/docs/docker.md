@@ -31,7 +31,7 @@ mkdir -p /etc/tuic
 docker run --rm -w /etc/tuic -v /etc/tuic:/etc/tuic ghcr.io/itsusinn/tuic-server --init
 ```
 
-该命令会在 `/etc/tuic` 中生成一个包含 5 个随机用户的 `config.toml`；若当前目录已存在 `config.toml`，命令会报错退出，不会覆盖已有文件。你也可以从[快速入门](getting-started.md)中的最小配置开始，或使用[配置生成器](/config-generator/?schema=tuic-server&mode=generate)在浏览器本地生成服务端配置。
+该命令会在 `/etc/tuic` 中生成一个包含 5 个随机用户的 `config.toml`；若当前目录已存在 `config.toml`，命令会报错退出，不会覆盖已有文件。你也可以从[快速入门](getting-started.md)中的最小配置开始，或使用[配置生成器](/config-generator/?schema=tuic-server)在浏览器本地生成服务端配置。
 
 请确认 `config.toml` 中的 `server` 监听地址允许来自容器的连接，例如 `[::]:8443`。
 

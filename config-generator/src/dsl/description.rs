@@ -19,6 +19,8 @@ pub struct DescriptionConfig {
 	pub filename: String,
 	pub selectors: Vec<DescriptionSelector>,
 	pub formats: Vec<DescriptionFormat>,
+	#[serde(skip)]
+	nodes: Vec<DescriptionNode>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -76,6 +78,114 @@ impl DescriptionNode {
 		match self {
 			Self::Scalar { conditions, .. } | Self::Object { conditions, .. } | Self::Array { conditions, .. } => conditions,
 		}
+	}
+	fn description(&self) -> &str {
+		match self {
+			Self::Scalar { description, .. } | Self::Object { description, .. } | Self::Array { description, .. } => {
+				description
+			}
+		}
+	}
+	fn scalar_value(&self) -> Option<&Value> {
+		match self {
+			Self::Scalar { value, .. } => Some(value),
+			_ => None,
+		}
+	}
+}
+
+impl DescriptionConfig {
+	/// Renders the generated configuration with the descriptions declared by this template.
+	///
+	/// The generated value is matched against the documented tree by member name. When several
+	/// documented members share a name, the one whose example value equals the generated scalar is
+	/// used; records without a documented key reuse the sole member as a template.
+	pub fn render_annotated(&self, value: &Value, format: &str) -> Result<Vec<DescriptionLine>, DslError> {
+		let nodes = annotate_nodes(&self.nodes, value);
+		match format {
+			"yaml" => render_yaml(&nodes),
+			"toml" => render_toml(&nodes),
+			"json" => render_json(&nodes),
+			_ => Err(DslError("不支持的预览格式".into())),
+		}
+	}
+}
+
+fn annotate_nodes(templates: &[DescriptionNode], value: &Value) -> Vec<DescriptionNode> {
+	let Value::Object(entries) = value else {
+		return Vec::new();
+	};
+	entries
+		.iter()
+		.map(|(key, child)| annotate_node(match_member(templates, key, child, false), Some(key), child))
+		.collect()
+}
+
+/// Matches a generated object member against the documented members of the same object.
+///
+/// `fallback` enables the record template: when the documented object has exactly one member and
+/// no member matches the generated key, that member documents every dynamic key (`users`, named
+/// `outbound` entries).
+fn match_member<'a>(templates: &'a [DescriptionNode], key: &str, value: &Value, fallback: bool) -> Option<&'a DescriptionNode> {
+	let candidates = templates.iter().filter(|node| node.name() == Some(key)).collect::<Vec<_>>();
+	match candidates.as_slice() {
+		[] => (fallback && templates.len() == 1).then(|| &templates[0]),
+		[only] => Some(only),
+		many => many
+			.iter()
+			.copied()
+			.find(|node| node.scalar_value() == Some(value))
+			.or_else(|| many.first().copied()),
+	}
+}
+
+fn annotate_node(template: Option<&DescriptionNode>, name: Option<&str>, value: &Value) -> DescriptionNode {
+	let description = template.map(|node| node.description().to_owned()).unwrap_or_default();
+	match value {
+		Value::Object(entries) => {
+			let children = entries
+				.iter()
+				.map(|(key, child)| {
+					let child_template = match template {
+						Some(DescriptionNode::Object { children, .. }) => match_member(children, key, child, true),
+						_ => None,
+					};
+					annotate_node(child_template, Some(key), child)
+				})
+				.collect();
+			DescriptionNode::Object {
+				name: name.map(str::to_owned),
+				description,
+				conditions: Vec::new(),
+				children,
+			}
+		}
+		Value::Array(items) => {
+			let item_templates = match template {
+				Some(DescriptionNode::Array { items, .. }) => items.as_slice(),
+				_ => &[][..],
+			};
+			let children = items
+				.iter()
+				.enumerate()
+				.map(|(index, item)| {
+					let item_template = item_templates.get(index).or_else(|| item_templates.last());
+					annotate_node(item_template, None, item)
+				})
+				.collect();
+			DescriptionNode::Array {
+				name: name.map(str::to_owned),
+				description,
+				conditions: Vec::new(),
+				items: children,
+			}
+		}
+		_ => DescriptionNode::Scalar {
+			name: name.map(str::to_owned),
+			value: value.clone(),
+			description,
+			conditions: Vec::new(),
+		},
 	}
 }
 
@@ -136,6 +246,7 @@ pub(super) fn parse(node: Option<&Element>) -> Result<Option<ConfigDescription>,
 			filename,
 			selectors,
 			formats,
+			nodes,
 		});
 	}
 	if configs.is_empty() {
@@ -434,8 +545,13 @@ fn yaml_node(
 			let Some(name) = name else {
 				return Err(DslError("不支持嵌套匿名 array".into()));
 			};
+			let text = if items.is_empty() {
+				format!("{pad}{prefix}{}: []", yaml_key(name))
+			} else {
+				format!("{pad}{prefix}{}:", yaml_key(name))
+			};
 			lines.push(DescriptionLine {
-				text: format!("{pad}{prefix}{}:", yaml_key(name)),
+				text,
 				description: description.clone(),
 				conditions: conditions.clone(),
 			});
@@ -493,7 +609,10 @@ fn toml_members(
 				description,
 				items,
 				..
-			} if !matches!(items[0], DescriptionNode::Object { .. }) => {
+			} if items
+				.first()
+				.is_none_or(|item| !matches!(item, DescriptionNode::Object { .. })) =>
+			{
 				lines.push(DescriptionLine {
 					text: format!("{} = [", toml_key(name)),
 					description: description.clone(),
@@ -547,7 +666,10 @@ fn toml_members(
 				description,
 				items,
 				..
-			} if matches!(items[0], DescriptionNode::Object { .. }) => {
+			} if items
+				.first()
+				.is_some_and(|item| matches!(item, DescriptionNode::Object { .. })) =>
+			{
 				let mut item_path = path.to_vec();
 				item_path.push(name.clone());
 				for item in items {
@@ -574,6 +696,87 @@ fn toml_members(
 				}
 			}
 			_ => {}
+		}
+	}
+	Ok(())
+}
+
+fn json_scalar(value: &Value) -> String {
+	match value {
+		Value::String(value) => serde_json::to_string(value)
+			.unwrap_or_else(|_| "\"\"".into())
+			.replace('\u{7f}', "\\u007f")
+			.replace('\u{85}', "\\u0085")
+			.replace('\u{2028}', "\\u2028")
+			.replace('\u{2029}', "\\u2029"),
+		_ => value.to_string(),
+	}
+}
+
+fn render_json(nodes: &[DescriptionNode]) -> Result<Vec<DescriptionLine>, DslError> {
+	let mut lines = Vec::new();
+	lines.push(DescriptionLine {
+		text: "{".into(),
+		description: String::new(),
+		conditions: Vec::new(),
+	});
+	for (index, node) in nodes.iter().enumerate() {
+		let suffix = if index + 1 < nodes.len() { "," } else { "" };
+		json_node(node, 1, suffix, &mut lines)?;
+	}
+	lines.push(DescriptionLine {
+		text: "}".into(),
+		description: String::new(),
+		conditions: Vec::new(),
+	});
+	Ok(lines)
+}
+
+fn json_node(node: &DescriptionNode, depth: usize, suffix: &str, lines: &mut Vec<DescriptionLine>) -> Result<(), DslError> {
+	let pad = "  ".repeat(depth);
+	let key = match node.name() {
+		Some(name) => format!("{}: ", serde_json::to_string(name).unwrap_or_else(|_| "\"\"".into())),
+		None => String::new(),
+	};
+	match node {
+		DescriptionNode::Scalar { value, description, .. } => lines.push(DescriptionLine {
+			text: format!("{pad}{key}{}{suffix}", json_scalar(value)),
+			description: description.clone(),
+			conditions: Vec::new(),
+		}),
+		DescriptionNode::Object {
+			description, children, ..
+		} => {
+			lines.push(DescriptionLine {
+				text: format!("{pad}{key}{{"),
+				description: description.clone(),
+				conditions: Vec::new(),
+			});
+			for (index, child) in children.iter().enumerate() {
+				let inner = if index + 1 < children.len() { "," } else { "" };
+				json_node(child, depth + 1, inner, lines)?;
+			}
+			lines.push(DescriptionLine {
+				text: format!("{pad}}}{suffix}"),
+				description: String::new(),
+				conditions: Vec::new(),
+			});
+		}
+		DescriptionNode::Array { description, items, .. } => {
+			lines.push(DescriptionLine {
+				text: format!("{pad}{key}["),
+				description: description.clone(),
+				conditions: Vec::new(),
+			});
+			for (index, item) in items.iter().enumerate() {
+				let inner = if index + 1 < items.len() { "," } else { "" };
+				json_node(item, depth + 1, inner, lines)?;
+			}
+			lines.push(DescriptionLine {
+				text: format!("{pad}]{suffix}"),
+				description: String::new(),
+				conditions: Vec::new(),
+			});
 		}
 	}
 	Ok(())

@@ -425,9 +425,7 @@
 			<object name="dns" description="DNS 解析配置；未启用时使用操作系统解析器。" when="dns=custom">
 				<string name="mode" value="custom" description="DNS 模式：system、cloudflare、google、quad9、custom 及对应的 DoT/DoH 变体。" when="dns=custom" />
 				<array name="servers" description="自定义 DNS 服务器列表，仅在 custom 模式输出。" when="dns=custom">
-					<object description="自定义 DNS 服务器列表，仅在 custom 模式输出。" when="dns=custom">
-						<string name="tls" value="//1.1.1.1#cloudflare-dns.com" description="服务器 URL，支持 1.1.1.1、udp://、tcp://、tls:// 与 https://。" />
-					</object>
+					<string value="tls://1.1.1.1#cloudflare-dns.com" description="服务器 URL，支持 1.1.1.1、udp://、tcp://、tls:// 与 https://。" />
 				</array>
 				<string name="timeout" value="5s" description="可选：单次查询超时；留空使用库默认值。" when="dns=custom" />
 				<integer name="attempts" value="2" description="可选：单次查询的重试次数；留空使用库默认值。" when="dns=custom" />

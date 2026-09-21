@@ -35,22 +35,7 @@ export interface CollectionView {
 }
 
 export interface NoticeView { text: string; visible: boolean }
-export interface ConfigDescription {
-  title: string;
-  description: string;
-  configs: {
-    name: string;
-    label: string;
-    filename: string;
-    selectors: { name: string; label: string; default: string; choices: [string, string][] }[];
-    formats: {
-      name: string;
-      label: string;
-      extension: string;
-      lines: { text: string; description: string; conditions: [string, string][] }[];
-    }[];
-  }[];
-}
+export interface PreviewLine { text: string; description: string }
 export interface SectionView {
   name: string;
   label: string;
@@ -64,7 +49,6 @@ export interface SectionView {
 
 export interface Snapshot {
   ui: { title: string; brand: string; mark: string; eyebrow: string; description: string; export_hint: string };
-  config_description: ConfigDescription | null;
   sections: SectionView[];
   mode: FieldView | null;
   format: FieldView | null;
@@ -74,7 +58,7 @@ export interface Snapshot {
   selected: string;
   filename: string;
   command: string;
-  preview: string;
+  preview_lines: PreviewLine[];
   valid: boolean;
 }
 

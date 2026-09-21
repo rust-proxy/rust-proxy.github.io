@@ -14,7 +14,6 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	assert_eq!(doc.exports.len(), 3);
 	let description = doc.config_description.as_ref().ok_or("missing config description")?;
 	assert_eq!(description.configs[0].label, "完整清单");
-	assert_eq!(description.configs[0].selectors[0].default, "team");
 	assert_eq!(
 		description.configs[0]
 			.formats
@@ -23,27 +22,19 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 			.collect::<Vec<_>>(),
 		["yaml", "toml"]
 	);
-	assert_eq!(description.configs[0].formats[0].lines[1].text, "  project: \"example\"");
-	assert_eq!(description.configs[0].formats[1].lines[0].text, "[metadata]");
-	let defaults = &description.configs[0].selectors;
-	let selected = |line: &config_generator::dsl::DescriptionLine| {
-		line.conditions.iter().all(|(name, value)| {
-			defaults
-				.iter()
-				.find(|selector| selector.name == *name)
-				.is_some_and(|selector| selector.default == *value)
-		})
-	};
+	assert_eq!(description.configs[0].formats[0].lines[0].text, "title: \"example\"");
+	assert_eq!(description.configs[0].formats[0].lines[1].text, "items:");
+	assert_eq!(description.configs[0].formats[1].lines[0].text, "title = \"example\"");
+	assert_eq!(description.configs[0].formats[1].lines[1].text, "[[items]]");
 	let toml = description.configs[0].formats[1]
 		.lines
 		.iter()
-		.filter(|line| selected(line))
 		.map(|line| line.text.as_str())
 		.collect::<Vec<_>>()
 		.join("\n");
 	let parsed: toml::Value = toml::from_str(&toml)?;
-	assert_eq!(parsed["metadata"]["project"].as_str(), Some("example"));
-	assert_eq!(parsed["metadata"]["visibility"].as_str(), Some("team"));
+	assert_eq!(parsed["title"].as_str(), Some("example"));
+	assert_eq!(parsed["items"][0]["name"].as_str(), Some("item"));
 	let config = build_configs(&doc, &state.data)?;
 	assert_eq!(config["snapshot"]["items"][0]["name"], "item");
 	assert_eq!(config["selected"]["item"], "item");
@@ -61,6 +52,38 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	state.data["first"] = "20".into();
 	assert!(doc.validate(&state.data).contains_key("last"));
 	assert!(build_configs(&doc, &state.data).is_err());
+	Ok(())
+}
+
+#[test]
+fn generated_config_is_annotated_from_the_documented_tree() -> Result {
+	let doc = Document::parse(SOURCE)?;
+	let state = State::new(&doc);
+	let description = doc.config_description.as_ref().ok_or("missing config description")?;
+	let config = build_configs(&doc, &state.data)?;
+	let snapshot = &config["snapshot"];
+	let yaml = description.configs[0].render_annotated(snapshot, "yaml")?;
+	let find = |prefix: &str| {
+		yaml.iter()
+			.find(|line| line.text.trim_start().starts_with(prefix))
+			.map(|line| line.description.as_str())
+	};
+	assert!(find("title:").is_some_and(|description| description.contains("项目")));
+	assert!(find("name:").is_some_and(|description| description.contains("唯一")));
+	assert!(find("secret:").is_some_and(|description| description.contains("敏感")));
+	for format in ["json", "toml"] {
+		let text = description.configs[0]
+			.render_annotated(snapshot, format)?
+			.iter()
+			.map(|line| line.text.as_str())
+			.collect::<Vec<_>>()
+			.join("\n");
+		let parsed: serde_json::Value = match format {
+			"json" => serde_json::from_str(&text)?,
+			_ => serde_json::to_value(toml::from_str::<toml::Value>(&text)?)?,
+		};
+		assert_eq!(&parsed, snapshot, "annotated {format} must match the export");
+	}
 	Ok(())
 }
 
@@ -131,14 +154,7 @@ fn schema_extensions_fail_closed() {
 		("min=\"1\" max=\"100\"", "min=\"100\" max=\"1\""),
 		("op=\"gte\"", "op=\"execute\""),
 		("filename=\"snapshot\"", "filename=\"../snapshot\""),
-		("when=\"visibility=team\"", "when=\"missing=team\""),
 		("value=\"example\"", "value=\"example\" unknown=\"true\""),
-		("<object name=\"metadata\"", "<object"),
-		("when=\"visibility=private\"", "when=\"visibility=team\""),
-		(
-			"description=\"清单元数据。\">",
-			"description=\"清单元数据。\" when=\"visibility=team\">",
-		),
 	] {
 		assert!(
 			Document::parse(&SOURCE.replace(from, to)).is_err(),
@@ -147,11 +163,37 @@ fn schema_extensions_fail_closed() {
 	}
 }
 
+const DESC: &str = r#"<config-dsl version="4" target-version="t">
+	<ui title="t" brand="b"><section name="general" label="g"/></ui>
+	<inputs><field name="mode" type="enum" default="a" section="general" label="m"><option value="a" label="A"/><option value="b" label="B"/></field></inputs>
+	<outputs><object name="out" label="o" filename="out"><string name="x" from="/mode"/></object></outputs>
+	<config-desc title="d"><config name="out" label="o" filename="out">
+		<selector name="mode" label="模式" default="a"><choice value="a" label="A"/><choice value="b" label="B"/></selector>
+		<string name="x" value="a" description="xa" when="mode=a"/>
+		<string name="x" value="b" description="xb" when="mode=b"/>
+	</config></config-desc>
+</config-dsl>"#;
+
+#[test]
+fn config_desc_bindings_fail_closed() {
+	for (from, to) in [
+		("when=\"mode=a\"", "when=\"missing=a\""),
+		("when=\"mode=b\"", "when=\"mode=a\""),
+		("description=\"xa\"", "description=\"xa\" unknown=\"1\""),
+		("<string name=\"x\"", "<string"),
+	] {
+		assert!(
+			Document::parse(&DESC.replace(from, to)).is_err(),
+			"accepted invalid config-desc binding: {from}"
+		);
+	}
+}
+
 #[test]
 fn legacy_line_descriptions_are_rejected() -> Result {
 	let source = SOURCE.replace(
-		"<object name=\"metadata\" description=\"清单元数据。\">\n\t\t\t\t<string name=\"project\" value=\"example\" description=\"清单所属项目的名称。\" />\n\t\t\t\t<string name=\"visibility\" value=\"team\" description=\"团队成员可以读取这份清单。\" when=\"visibility=team\" />\n\t\t\t\t<string name=\"visibility\" value=\"private\" description=\"只有清单所有者可以读取。\" when=\"visibility=private\" />\n\t\t\t</object>",
-		"<line yaml=\"metadata:\" description=\"清单元数据。\"/>\n\t\t\t<line indent=\"1\" yaml=\"project: example\" description=\"清单所属项目的名称。\"/>",
+		"<string name=\"title\" value=\"example\" description=\"清单所属项目的名称。\" />",
+		"<line yaml=\"title: example\" description=\"清单所属项目的名称。\"/>",
 	);
 	assert!(Document::parse(&source).is_err());
 	Ok(())
@@ -206,7 +248,7 @@ fn production_code_contains_no_product_identifiers() {
 		include_str!("../src/session/view.rs"),
 		include_str!("../src/wasm.rs"),
 		include_str!("../ui/App.svelte"),
-		include_str!("../ui/ConfigDescription.svelte"),
+		include_str!("../ui/PreviewDocument.svelte"),
 		include_str!("../ui/Field.svelte"),
 		include_str!("../ui/CollectionEditor.svelte"),
 		include_str!("../ui/FormSection.svelte"),

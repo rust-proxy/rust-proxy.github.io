@@ -86,9 +86,14 @@ pub struct ExportFile {
 }
 
 #[derive(Serialize)]
+pub struct PreviewLine {
+	pub text: String,
+	pub description: String,
+}
+
+#[derive(Serialize)]
 pub struct Snapshot {
 	pub ui: Branding,
-	pub config_description: Option<crate::dsl::ConfigDescription>,
 	pub sections: Vec<SectionView>,
 	pub mode: Option<FieldView>,
 	pub format: Option<FieldView>,
@@ -98,7 +103,7 @@ pub struct Snapshot {
 	pub selected: String,
 	pub filename: String,
 	pub command: String,
-	pub preview: String,
+	pub preview_lines: Vec<PreviewLine>,
 	pub valid: bool,
 }
 
@@ -109,15 +114,20 @@ impl Session {
 		let root = &self.state.data;
 		let errors = doc.validate(root);
 		let selected = self.selected(requested);
-		let preview = build_configs(doc, root).and_then(|configs| {
+		let built = build_configs(doc, root).and_then(|configs| {
 			let configs = if reveal {
 				configs
 			} else {
 				doc.redact(&configs).map_err(|e| e.to_string())?
 			};
 			let export = selected.ok_or("请选择输出。")?;
-			serialize(configs.get(&export.name).ok_or("请选择输出。")?, self.format())
+			let config = configs.get(&export.name).ok_or("请选择输出。")?;
+			Ok((export.name.clone(), config.clone()))
 		});
+		let (valid, preview_lines) = match &built {
+			Ok((name, config)) => (true, preview_lines(doc, name, config, self.format())),
+			Err(_) => (false, Vec::new()),
+		};
 		Snapshot {
 			ui: Branding {
 				title: ui.title.clone(),
@@ -127,7 +137,6 @@ impl Session {
 				description: ui.description.clone(),
 				export_hint: ui.export_hint.clone(),
 			},
-			config_description: doc.config_description.clone(),
 			sections: ui
 				.sections
 				.iter()
@@ -148,8 +157,8 @@ impl Session {
 			selected: selected.map(|e| e.name.clone()).unwrap_or_default(),
 			filename: selected.map(|e| e.filename(self.format())).unwrap_or_default(),
 			command: selected.map(|e| e.command(self.format())).unwrap_or_default(),
-			valid: preview.is_ok(),
-			preview: preview.unwrap_or_else(|_| "填写左侧配置，预览将在校验通过后显示。".into()),
+			valid,
+			preview_lines,
 			errors,
 		}
 	}
@@ -266,4 +275,32 @@ impl Session {
 			})
 			.collect()
 	}
+}
+
+/// Annotates the generated output with the descriptions of the matching `config-desc` entry.
+///
+/// Outputs without a documented entry fall back to plain serialized lines without tooltips.
+fn preview_lines(doc: &Document, name: &str, config: &Value, format: &str) -> Vec<PreviewLine> {
+	if let Some(lines) = doc
+		.config_description
+		.as_ref()
+		.and_then(|description| description.configs.iter().find(|entry| entry.name == name))
+		.and_then(|entry| entry.render_annotated(config, format).ok())
+	{
+		return lines
+			.into_iter()
+			.map(|line| PreviewLine {
+				text: line.text,
+				description: line.description,
+			})
+			.collect();
+	}
+	serialize(config, format)
+		.unwrap_or_default()
+		.lines()
+		.map(|text| PreviewLine {
+			text: text.to_owned(),
+			description: String::new(),
+		})
+		.collect()
 }
