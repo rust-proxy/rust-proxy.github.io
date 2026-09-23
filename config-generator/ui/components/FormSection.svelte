@@ -1,9 +1,9 @@
 <script lang="ts">
   import CollectionEditor from './CollectionEditor.svelte';
-  import Field from './Field.svelte';
+  import FieldControl from './FieldControl.svelte';
   import Notices from './Notices.svelte';
-  import type { Dispatch, SectionView } from './types';
-  let { section, number, dispatch }: { section: SectionView; number: number; dispatch: Dispatch } = $props();
+  import type { SectionView } from '../types';
+  let { section, number }: { section: SectionView; number: number } = $props();
 </script>
 
 {#snippet heading()}
@@ -13,9 +13,9 @@
 {#snippet contents()}
   <div class="cg-section-body">
     <div class="cg-fields">
-      {#each section.fields as field (field.key)}<Field {field} {dispatch} />{/each}
+      {#each section.fields as field (field.key)}<FieldControl {field} />{/each}
     </div>
-    {#each section.collections as collection (collection.name)}<CollectionEditor {collection} {dispatch} />{/each}
+    {#each section.collections as collection (collection.name)}<CollectionEditor {collection} />{/each}
     <Notices notices={section.notices} />
   </div>
 {/snippet}

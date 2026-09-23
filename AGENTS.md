@@ -38,7 +38,7 @@ Standalone build:
 npm run build --prefix config-generator
 ```
 
-`npm run build` compiles the Rust library with the locked wasm-pack, runs the Svelte/TypeScript checks, and then bundles the local JS/CSS/WASM with Vite. The first build downloads the wasm-bindgen tool matching the Cargo lock file. `npm run dev` compiles WASM first and then starts Vite; Svelte/CSS supports hot reloading. After changing Rust or XML, run `npm run wasm --prefix config-generator` in another terminal and refresh the browser.
+`npm run build` compiles the Rust library with the locked wasm-pack, runs the Svelte/TypeScript checks and the frontend unit tests, and then bundles the local JS/CSS/WASM with Vite. The first build downloads the wasm-bindgen tool matching the Cargo lock file. `npm run dev` compiles WASM first and then starts Vite; Svelte/CSS supports hot reloading. After changing Rust or XML, run `npm run wasm --prefix config-generator` in another terminal and refresh the browser.
 
 The default build embeds every application schema listed in `config-generator/schema/schemas.txt`; the browser switches between them without fetching XML. `CONFIG_SCHEMA` still selects one XML for isolated reuse tests; paths are relative to `config-generator/` (or absolute). Alternative builds should output to a separate directory, and the environment and default WASM must be restored afterward; see the generator's DSL guide.
 
@@ -68,8 +68,9 @@ cargo +nightly fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
 
-# Check Svelte/TypeScript after building WASM (build also runs this)
+# Check Svelte/TypeScript and run frontend unit tests after building WASM (build also runs this)
 npm run check --prefix config-generator
+npm run test --prefix config-generator
 
 # Build all documentation sites and the standalone generator into site/; no publishing
 just build
@@ -129,7 +130,7 @@ Configuration state is modified only by the Rust `Session`. Svelte submits gener
 | `tuic/zensical.toml` / `tuic/docs/` | TUIC Chinese documentation, navigation, field descriptions, and DSL documentation |
 | `tuic/overrides/` | TUIC theme overrides and 404 page |
 | `config-generator/` | Independently buildable Rust WASM + Svelte single-page application |
-| `config-generator/ui/` | Generic Svelte controls, page layout, browser operations, and display contract |
+| `config-generator/ui/` | Layered frontend: `bridge/` (WASM/JSON boundary), `state/` (session, workbench, theme, viewport, URL), `lib/` (DOM and Prism helpers), `components/`, `styles/`, and the `types.ts` display contract; unit tests use Vitest + jsdom |
 | `config-generator/src/session.rs` / `session/view.rs` | Natively testable editing operations, form view, and preview export |
 | `config-generator/src/wasm.rs` | WASM interface and browser Crypto API randomness adapter |
 | `config-generator/package.json` / `vite.config.js` | Locked frontend tooling and static asset bundling |

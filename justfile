@@ -42,6 +42,7 @@ check:
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
     npm run check --prefix config-generator
+    npm run test --prefix config-generator
 
 # Build the TUIC documentation site into tuic/site/.
 build-docs-tuic:

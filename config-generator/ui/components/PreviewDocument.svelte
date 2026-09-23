@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { PreviewLine } from './types';
-  import { highlightLines } from './prism';
+  import { highlightLines } from '../lib/highlight';
+  import type { PreviewLine } from '../types';
 
   let { lines, format }: { lines: PreviewLine[]; format: string } = $props();
   const rendered = $derived(highlightLines(lines.map(line => line.text), format));

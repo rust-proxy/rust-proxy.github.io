@@ -1,12 +1,14 @@
 <script lang="ts">
-  import type { Dispatch, FieldView } from './types';
+  import { useSession } from '../state/context';
+  import type { FieldView } from '../types';
 
-  let { field, dispatch, row }: { field: FieldView; dispatch: Dispatch; row?: { collection: string; id: string } } = $props();
+  let { field, row }: { field: FieldView; row?: { collection: string; id: string } } = $props();
+  const session = useSession();
   const id = $derived(`cg-${field.path}`);
   const described = $derived([field.hint && `${id}-hint`, field.error && `${id}-error`].filter(Boolean).join(' ') || undefined);
 
   function change(value: string) {
-    dispatch(row ? { type: 'set-row', ...row, field: field.key, value } : { type: 'set', field: field.key, value });
+    session.dispatch(row ? { type: 'set-row', ...row, field: field.key, value } : { type: 'set', field: field.key, value });
   }
 </script>
 
@@ -33,6 +35,6 @@
   {#if field.hint}<span id={`${id}-hint`} class="cg-hint">{field.hint}</span>{/if}
   {#if field.error}<span id={`${id}-error`} class="cg-error">{field.error}</span>{/if}
   {#if !row && field.generated}
-    <button type="button" onclick={() => dispatch({ type: 'generate', field: field.key })}>生成随机值</button>
+    <button type="button" onclick={() => session.dispatch({ type: 'generate', field: field.key })}>生成随机值</button>
   {/if}
 </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { NoticeView } from './types';
+  import type { NoticeView } from '../types';
   let { notices }: { notices: NoticeView[] } = $props();
 </script>
 

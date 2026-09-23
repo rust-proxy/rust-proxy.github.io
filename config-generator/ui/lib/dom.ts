@@ -1,4 +1,4 @@
-export function download(text: string, filename: string) {
+export function download(text: string, filename: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
   const anchor = document.createElement('a');
   try {
@@ -12,7 +12,7 @@ export function download(text: string, filename: string) {
   }
 }
 
-function openAncestors(element: HTMLElement) {
+function openAncestors(element: HTMLElement): void {
   let parent = element.parentElement;
   while (parent) {
     if (parent instanceof HTMLDetailsElement) parent.open = true;
@@ -20,15 +20,15 @@ function openAncestors(element: HTMLElement) {
   }
 }
 
-export function focusError(key: string) {
-  const element = document.getElementById(`cg-${key}`);
+export function focusField(path: string): void {
+  const element = document.getElementById(`cg-${path}`);
   if (!element) return;
   openAncestors(element);
   element.focus();
   element.scrollIntoView({ block: 'center' });
 }
 
-export function focusSection(name: string) {
+export function focusSection(name: string): void {
   const section = document.getElementById(`cg-section-${name}`);
   if (!section) return;
   if (section instanceof HTMLDetailsElement) section.open = true;
