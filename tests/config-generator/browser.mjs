@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { checkLayout } from './layout.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH ?? 'playwright');
@@ -74,10 +75,12 @@ try {
   assert.equal((await output()).password, '••••••••', 'preview hides secrets until revealed');
 
   await click('＋ 添加用户');
+  assert.equal(await id('users.1.uuid').evaluate(node => document.activeElement === node), true, 'Adding a row focuses its first field');
   await id('activeUser').selectOption('1');
   client = await output();
   assert.equal(client.uuid, await id('users.1.uuid').inputValue());
   await page.getByRole('button', { name: '移除用户 1', exact: true }).click();
+  assert.equal(await id('users.0.uuid').evaluate(node => document.activeElement === node), true, 'Removing a row moves focus to the remaining row');
   assert.equal((await output()).uuid, client.uuid);
 
   await id('port').fill('443');
@@ -163,6 +166,7 @@ try {
   await page.screenshot({ path: resolve('.cache/config-generator-mobile.png'), fullPage: true });
   await click('切换主题');
   assert.equal(await page.locator('.cg-shell').getAttribute('data-theme'), 'dark');
+  await checkLayout(page, { field: 'serverAuthTimeout', secret: 'users.0.password', name: 'tuic' });
   assert.equal(await page.evaluate(() => localStorage.length === 0 || !Object.keys(localStorage).some(key => /generator|password|uuid/.test(key))), true);
   assert.deepEqual(requests.filter(url => /google-analytics|googletagmanager|gtag/.test(url)), []);
   assert.deepEqual(requests.filter(url => !url.startsWith(new URL(base).origin)), []);

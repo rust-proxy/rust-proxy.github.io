@@ -1,18 +1,17 @@
 <script lang="ts">
   import type { Controller } from './controller.svelte';
-  import { focusError } from './browser';
   import ExportActions from './ExportActions.svelte';
   import Notices from './Notices.svelte';
   import PreviewDocument from './PreviewDocument.svelte';
 
-  let { controller }: { controller: Controller } = $props();
+  let { controller, navigate }: { controller: Controller; navigate: (path: string) => void } = $props();
   const view = $derived(controller.view);
   const errors = $derived(Object.entries(view.errors));
   const format = $derived(view.format?.value ?? 'json');
 
 </script>
 
-<aside id="cg-preview" class="cg-output" aria-label="配置预览区">
+<aside id="cg-preview" class="cg-output" aria-label="配置预览区" tabindex="-1">
   <div class="cg-output-top">
     <h2>配置预览</h2>
     <span class="cg-validity" role="status" data-valid={String(view.valid)}>
@@ -43,12 +42,13 @@
       显示密码
     </label>
   </div>
-  <div class="cg-errors" hidden={!errors.length}>
+  <details class="cg-errors" hidden={!errors.length} open>
+    <summary>查看 {errors.length} 项待修正字段</summary>
     <p>以下字段需要修正，预览中已用 &lt;placeholder&gt; 替代：</p>
     <ul>{#each errors as [key, message] (key)}
-      <li><button type="button" onclick={() => focusError(key)}>{message}</button></li>
+      <li><button type="button" onclick={() => navigate(key)}>{message}</button></li>
     {/each}</ul>
-  </div>
+  </details>
   {#if view.preview_lines.length}
     <PreviewDocument lines={view.preview_lines} {format} />
   {:else}

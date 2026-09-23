@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { checkLayout } from './layout.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE_PATH ?? 'playwright');
@@ -90,6 +91,7 @@ try {
   assert.equal(await page.getByRole('button', { name: '下载配置', exact: true }).isEnabled(), true);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await checkLayout(page, { field: 'first', secret: 'entries.0.token', name: 'generic' });
   assert.deepEqual(external, []);
   assert.deepEqual(errors, []);
   console.log('PASS: alternate XML branding, merged preview descriptions, arbitrary fields/collections, generated values, resets, validation and three outputs');
