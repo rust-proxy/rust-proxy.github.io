@@ -2,7 +2,7 @@
 
 `tuic-server` 是一个积极维护的 TUIC 协议服务端实现。它 fork 自原始 TUIC 项目，在保持协议简洁、低握手开销的同时，增加了 Docker 支持、自签证书、ACME 自动签发、证书热重载、ACL/路由、出站与管理 API 等生产可用能力。
 
-本页介绍服务端的安装、启动与配置。客户端请见[客户端](client.md)；Docker 部署请见 [Docker](docker.md)；完整示例与字段说明见[配置生成器](/config-generator/?schema=tuic-server)。
+本页介绍服务端的安装、启动与配置。客户端请见[客户端](client.md)；Docker 部署请见 [Docker](docker.md)；完整示例与字段说明见[配置编辑器](/config-editor/?schema=tuic-server)。
 
 ## 安装
 
@@ -41,15 +41,15 @@ tuic-server --init
 
 ### 完整示例
 
-完整且带注释的服务端配置由[配置生成器](/config-generator/?schema=tuic-server)的预览区维护：在左侧表单填写参数，右侧实时生成配置，逐行悬浮或聚焦可查看字段说明，并同步显示校验结果与复制、下载入口。
+完整且带注释的服务端配置由[配置编辑器](/config-editor/?schema=tuic-server)的预览区维护：在左侧表单填写参数，右侧实时生成配置，逐行悬浮或聚焦可查看字段说明，并同步显示校验结果与复制、下载入口。
 
-[打开服务端配置生成器](/config-generator/?schema=tuic-server){ .md-button .md-button--primary }
+[打开服务端配置编辑器](/config-editor/?schema=tuic-server){ .md-button .md-button--primary }
 
-生成器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。`rules`、`[dns]`、`[geodata]`、`[restful]`、`[masquerade]` 等段落同样可以在生成器中配置。
+编辑器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。`rules`、`[dns]`、`[geodata]`、`[restful]`、`[masquerade]` 等段落同样可以在编辑器中配置。
 
 !!! note "预留字段"
 
-    `udp_relay_ipv6`、`dual_stack`、`task_negotiation_timeout` 等预留字段尚未接入运行逻辑，生成器不会输出。
+    `udp_relay_ipv6`、`dual_stack`、`task_negotiation_timeout` 等预留字段尚未接入运行逻辑，编辑器不会输出。
 
 ### 出站与 ACL
 

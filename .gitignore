@@ -3,7 +3,7 @@ build/
 .venv/
 .cache/
 /target/
-/config-generator/dist/
-/config-generator/.tools/
-/config-generator/pkg/
+/config-editor/dist/
+/config-editor/.tools/
+/config-editor/pkg/
 node_modules/

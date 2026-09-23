@@ -12,20 +12,20 @@ default:
 
 # Install Node.js dependencies.
 setup:
-    npm ci --prefix config-generator
-    npm ci --prefix tests/config-generator
+    npm ci --prefix config-editor
+    npm ci --prefix tests/config-editor
 
-# Compile WASM, then start the config generator at http://127.0.0.1:8080/.
+# Compile WASM, then start the config editor at http://127.0.0.1:8080/.
 dev:
-    npm run dev --prefix config-generator
+    npm run dev --prefix config-editor
 
 # Start Vite without rebuilding WASM (for Svelte/CSS-only changes).
 dev-ui:
-    npm exec --prefix config-generator -- vite --host 127.0.0.1 --port 8080
+    npm exec --prefix config-editor -- vite --host 127.0.0.1 --port 8080
 
 # Rebuild WASM after Rust or XML changes while Vite is running.
 wasm:
-    npm run wasm --prefix config-generator
+    npm run wasm --prefix config-editor
 
 # Start the TUIC documentation development server.
 docs:
@@ -41,8 +41,8 @@ check:
     cargo test --workspace --locked
     cargo clippy --workspace --all-targets --locked -- -D warnings
     cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
-    npm run check --prefix config-generator
-    npm run test --prefix config-generator
+    npm run check --prefix config-editor
+    npm run test --prefix config-editor
 
 # Build the TUIC documentation site into tuic/site/.
 build-docs-tuic:
@@ -52,31 +52,31 @@ build-docs-tuic:
 build-docs-wind:
     uvx '{{zensical}}' build --clean -f wind/zensical.toml
 
-# Build the standalone configuration generator for the /config-generator/ prefix.
-build-generator:
-    npm run build --prefix config-generator -- --base /config-generator/
+# Build the standalone configuration editor for the /config-editor/ prefix.
+build-editor:
+    npm run build --prefix config-editor -- --base /config-editor/
 
-# Build every documentation site and the standalone generator under site/.
-build: build-docs-tuic build-docs-wind build-generator
+# Build every documentation site and the standalone editor under site/.
+build: build-docs-tuic build-docs-wind build-editor
     rm -rf site
     mkdir -p site
     cp -r tuic/site site/tuic
     cp -r wind/site site/wind
-    cp -r config-generator/dist site/config-generator
+    cp -r config-editor/dist site/config-editor
     cp portal/index.html site/index.html
 
 # Build and validate the assembled site.
 site-check: build
-    uvx python tests/config-generator/check-site.py
+    uvx python tests/config-editor/check-site.py
 
-# Run browser regression tests against a temporary server for the generator dist/.
+# Run browser regression tests against a temporary server for the editor dist/.
 browser:
-    uvx python tests/config-generator/run-browser.py
+    uvx python tests/config-editor/run-browser.py
 
 # Run browser regression tests against the assembled deployment build.
 browser-site: build
-    uvx python tests/config-generator/run-browser.py --directory site/config-generator --prefix /config-generator/
+    uvx python tests/config-editor/run-browser.py --directory site/config-editor --prefix /config-editor/
 
 # Build, validate, and serve the assembled site preview.
 preview: site-check
-    uvx python tests/config-generator/preview-server.py
+    uvx python tests/config-editor/preview-server.py

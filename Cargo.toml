@@ -1,5 +1,5 @@
 [workspace]
-members = ["config-generator"]
+members = ["config-editor"]
 resolver = "3"
 
 [profile.release]

@@ -11,7 +11,7 @@ Language version: 5
 
 This is a proposed repository-level standard, not an adopted Wind API or an
 Internet standard. It describes the static XML dialect used by the TUIC config
-generator as a reference for other configuration generators. Wind does not yet
+editor as a reference for other configuration editors. Wind does not yet
 implement this DSL. The draft revision `config-dsl-02` and the language attribute
 `version="5"` identify different things.
 
