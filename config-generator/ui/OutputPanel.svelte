@@ -1,34 +1,20 @@
 <script lang="ts">
   import type { Controller } from './controller.svelte';
-  import { download, focusError } from './browser';
+  import { focusError } from './browser';
+  import ExportActions from './ExportActions.svelte';
   import Notices from './Notices.svelte';
   import PreviewDocument from './PreviewDocument.svelte';
 
   let { controller }: { controller: Controller } = $props();
   const view = $derived(controller.view);
   const errors = $derived(Object.entries(view.errors));
-  let reveal = $state(false);
   const format = $derived(view.format?.value ?? 'json');
 
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(controller.export().text);
-      controller.status = '已复制完整配置（含明文凭据）。';
-    } catch { controller.status = '浏览器未允许复制，请使用下载配置。'; }
-  }
-
-  function save() {
-    try {
-      const file = controller.export();
-      download(file.text, file.filename);
-      controller.status = `已下载 ${file.filename}（含明文凭据）。`;
-    } catch { controller.status = '下载失败，请尝试复制配置。'; }
-  }
 </script>
 
-<aside class="cg-output" aria-label="配置预览区">
+<aside id="cg-preview" class="cg-output" aria-label="配置预览区">
   <div class="cg-output-top">
-    <strong>配置预览</strong>
+    <h2>配置预览</h2>
     <span class="cg-validity" role="status" data-valid={String(view.valid)}>
       {view.valid ? '可导出' : `${errors.length} 项待填写或修正`}
     </span>
@@ -53,7 +39,7 @@
   <div class="cg-filebar">
     <strong>{view.filename}</strong>
     <label for="cg-reveal">
-      <input id="cg-reveal" type="checkbox" bind:checked={reveal} onchange={(event) => controller.showSecrets(event.currentTarget.checked)} />
+      <input id="cg-reveal" type="checkbox" checked={controller.reveal} onchange={(event) => controller.showSecrets(event.currentTarget.checked)} />
       显示密码
     </label>
   </div>
@@ -68,10 +54,6 @@
   {:else}
     <div class="cg-code"><code>无法生成预览，请检查配置。</code></div>
   {/if}
-  <div class="cg-actions">
-    <button type="button" disabled={!view.valid} onclick={copy}>复制配置</button>
-    <button type="button" class="cg-primary" disabled={!view.valid} onclick={save}>下载配置</button>
-  </div>
-  <p class="cg-hint">{view.ui.export_hint}</p><code class="cg-command">{view.command}</code>
-  <Notices notices={view.notices} />
+  <ExportActions {controller} />
+  <div class="cg-export-notes"><p class="cg-hint">{view.ui.export_hint}</p>{#if view.command}<code class="cg-command">{view.command}</code>{/if}<Notices notices={view.notices} /></div>
 </aside>

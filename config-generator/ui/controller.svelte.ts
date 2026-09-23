@@ -5,7 +5,7 @@ export class Controller {
   readonly schemas: { name: string; label: string }[];
   private engine: Engine;
   private selected = '';
-  private reveal = false;
+  reveal = $state(false);
   schema = $state('');
   view: Snapshot = $state.raw({} as Snapshot);
   status = $state('');

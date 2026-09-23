@@ -83,6 +83,9 @@ try {
   assert.equal(await page.locator('.cg-command').textContent(), 'notebook --input snapshot.toml');
   await id('first').fill('50');
   assert.equal(await page.getByRole('button', { name: '下载配置', exact: true }).isDisabled(), true);
+  const validationTarget = await page.locator('[aria-invalid="true"]').first().getAttribute('id');
+  await page.locator('.cg-errors button').first().click();
+  assert.equal(await page.evaluate(() => document.activeElement?.id), validationTarget, 'Validation links move focus to the invalid field');
   await id('last').fill('60');
   assert.equal(await page.getByRole('button', { name: '下载配置', exact: true }).isEnabled(), true);
   await page.setViewportSize({ width: 390, height: 844 });

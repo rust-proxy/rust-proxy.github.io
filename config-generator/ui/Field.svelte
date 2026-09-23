@@ -3,7 +3,7 @@
 
   let { field, dispatch, row }: { field: FieldView; dispatch: Dispatch; row?: { collection: string; id: string } } = $props();
   const id = $derived(`cg-${field.path}`);
-  const described = $derived(`${id}-hint ${id}-error`);
+  const described = $derived([field.hint && `${id}-hint`, field.error && `${id}-error`].filter(Boolean).join(' ') || undefined);
 
   function change(value: string) {
     dispatch(row ? { type: 'set-row', ...row, field: field.key, value } : { type: 'set', field: field.key, value });
@@ -30,8 +30,8 @@
       aria-describedby={described} aria-invalid={!!field.error}
       oninput={(event) => change(event.currentTarget.value)} />
   {/if}
-  <span id={`${id}-hint`} class="cg-hint">{field.hint}</span>
-  <span id={`${id}-error`} class="cg-error">{field.error}</span>
+  {#if field.hint}<span id={`${id}-hint`} class="cg-hint">{field.hint}</span>{/if}
+  {#if field.error}<span id={`${id}-error`} class="cg-error">{field.error}</span>{/if}
   {#if !row && field.generated}
     <button type="button" onclick={() => dispatch({ type: 'generate', field: field.key })}>生成随机值</button>
   {/if}

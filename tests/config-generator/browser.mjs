@@ -46,6 +46,9 @@ try {
   const tooltip = page.locator('[role="tooltip"]');
   await tooltip.waitFor({ state: 'visible' });
   assert.match(await tooltip.textContent(), /证书链和主机名验证/);
+  await skipLine.focus();
+  await page.keyboard.press('Escape');
+  assert.equal(await tooltip.count(), 0, 'Escape dismisses the keyboard preview explanation');
   await id('format').selectOption('toml');
   assert.ok((await lines().allTextContents()).some(line => line.includes('[tls]')), 'TOML tables are highlighted');
   await id('format').selectOption('yaml');
@@ -98,7 +101,9 @@ try {
   assert.equal((await output()).reconnect_initial_backoff, undefined);
   console.log('PASS: merged client preview, descriptions, export and forwarding');
 
+  await id('reveal').check();
   await id('schema').selectOption('tuic-server');
+  assert.equal(await id('reveal').isChecked(), false, 'Schema changes reset the secret control as well as the preview');
   assert.equal(new URL(page.url()).searchParams.get('schema'), 'tuic-server');
   assert.equal(new URL(page.url()).searchParams.get('retained'), 'yes');
   assert.equal(new URL(page.url()).hash, '#query-state');
@@ -129,7 +134,8 @@ try {
   server = await output();
   assert.equal(server.data_dir, undefined);
 
-  await section('QUIC 后端').click();
+  await page.getByRole('navigation', { name: '配置分区' }).getByRole('button', { name: 'QUIC 后端' }).click();
+  assert.equal(await page.locator('summary:focus').count(), 1, 'Section navigation opens and focuses the collapsed section');
   await id('backendMode').selectOption('quiche');
   server = await output();
   assert.equal(server.backend.mode, 'quiche');

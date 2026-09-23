@@ -12,9 +12,27 @@ export function download(text: string, filename: string) {
   }
 }
 
+function openAncestors(element: HTMLElement) {
+  let parent = element.parentElement;
+  while (parent) {
+    if (parent instanceof HTMLDetailsElement) parent.open = true;
+    parent = parent.parentElement;
+  }
+}
+
 export function focusError(key: string) {
   const element = document.getElementById(`cg-${key}`);
-  const details = element?.closest('details');
-  if (details) details.open = true;
-  element?.focus();
+  if (!element) return;
+  openAncestors(element);
+  element.focus();
+  element.scrollIntoView({ block: 'center' });
+}
+
+export function focusSection(name: string) {
+  const section = document.getElementById(`cg-section-${name}`);
+  if (!section) return;
+  if (section instanceof HTMLDetailsElement) section.open = true;
+  const heading = section.querySelector<HTMLElement>('summary, h2');
+  heading?.focus({ preventScroll: true });
+  section.scrollIntoView({ block: 'start' });
 }

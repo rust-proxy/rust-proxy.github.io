@@ -23,6 +23,8 @@ try {
 
 Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`generate` 和 `generate-row` 操作。Rust `Session` 统一处理状态和 XML 联动，再返回已计算可见性、错误及预览的显示快照。前端不接收条件表达式，也不解释 DSL。集合行以独立字符串标识作为 Svelte 的 keyed each 键，业务字段 `id` 不受影响；复制下载另行请求原始导出文本。校验不通过时预览不再隐藏：无效输入值在预览中显示为 `<placeholder>`，并保留警告；导出仍走严格投影，校验通过前复制和下载保持禁用。此界面重构不改变 DSL v5 语法。
 
+前端采用分区目录、卡片表单和固定预览组成的响应式工作台，小屏幕下按顺序排列。目录操作会展开目标分区并移动键盘焦点；错误列表会展开字段所在分区并定位输入框。`AppHeader` 管理方案 URL 和主题入口，`SectionNavigation` 管理分区跳转，`ExportActions` 管理复制下载；`Controller` 统一管理 WASM 会话与预览密码显示状态，切换方案时重置显示状态。主题和展开状态仅存在于当前页面，不持久化。
+
 ## DSL 概要
 
 描述文件为 `config-dsl version="5"`。顶层区块：`ui`、`validators`、`inputs`（必需）、`conditions`、`values`、`outputs`（必需）、`rules`、`effects`；每个区块至多一个，顺序无关。逐行预览说明直接声明在 `outputs` 节点和枚举 `option` 的 `description` 上，是展示元数据，不参与投影、校验、脱敏或导出。
