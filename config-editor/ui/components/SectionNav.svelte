@@ -12,16 +12,16 @@
     const update = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const elements = names.map(name => document.getElementById(`ce-section-${name}`)).filter((element): element is HTMLElement => !!element && element.getClientRects().length > 0);
+        const elements = names.map(name => document.getElementById(`section-${name}`)).filter((element): element is HTMLElement => !!element && element.getClientRects().length > 0);
         if (!elements.length) return;
         const atBottom = window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
         const current = atBottom ? elements.at(-1) : elements.filter(element => element.getBoundingClientRect().top <= 140).at(-1) ?? elements[0];
-        active = current?.id.replace('ce-section-', '') ?? '';
+        active = current?.id.replace('section-', '') ?? '';
       });
     };
     update();
     const observer = new ResizeObserver(update);
-    const form = document.getElementById('ce-editor');
+    const form = document.getElementById('editor-form');
     if (form) observer.observe(form);
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
@@ -31,8 +31,8 @@
 
 <nav class="section-nav" aria-label="配置分区">
   <p>配置目录</p>
-  <label class="section-nav__picker" for="ce-section-picker">配置分区
-    <select id="ce-section-picker" value={active} onchange={(event) => focusSection(event.currentTarget.value)}>
+  <label class="section-nav__picker" for="editor-section-picker">配置分区
+    <select id="editor-section-picker" value={active} onchange={(event) => focusSection(event.currentTarget.value)}>
       {#each session.visibleSections as section (section.name)}<option value={section.name}>{section.label}{session.errorCount(section) ? ` · ${session.errorCount(section)} 项待修正` : ''}</option>{/each}
     </select>
   </label>
@@ -44,7 +44,7 @@
       </button>
     {/if}
   {/each}
-  <a href="#ce-preview" onclick={(event) => { event.preventDefault(); workbench.showPreview(); }}>查看配置预览 →</a>
+  <a href="#editor-preview" onclick={(event) => { event.preventDefault(); workbench.showPreview(); }}>查看配置预览 →</a>
 </nav>
 
 <style>

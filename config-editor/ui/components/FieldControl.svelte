@@ -4,7 +4,7 @@
 
   let { field, row }: { field: FieldView; row?: { collection: string; id: string } } = $props();
   const session = useSession();
-  const id = $derived(`ce-${field.path}`);
+  const id = $derived(`field-${field.path}`);
   const described = $derived([field.hint && `${id}-hint`, field.error && `${id}-error`].filter(Boolean).join(' ') || undefined);
   const classes = $derived(field.kind === 'toggle' ? 'field field--toggle' : 'field');
 

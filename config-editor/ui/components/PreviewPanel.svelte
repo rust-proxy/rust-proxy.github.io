@@ -11,7 +11,7 @@
   const format = $derived(view.format?.value ?? 'json');
 </script>
 
-<aside id="ce-preview" class="preview" aria-label="配置预览区" tabindex="-1">
+<aside id="editor-preview" class="preview" aria-label="配置预览区" tabindex="-1">
   <div class="preview__top">
     <h2>配置预览</h2>
     <span class="preview__validity" role="status" data-valid={String(view.valid)}>
@@ -27,7 +27,7 @@
     </div>
     {#if view.format}
       {@const field = view.format}
-      <select id={`ce-${field.key}`} aria-label={field.label} value={field.value}
+      <select id={`field-${field.key}`} aria-label={field.label} value={field.value}
         onchange={(event) => session.dispatch({ type: 'set', field: field.key, value: event.currentTarget.value })}>
         {#each field.options as [value, label] (value)}
           <option {value}>{label}</option>
@@ -37,8 +37,8 @@
   </div>
   <div class="preview__filebar">
     <strong>{view.filename}</strong>
-    <label for="ce-reveal">
-      <input id="ce-reveal" type="checkbox" checked={session.reveal} onchange={(event) => session.setReveal(event.currentTarget.checked)} />
+    <label for="editor-reveal">
+      <input id="editor-reveal" type="checkbox" checked={session.reveal} onchange={(event) => session.setReveal(event.currentTarget.checked)} />
       显示密码
     </label>
   </div>

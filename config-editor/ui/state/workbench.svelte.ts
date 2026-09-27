@@ -29,14 +29,14 @@ export class WorkbenchStore {
 
   async showPreview(): Promise<void> {
     if (this.#narrow()) await this.switchPane('preview');
-    const output = document.getElementById('ce-preview');
+    const output = document.getElementById('editor-preview');
     output?.focus();
     output?.scrollIntoView({ block: 'start' });
   }
 
   async skipToEditor(): Promise<void> {
     if (this.#narrow()) await this.switchPane('editor');
-    document.getElementById('ce-search')?.focus();
+    document.getElementById('editor-search')?.focus();
   }
 
   reset(): void {

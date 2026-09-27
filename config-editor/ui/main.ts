@@ -10,7 +10,7 @@ import { WorkbenchStore } from './state/workbench.svelte';
 import './styles/index.css';
 
 async function start() {
-  const loading = document.getElementById('ce-loading');
+  const loading = document.getElementById('editor-loading');
   try {
     await init({ module_or_path: wasmUrl });
     const target = document.getElementById('app');

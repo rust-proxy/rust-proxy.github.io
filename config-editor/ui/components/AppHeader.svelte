@@ -19,14 +19,14 @@
   </a>
   <div class="app-header__controls">
     {#if session.schemas.length}
-      <label class="app-header__schema" for="ce-schema"><span>配置方案</span>
-        <select id="ce-schema" value={session.schema} onchange={(event) => selectSchema(event.currentTarget.value)}>
+      <label class="app-header__schema" for="editor-schema"><span>配置方案</span>
+        <select id="editor-schema" value={session.schema} onchange={(event) => selectSchema(event.currentTarget.value)}>
           {#each session.schemas as item (item.name)}<option value={item.name}>{item.label}</option>{/each}
         </select>
       </label>
     {/if}
-    <label class="app-header__theme" for="ce-theme"><span>主题</span>
-      <select id="ce-theme" value={theme.current} onchange={(event) => theme.select(event.currentTarget.value)}>
+    <label class="app-header__theme" for="editor-theme"><span>主题</span>
+      <select id="editor-theme" value={theme.current} onchange={(event) => theme.select(event.currentTarget.value)}>
         {#each THEMES as option (option.id)}<option value={option.id}>{option.label}</option>{/each}
       </select>
     </label>

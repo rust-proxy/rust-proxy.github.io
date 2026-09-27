@@ -2,8 +2,8 @@ import { getContext, setContext } from 'svelte';
 import type { SessionStore } from './session.svelte';
 import type { WorkbenchStore } from './workbench.svelte';
 
-const SESSION = Symbol('ce-session');
-const WORKBENCH = Symbol('ce-workbench');
+const SESSION = Symbol('editor-session');
+const WORKBENCH = Symbol('editor-workbench');
 
 export function setSessions(session: SessionStore, workbench: WorkbenchStore): void {
   setContext(SESSION, session);

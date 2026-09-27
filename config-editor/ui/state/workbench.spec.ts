@@ -15,11 +15,11 @@ describe('WorkbenchStore', () => {
   });
 
   it('focuses the target field when navigating without switching panes', async () => {
-    document.body.innerHTML = '<input id="ce-host">';
+    document.body.innerHTML = '<input id="field-host">';
     const workbench = new WorkbenchStore(() => false);
     await workbench.navigateToField('host');
     expect(workbench.pane).toBe('editor');
-    expect(document.activeElement).toBe(document.getElementById('ce-host'));
+    expect(document.activeElement).toBe(document.getElementById('field-host'));
   });
 
   it('switches panes and repositions the viewport', async () => {

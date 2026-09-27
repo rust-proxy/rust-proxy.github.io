@@ -23,9 +23,9 @@
 <svelte:head><title>{view.ui.brand} {view.ui.title}</title></svelte:head>
 
 <div class="shell" data-theme={theme.current}>
-  <a class="skip-link" href="#ce-editor" onclick={(event) => { event.preventDefault(); workbench.skipToEditor(); }}>跳转到配置表单</a>
+  <a class="skip-link" href="#editor-form" onclick={(event) => { event.preventDefault(); workbench.skipToEditor(); }}>跳转到配置表单</a>
   <AppHeader {theme} />
-  <main id="config-editor" data-ready="true">
+  <main id="editor" data-ready="true">
     <div class="page-heading">
       <div><p class="page-heading__eyebrow">{view.ui.eyebrow}</p><h1>{view.ui.title}</h1><p class="page-heading__intro">{view.ui.description}</p></div>
       <p class="privacy-note"><span class="privacy-note__dot"></span>本地处理<span>不保存输入 · 不上传凭据</span></p>
@@ -45,7 +45,7 @@
     </div>
     <div class="workspace" data-pane={workbench.pane}>
       <SectionNav />
-      <form id="ce-editor" class="editor-form" autocomplete="off" onsubmit={(event) => event.preventDefault()}>
+      <form id="editor-form" class="editor-form" autocomplete="off" onsubmit={(event) => event.preventDefault()}>
         <div class="region-heading"><h2>选择配置</h2><span>修改后实时更新预览</span></div>
         {#key session.schema}
           <FieldSearch />
@@ -84,7 +84,7 @@
     box-shadow: var(--shadow-pop);
   }
   .skip-link:focus { top: 10px; }
-  #config-editor {
+  #editor {
     max-width: 1616px;
     padding: 26px 28px 22px;
     margin: auto;
@@ -204,7 +204,7 @@
     [data-pane="preview"] > :global(.section-nav) { display: none; }
   }
   @media (max-width: 480px) {
-    #config-editor { padding: 18px 16px; }
+    #editor { padding: 18px 16px; }
     .page-heading { margin-bottom: 12px; }
     .region-heading { flex-wrap: wrap; }
   }

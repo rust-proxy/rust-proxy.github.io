@@ -21,7 +21,7 @@ function openAncestors(element: HTMLElement): void {
 }
 
 export function focusField(path: string): void {
-  const element = document.getElementById(`ce-${path}`);
+  const element = document.getElementById(`field-${path}`);
   if (!element) return;
   openAncestors(element);
   element.focus();
@@ -29,7 +29,7 @@ export function focusField(path: string): void {
 }
 
 export function focusSection(name: string): void {
-  const section = document.getElementById(`ce-section-${name}`);
+  const section = document.getElementById(`section-${name}`);
   if (!section) return;
   if (section instanceof HTMLDetailsElement) section.open = true;
   const heading = section.querySelector<HTMLElement>('summary, h2');

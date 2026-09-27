@@ -27,7 +27,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 a { color: var(--color-accent); text-underline-offset: 4px; }
 input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--color-accent); flex: none; }
 
-#ce-loading {
+#editor-loading {
   max-width: 640px;
   margin: 18vh auto 0;
   padding: 24px 28px;
@@ -40,7 +40,7 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var
 }
 
 @media (prefers-color-scheme: dark) {
-  #ce-loading { border-color: #45475a; background: #1e1e2e; color: #a6adc8; }
+  #editor-loading { border-color: #45475a; background: #1e1e2e; color: #a6adc8; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

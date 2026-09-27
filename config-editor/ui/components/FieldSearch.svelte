@@ -6,7 +6,7 @@
   const workbench = useWorkbench();
 
   function escape(event: KeyboardEvent) {
-    if (event.key === 'Escape') { query = ''; document.getElementById('ce-search')?.focus(); }
+    if (event.key === 'Escape') { query = ''; document.getElementById('editor-search')?.focus(); }
   }
 
   const matches = $derived.by(() => {
@@ -18,9 +18,9 @@
 </script>
 
 <div class="field-search" role="search" aria-label="查找配置项">
-  <label for="ce-search">查找配置项</label>
-  <div class="field-search__input"><input id="ce-search" type="search" onkeydown={escape} bind:value={query} placeholder="搜索名称、说明或配置路径" autocomplete="off" />
-    {#if query}<button type="button" onclick={() => { query = ''; document.getElementById('ce-search')?.focus(); }}>清除</button>{/if}
+  <label for="editor-search">查找配置项</label>
+  <div class="field-search__input"><input id="editor-search" type="search" onkeydown={escape} bind:value={query} placeholder="搜索名称、说明或配置路径" autocomplete="off" />
+    {#if query}<button type="button" onclick={() => { query = ''; document.getElementById('editor-search')?.focus(); }}>清除</button>{/if}
   </div>
   {#if query.trim()}
     <div class="field-search__results">

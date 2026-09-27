@@ -3,12 +3,12 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export async function checkLayout(page, { field, secret, name }) {
-  const input = page.locator(`[id="ce-${field}"]`);
+  const input = page.locator(`[id="field-${field}"]`);
   const search = page.getByRole('searchbox', { name: '查找配置项' });
   const edit = page.getByRole('button', { name: '编辑配置', exact: true });
   const preview = page.getByRole('button', { name: /^预览与导出/ });
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await search.fill(await page.locator(`[id="ce-${secret}"]`).inputValue());
+  await search.fill(await page.locator(`[id="field-${secret}"]`).inputValue());
   assert.equal(await page.locator('.field-search__results li').count(), 0, 'Search never indexes input values');
   await search.fill('not-a-field-xyz');
   await search.press('Escape');
@@ -21,8 +21,8 @@ export async function checkLayout(page, { field, secret, name }) {
   await page.setViewportSize({ width: 390, height: 844 });
   await preview.click();
   assert.equal(await input.isVisible(), false);
-  assert.equal(await page.locator('#ce-preview').isVisible(), true);
-  await page.locator('.preview__errors button').filter({ hasText: await page.locator(`[id="ce-${field}-error"]`).textContent() }).first().click();
+  assert.equal(await page.locator('#editor-preview').isVisible(), true);
+  await page.locator('.preview__errors button').filter({ hasText: await page.locator(`[id="field-${field}-error"]`).textContent() }).first().click();
   assert.equal(await input.isVisible(), true);
   assert.equal(await input.evaluate(node => document.activeElement === node), true, 'Mobile error navigation switches panes before focusing');
   await input.fill(previous);

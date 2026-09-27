@@ -21,13 +21,13 @@
 {/snippet}
 
 {#if section.collapsed}
-  <details id={`ce-section-${section.name}`} class="form-section form-section--advanced" hidden={!section.visible}>
+  <details id={`section-${section.name}`} class="form-section form-section--advanced" hidden={!section.visible}>
     <summary>{@render heading()}<span class="form-section__chevron" aria-hidden="true">⌄</span></summary>
     {@render contents()}
   </details>
 {:else}
-  <section id={`ce-section-${section.name}`} class="form-section" hidden={!section.visible} aria-labelledby={`ce-heading-${section.name}`}>
-    <h2 id={`ce-heading-${section.name}`} tabindex="-1">{@render heading()}</h2>
+  <section id={`section-${section.name}`} class="form-section" hidden={!section.visible} aria-labelledby={`section-${section.name}-heading`}>
+    <h2 id={`section-${section.name}-heading`} tabindex="-1">{@render heading()}</h2>
     {@render contents()}
   </section>
 {/if}

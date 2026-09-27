@@ -21,10 +21,10 @@ describe('download', () => {
 
 describe('focusField', () => {
   it('opens collapsed ancestors and focuses the field', () => {
-    document.body.innerHTML = '<details id="ce-section-s"><summary>sec</summary><input id="ce-host"></details>';
-    const input = document.getElementById('ce-host') as HTMLInputElement;
+    document.body.innerHTML = '<details id="section-s"><summary>sec</summary><input id="field-host"></details>';
+    const input = document.getElementById('field-host') as HTMLInputElement;
     focusField('host');
-    expect((document.getElementById('ce-section-s') as HTMLDetailsElement).open).toBe(true);
+    expect((document.getElementById('section-s') as HTMLDetailsElement).open).toBe(true);
     expect(document.activeElement).toBe(input);
     expect(input.scrollIntoView).toHaveBeenCalled();
   });
@@ -36,10 +36,10 @@ describe('focusField', () => {
 
 describe('focusSection', () => {
   it('opens the section and focuses its heading', () => {
-    document.body.innerHTML = '<details id="ce-section-s"><summary>sec</summary></details>';
+    document.body.innerHTML = '<details id="section-s"><summary>sec</summary></details>';
     const summary = document.querySelector('summary') as HTMLElement;
     focusSection('s');
-    expect((document.getElementById('ce-section-s') as HTMLDetailsElement).open).toBe(true);
+    expect((document.getElementById('section-s') as HTMLDetailsElement).open).toBe(true);
     expect(document.activeElement).toBe(summary);
   });
 });
