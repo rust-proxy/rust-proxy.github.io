@@ -1,20 +1,62 @@
-<config-dsl version="5" target-version="2.0.0-dev7">
-	<ui title="客户端配置文件编辑器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写服务器与本地代理信息，生成 TUIC 客户端配置。" format-field="format" export-hint="复制和下载始终包含真实密码。">
-		<section name="addresses" label="连接信息" />
-		<section name="authentication" label="用户认证" />
-		<section name="tls" label="TLS 与证书">
+<config-dsl version="6" target-version="2.0.0-dev7" locales="zh-CN en" default-locale="zh-CN">
+	<strings>
+		<locale code="zh-CN">
+			<entry name="ui.title" text="客户端配置文件编辑器" />
+			<entry name="ui.eyebrow" text="TUIC 2.0.0-dev7 · QUINN" />
+			<entry name="ui.description" text="填写服务器与本地代理信息，生成 TUIC 客户端配置。" />
+			<entry name="ui.export-hint" text="复制和下载始终包含真实密码。" />
+			<entry name="section.addresses" text="连接信息" />
+			<entry name="section.authentication" text="用户认证" />
+			<entry name="section.tls" text="TLS 与证书" />
+			<entry name="section.local" text="本地代理" />
+			<entry name="section.transport" text="高级选项" />
+			<entry name="section.transport.detail" text="日志 · 连接 · 端口转发" />
+			<entry name="section.backend" text="QUIC 后端" />
+			<entry name="section.backend.detail" text="拥塞控制 · 传输参数" />
+			<entry name="notice.transport" text="预留字段（udp_relay_ipv6、dual_stack、task_negotiation_timeout、ipstack_prefer、timeout、proxy 等）当前未接入运行逻辑，本编辑器不输出。" />
+			<entry name="notice.backend" text="bbr 与 bbr3 当前共用同一实现，行为相同。" />
+			<entry name="notice.insecure" text="当前客户端配置跳过证书校验，仅适合受控测试。" />
+			<entry name="notice.exposedLocal" text="SOCKS5 正在监听非回环地址且未启用认证，请确认访问范围。" />
+			<entry name="notice.zeroRtt" text="0-RTT 早期数据可能被重放。" />
+			<entry name="notice.disclaimer" text="此处仅检查配置字段。证书文件、DNS、防火墙和实际连接需要在部署环境验证。" />
+		</locale>
+		<locale code="en">
+			<entry name="ui.title" text="Client configuration editor" />
+			<entry name="ui.eyebrow" text="TUIC 2.0.0-dev7 · QUINN" />
+			<entry name="ui.description" text="Fill in the server and local proxy to generate a TUIC client configuration." />
+			<entry name="ui.export-hint" text="Copy and download always include the real passwords." />
+			<entry name="section.addresses" text="Connection" />
+			<entry name="section.authentication" text="Users" />
+			<entry name="section.tls" text="TLS &amp; certificates" />
+			<entry name="section.local" text="Local proxy" />
+			<entry name="section.transport" text="Advanced" />
+			<entry name="section.transport.detail" text="Logging · connections · port forwarding" />
+			<entry name="section.backend" text="QUIC backend" />
+			<entry name="section.backend.detail" text="Congestion control · transport parameters" />
+			<entry name="notice.transport" text="Reserved fields (udp_relay_ipv6, dual_stack, task_negotiation_timeout, ipstack_prefer, timeout, proxy, ...) are not wired into runtime logic yet; this editor does not output them." />
+			<entry name="notice.backend" text="bbr and bbr3 currently share one implementation and behave identically." />
+			<entry name="notice.insecure" text="This client configuration skips certificate verification and is only suitable for controlled testing." />
+			<entry name="notice.exposedLocal" text="SOCKS5 is listening on a non-loopback address without authentication; confirm the exposure scope." />
+			<entry name="notice.zeroRtt" text="0-RTT early data may be replayed." />
+			<entry name="notice.disclaimer" text="Only configuration fields are checked here. Certificates, DNS, firewall, and real connections must be verified in the deployment environment." />
+		</locale>
+	</strings>
+	<ui title="@string/ui.title" brand="TUIC" mark="T" eyebrow="@string/ui.eyebrow" description="@string/ui.description" format-field="format" export-hint="@string/ui.export-hint">
+		<section name="addresses" label="@string/section.addresses" />
+		<section name="authentication" label="@string/section.authentication" />
+		<section name="tls" label="@string/section.tls">
 		</section>
-		<section name="local" label="本地代理" />
-		<section name="transport" label="高级选项" detail="日志 · 连接 · 端口转发" collapsed="true">
-			<notice text="预留字段（udp_relay_ipv6、dual_stack、task_negotiation_timeout、ipstack_prefer、timeout、proxy 等）当前未接入运行逻辑，本编辑器不输出。" />
+		<section name="local" label="@string/section.local" />
+		<section name="transport" label="@string/section.transport" detail="@string/section.transport.detail" collapsed="true">
+			<notice text="@string/notice.transport" />
 		</section>
-		<section name="backend" label="QUIC 后端" detail="拥塞控制 · 传输参数" collapsed="true">
-			<notice text="bbr 与 bbr3 当前共用同一实现，行为相同。" />
+		<section name="backend" label="@string/section.backend" detail="@string/section.backend.detail" collapsed="true">
+			<notice text="@string/notice.backend" />
 		</section>
-		<notice when="insecureClient" text="当前客户端配置跳过证书校验，仅适合受控测试。" />
-		<notice when="exposedLocal" text="SOCKS5 正在监听非回环地址且未启用认证，请确认访问范围。" />
-		<notice when="zeroRtt" text="0-RTT 早期数据可能被重放。" />
-		<notice text="此处仅检查配置字段。证书文件、DNS、防火墙和实际连接需要在部署环境验证。" />
+		<notice when="insecureClient" text="@string/notice.insecure" />
+		<notice when="exposedLocal" text="@string/notice.exposedLocal" />
+		<notice when="zeroRtt" text="@string/notice.zeroRtt" />
+		<notice text="@string/notice.disclaimer" />
 	</ui>
 	<validators>
 		<validator name="required" kind="required" message="请填写此项。" />

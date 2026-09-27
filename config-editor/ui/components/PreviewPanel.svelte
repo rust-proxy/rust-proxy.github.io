@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import ExportActions from './ExportActions.svelte';
   import Notices from './Notices.svelte';
   import PreviewDocument from './PreviewDocument.svelte';
@@ -11,15 +12,15 @@
   const format = $derived(view.format?.value ?? 'json');
 </script>
 
-<aside id="editor-preview" class="preview" aria-label="配置预览区" tabindex="-1">
+<aside id="editor-preview" class="preview" aria-label={m.preview_region()} tabindex="-1">
   <div class="preview__top">
-    <h2>配置预览</h2>
+    <h2>{m.preview_title()}</h2>
     <span class="preview__validity" role="status" data-valid={String(view.valid)}>
-      {view.valid ? '可导出' : `${errors.length} 项待填写或修正`}
+      {view.valid ? m.preview_exportable() : m.preview_invalid({ count: errors.length })}
     </span>
   </div>
   <div class="preview__toolbar">
-    <div class="preview__tabs" role="group" aria-label="配置预览类型">
+    <div class="preview__tabs" role="group" aria-label={m.preview_type()}>
       {#each view.outputs as output (output.name)}
         <button type="button" hidden={!output.visible} aria-pressed={view.selected === output.name}
           onclick={() => session.selectOutput(output.name)}>{output.label}</button>
@@ -39,12 +40,12 @@
     <strong>{view.filename}</strong>
     <label for="editor-reveal">
       <input id="editor-reveal" type="checkbox" checked={session.reveal} onchange={(event) => session.setReveal(event.currentTarget.checked)} />
-      显示密码
+      {m.preview_reveal()}
     </label>
   </div>
   <details class="preview__errors" hidden={!errors.length} open>
-    <summary>查看 {errors.length} 项待修正字段</summary>
-    <p>以下字段需要修正，预览中已用 &lt;placeholder&gt; 替代：</p>
+    <summary>{m.preview_errors_summary({ count: errors.length })}</summary>
+    <p>{m.preview_errors_intro()}</p>
     <ul>{#each errors as [key, message] (key)}
       <li><button type="button" data-testid="error-link" onclick={() => workbench.navigateToField(key)}>{message}</button></li>
     {/each}</ul>
@@ -52,7 +53,7 @@
   {#if view.preview_lines.length}
     <PreviewDocument lines={view.preview_lines} {format} />
   {:else}
-    <div class="preview__code"><code>无法生成预览，请检查配置。</code></div>
+    <div class="preview__code"><code>{m.preview_unavailable()}</code></div>
   {/if}
   <ExportActions />
     <div class="preview__notes"><p class="field-hint">{view.ui.export_hint}</p>{#if view.command}<code class="preview__command" data-testid="export-command">{view.command}</code>{/if}<Notices notices={view.notices} /></div>

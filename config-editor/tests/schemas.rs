@@ -8,9 +8,22 @@ type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 
 #[test]
 fn embedded_application_schemas_are_independent() -> Result {
+	let infos = schemas()?;
 	assert_eq!(
-		schemas()?,
-		vec![("tuic-server", "TUIC 服务端"), ("tuic-client", "TUIC 客户端")]
+		infos.iter().map(|info| info.name).collect::<Vec<_>>(),
+		["tuic-server", "tuic-client"]
+	);
+	assert!(
+		infos[0]
+			.labels
+			.iter()
+			.any(|(locale, label)| *locale == "zh-CN" && *label == "TUIC 服务端")
+	);
+	assert!(
+		infos[0]
+			.labels
+			.iter()
+			.any(|(locale, label)| *locale == "en" && *label == "TUIC server")
 	);
 
 	let server = document_for("tuic-server")?;

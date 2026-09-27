@@ -1,12 +1,22 @@
 //! Optional embedded application description; all engine APIs accept any Document.
 use std::{collections::BTreeMap, sync::OnceLock};
 
+use serde::Serialize;
 use serde_json::Value;
 
-use crate::dsl::{Document, DslError};
+use crate::dsl::{Document, DslError, Text};
 pub use crate::dsl::{InputField, InputKind};
 
 include!(concat!(env!("OUT_DIR"), "/embedded_schemas.rs"));
+
+/// One embedded application description with its selector labels per locale.
+#[derive(Serialize)]
+pub struct SchemaInfo {
+	pub name: &'static str,
+	pub labels: Vec<(&'static str, &'static str)>,
+	pub locales: Vec<String>,
+	pub default_locale: String,
+}
 
 fn documents() -> Result<&'static [Document], DslError> {
 	static DOCUMENTS: OnceLock<Result<Vec<Document>, DslError>> = OnceLock::new();
@@ -16,9 +26,18 @@ fn documents() -> Result<&'static [Document], DslError> {
 		.map_err(Clone::clone)
 }
 
-pub fn schemas() -> Result<Vec<(&'static str, &'static str)>, DslError> {
-	documents()?;
-	Ok(SOURCES.iter().map(|(name, label, _)| (*name, *label)).collect())
+pub fn schemas() -> Result<Vec<SchemaInfo>, DslError> {
+	let docs = documents()?;
+	Ok(SOURCES
+		.iter()
+		.zip(docs)
+		.map(|((name, labels, _), doc)| SchemaInfo {
+			name,
+			labels: labels.to_vec(),
+			locales: doc.locales.clone(),
+			default_locale: doc.default_locale.clone(),
+		})
+		.collect())
 }
 
 pub fn document_for(name: &str) -> Result<&'static Document, DslError> {
@@ -35,7 +54,7 @@ pub fn document() -> Result<&'static Document, DslError> {
 pub fn input_fields() -> &'static [InputField] {
 	document().map(|d| d.fields.as_slice()).unwrap_or_default()
 }
-pub fn options(name: &str) -> &'static [(String, String)] {
+pub fn options(name: &str) -> &'static [(String, Text)] {
 	input_fields()
 		.iter()
 		.find(|f| f.key == name)

@@ -19,7 +19,10 @@ vi.mock('../bridge/engine', () => ({
     mocks.engine.schema = name;
     return mocks.engine;
   }),
-  listSchemas: vi.fn(() => [{ name: 'alpha', label: 'Alpha' }, { name: 'beta', label: 'Beta' }]),
+  listSchemas: vi.fn(() => [
+    { name: 'alpha', labels: [['zh-CN', 'Alpha']], locales: ['zh-CN'], default_locale: 'zh-CN' },
+    { name: 'beta', labels: [['zh-CN', 'Beta']], locales: ['zh-CN'], default_locale: 'zh-CN' },
+  ]),
   isSchema: (name: string, schemas: { name: string }[]) => schemas.some(item => item.name === name),
 }));
 

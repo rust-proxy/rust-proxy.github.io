@@ -1,4 +1,5 @@
 import { EngineSession, isSchema, listSchemas, type SchemaInfo } from '../bridge/engine';
+import { m } from '../paraglide/messages';
 import type { Action, ExportFile, FieldView, SectionView, Snapshot } from '../types';
 
 function message(error: unknown): string {
@@ -56,6 +57,7 @@ const EMPTY_SNAPSHOT: Snapshot = {
 /// The single mutable view of a WASM session. Components never own configuration state.
 export class SessionStore {
   readonly schemas: SchemaInfo[];
+  readonly locale: string;
   reveal = $state(false);
   schema = $state('');
   snapshot = $state.raw<Snapshot>(EMPTY_SNAPSHOT);
@@ -75,7 +77,8 @@ export class SessionStore {
   });
   searchable = $derived.by(() => collectSearchable(this.sections));
 
-  constructor(requested = '') {
+  constructor(requested = '', locale = 'zh-CN') {
+    this.locale = locale;
     this.schemas = listSchemas();
     const initial = isSchema(requested, this.schemas) ? requested : (this.schemas[0]?.name ?? '');
     this.schema = initial;
@@ -88,7 +91,7 @@ export class SessionStore {
 
   #open(name: string): void {
     let engine: EngineSession;
-    try { engine = new EngineSession(name); }
+    try { engine = new EngineSession(name, this.locale); }
     catch (error) { this.status = message(error); return; }
     this.#engine?.dispose();
     this.#engine = engine;
@@ -110,7 +113,7 @@ export class SessionStore {
     if (!this.#engine) return;
     try {
       this.#engine.dispatch(action);
-      this.status = action.type.startsWith('generate') ? '已更新随机值。' : '';
+      this.status = action.type.startsWith('generate') ? m.status_generated() : '';
       this.#refresh();
     } catch (error) { this.status = message(error); }
   };
@@ -132,7 +135,7 @@ export class SessionStore {
   };
 
   export(): ExportFile {
-    if (!this.#engine) throw new Error('配置会话不可用。');
+    if (!this.#engine) throw new Error(m.session_unavailable());
     return this.#engine.export(this.selected);
   }
 

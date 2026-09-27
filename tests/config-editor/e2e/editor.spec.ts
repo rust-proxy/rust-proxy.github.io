@@ -164,3 +164,22 @@ test('URL state survives schema switching without persisting input', async ({ pa
   await expect(field(page, 'hostname')).toHaveValue('');
   expect(await page.evaluate(() => localStorage.length === 0 || !Object.keys(localStorage).some(key => /editor|password|uuid/.test(key)))).toBe(true);
 });
+
+test('switches interface and product locale through the URL', async ({ page }) => {
+  await page.goto('?schema=tuic-server');
+  await waitReady(page);
+  await page.locator('#editor-language').selectOption('en');
+  await page.waitForURL(/lang=en/);
+  await waitReady(page);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('checkbox', { name: 'Reveal passwords' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Server configuration editor' })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('schema')).toBe('tuic-server');
+  expect(await page.evaluate(() => !Object.keys(localStorage).some(key => /editor|password|uuid/.test(key)))).toBe(true);
+
+  await page.locator('#editor-language').selectOption('zh-CN');
+  await page.waitForURL(/lang=zh-CN/);
+  await waitReady(page);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(page.getByRole('heading', { name: '服务端配置文件编辑器' })).toBeVisible();
+});

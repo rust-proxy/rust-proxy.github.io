@@ -45,12 +45,26 @@ pub enum Action {
 pub struct Session {
 	doc: Document,
 	state: State,
+	locale: String,
 }
 
 impl Session {
-	pub fn new(doc: Document) -> Self {
+	pub fn new(doc: Document, locale: &str) -> Self {
 		let state = State::new(&doc);
-		Self { doc, state }
+		let locale = if doc.has_locale(locale) {
+			locale.to_owned()
+		} else {
+			doc.default_locale.clone()
+		};
+		Self { doc, state, locale }
+	}
+
+	/// Active display locale; changing it never touches user input, so callers only need a new
+	/// snapshot to redraw labels.
+	pub fn set_locale(&mut self, locale: &str) {
+		if self.doc.has_locale(locale) {
+			self.locale = locale.to_owned();
+		}
 	}
 
 	/// Commit initialization only after every random request succeeds.

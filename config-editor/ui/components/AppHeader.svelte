@@ -1,11 +1,22 @@
 <script lang="ts">
+  import { schemaLabel } from '../bridge/engine';
+  import { m } from '../paraglide/messages';
+  import { locales } from '../paraglide/runtime';
   import { useSession } from '../state/context';
-  import { THEMES, type ThemeStore } from '../state/theme.svelte';
+  import { localeName, type LocaleStore } from '../state/locale.svelte';
+  import { THEMES, type ThemeId, type ThemeStore } from '../state/theme.svelte';
   import { writeSchemaParam } from '../state/url';
 
-  let { theme }: { theme: ThemeStore } = $props();
+  let { theme, locale }: { theme: ThemeStore; locale: LocaleStore } = $props();
   const session = useSession();
   const ui = $derived(session.ui);
+
+  const THEME_LABELS: Record<ThemeId, () => string> = {
+    latte: m.theme_latte,
+    frappe: m.theme_frappe,
+    macchiato: m.theme_macchiato,
+    mocha: m.theme_mocha,
+  };
 
   function selectSchema(name: string) {
     session.selectSchema(name);
@@ -14,20 +25,25 @@
 </script>
 
 <header class="app-header">
-  <a class="app-header__brand" href="./" aria-label={`${ui.title}首页`}>
-    <span class="app-header__mark" aria-hidden="true">{ui.mark}</span><span>{ui.brand}<small>配置工作台</small></span>
+  <a class="app-header__brand" href="./" aria-label={`${ui.title} ${m.header_home()}`}>
+    <span class="app-header__mark" aria-hidden="true">{ui.mark}</span><span>{ui.brand}<small>{m.header_workbench()}</small></span>
   </a>
   <div class="app-header__controls">
     {#if session.schemas.length}
-      <label class="app-header__schema" for="editor-schema"><span>配置方案</span>
+      <label class="app-header__schema" for="editor-schema"><span>{m.header_schema()}</span>
         <select id="editor-schema" value={session.schema} onchange={(event) => selectSchema(event.currentTarget.value)}>
-          {#each session.schemas as item (item.name)}<option value={item.name}>{item.label}</option>{/each}
+          {#each session.schemas as item (item.name)}<option value={item.name}>{schemaLabel(item, locale.current)}</option>{/each}
         </select>
       </label>
     {/if}
-    <label class="app-header__theme" for="editor-theme"><span>主题</span>
+    <label class="app-header__language" for="editor-language"><span>{m.header_language()}</span>
+      <select id="editor-language" value={locale.current} onchange={(event) => locale.select(event.currentTarget.value)}>
+        {#each locales as code (code)}<option value={code}>{localeName(code)}</option>{/each}
+      </select>
+    </label>
+    <label class="app-header__theme" for="editor-theme"><span>{m.header_theme()}</span>
       <select id="editor-theme" value={theme.current} onchange={(event) => theme.select(event.currentTarget.value)}>
-        {#each THEMES as option (option.id)}<option value={option.id}>{option.label}</option>{/each}
+        {#each THEMES as option (option.id)}<option value={option.id}>{THEME_LABELS[option.id]()}</option>{/each}
       </select>
     </label>
   </div>
@@ -72,8 +88,9 @@
   }
   .app-header__controls, .app-header__schema { display: flex; align-items: center; gap: 12px; }
   .app-header__schema { font-size: 12px; color: var(--color-text-muted); }
-  .app-header__theme { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
+  .app-header__theme, .app-header__language { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted); }
   .app-header__theme select { max-width: 150px; }
+  .app-header__language select { max-width: 130px; }
   @media (max-width: 480px) {
     .app-header { padding: 12px 16px; gap: 12px; flex-wrap: wrap; }
     .app-header__brand { font-size: 16px; gap: 8px; }

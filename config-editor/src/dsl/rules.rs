@@ -1,5 +1,8 @@
 use super::*;
-use crate::validation::{self, Errors};
+use crate::{
+	messages::{self, builtin},
+	validation::{self, Errors},
+};
 
 impl Collection {
 	pub fn row_visible(&self, doc: &Document, root: &Value, index: usize) -> Result<bool, DslError> {
@@ -81,7 +84,15 @@ impl Document {
 			_ => return Err(n.error("未知校验类型")),
 		})
 	}
-	fn validate_fields(&self, fields: &[InputField], root: &Value, row: &Value, prefix: &str, errors: &mut Errors) {
+	fn validate_fields(
+		&self,
+		fields: &[InputField],
+		root: &Value,
+		row: &Value,
+		prefix: &str,
+		locale: &str,
+		errors: &mut Errors,
+	) {
 		for field in fields {
 			let key = format!("{prefix}{}", field.key);
 			let result = (|| {
@@ -99,10 +110,15 @@ impl Document {
 					return Err(DslError("输入字段类型不匹配".into()));
 				}
 				if field.kind == InputKind::Select && !field.options.iter().any(|(k, _)| Some(k.as_str()) == value.as_str()) {
-					return Ok(Some("请选择有效选项。".into()));
+					return Ok(Some(
+						builtin("builtin.error.select", locale, &self.default_locale)
+							.unwrap_or_default()
+							.to_owned(),
+					));
 				}
 				if !field.rule.is_empty() && !self.check_validator(&field.rule, value)? {
-					return Ok(Some(self.validators[&field.rule].required("message")?.to_owned()));
+					let message = self.validators[&field.rule].required("message")?;
+					return Ok(Some(self.text(&Text::from_attr(message), locale)));
 				}
 				Ok(None)
 			})();
@@ -118,8 +134,11 @@ impl Document {
 		}
 	}
 	pub fn validate(&self, root: &Value) -> Errors {
+		self.validate_in(root, &self.default_locale)
+	}
+	pub fn validate_in(&self, root: &Value, locale: &str) -> Errors {
 		let mut errors = Errors::new();
-		self.validate_fields(&self.fields, root, root, "", &mut errors);
+		self.validate_fields(&self.fields, root, root, "", locale, &mut errors);
 		for c in &self.collections {
 			match c.visible_in(self, root) {
 				Ok(false) => continue,
@@ -130,21 +149,33 @@ impl Document {
 				Ok(true) => {}
 			}
 			let Some(rows) = root.get(&c.name).and_then(Value::as_array) else {
-				errors.insert(c.name.clone(), "输入集合必须是列表。".into());
+				errors.insert(
+					c.name.clone(),
+					builtin("builtin.error.collection", locale, &self.default_locale)
+						.unwrap_or_default()
+						.to_owned(),
+				);
 				continue;
 			};
 			if rows.len() < c.min_items {
-				errors.insert(c.name.clone(), format!("{}至少需要 {} 项。", c.label, c.min_items));
+				let template = builtin("builtin.error.collection-min", locale, &self.default_locale).unwrap_or_default();
+				let label = self.text(&c.label, locale);
+				errors.insert(c.name.clone(), messages::substitute(template, &label, c.min_items));
 			}
 			if let Some(key) = &c.selected_by
 				&& self.shown(&c.select_when, root)
 				&& root[key].as_u64().is_none_or(|i| i >= rows.len() as u64)
 			{
-				errors.insert(key.clone(), "请选择有效项目。".into());
+				errors.insert(
+					key.clone(),
+					builtin("builtin.error.selection", locale, &self.default_locale)
+						.unwrap_or_default()
+						.to_owned(),
+				);
 			}
 			for (i, row) in rows.iter().enumerate() {
 				if c.row_visible(self, root, i).unwrap_or(false) {
-					self.validate_fields(&c.fields, root, row, &format!("{}.{i}.", c.name), &mut errors);
+					self.validate_fields(&c.fields, root, row, &format!("{}.{i}.", c.name), locale, &mut errors);
 				}
 			}
 		}
@@ -189,7 +220,8 @@ impl Document {
 				match result {
 					Ok(true) => {}
 					Ok(false) => {
-						errors.insert(key, rule.attr("message").unwrap_or_default().into());
+						let message = Text::from_attr(rule.attr("message").unwrap_or_default());
+						errors.insert(key, self.text(&message, locale));
 					}
 					Err(e) => {
 						errors.insert(key, e.to_string());

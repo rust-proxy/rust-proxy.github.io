@@ -1,4 +1,4 @@
-<config-dsl version="5" target-version="2.0.0-dev7">
+<config-dsl version="6" target-version="2.0.0-dev7">
 	<ui title="配置文件编辑器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN"
 		description="填写连接信息，生成相互匹配的服务端与客户端配置。"
 		mode-field="mode" format-field="format"

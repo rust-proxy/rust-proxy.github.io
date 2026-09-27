@@ -1,31 +1,117 @@
-<config-dsl version="5" target-version="example-1">
-	<ui title="任务清单编辑器" brand="Notebook" mark="N" eyebrow="XML 复用示例" description="同一编辑器读取另一份 XML。" mode-field="deployment" format-field="encoding" export-hint="保存所需的清单。">
-		<section name="general" label="清单设置"/>
-		<section name="entries" label="清单项目"/>
-		<notice when="confirmed" text="已确认本次清单。"/>
+<config-dsl version="6" target-version="example-1" locales="zh-CN en" default-locale="zh-CN">
+	<strings>
+		<locale code="zh-CN">
+			<entry name="ui.title" text="任务清单编辑器"/>
+			<entry name="ui.brand" text="Notebook"/>
+			<entry name="ui.eyebrow" text="XML 复用示例"/>
+			<entry name="ui.description" text="同一编辑器读取另一份 XML。"/>
+			<entry name="ui.export-hint" text="保存所需的清单。"/>
+			<entry name="section.general" text="清单设置"/>
+			<entry name="section.entries" text="清单项目"/>
+			<entry name="notice.confirmed" text="已确认本次清单。"/>
+			<entry name="msg.required" text="请填写名称。"/>
+			<entry name="msg.count" text="数量必须在 1–100 之间。"/>
+			<entry name="field.deployment" text="导出范围"/>
+			<entry name="opt.all" text="全部清单"/>
+			<entry name="opt.one" text="单个项目"/>
+			<entry name="field.encoding" text="输出格式"/>
+			<entry name="field.project" text="项目名称"/>
+			<entry name="field.confirm" text="确认清单"/>
+			<entry name="field.seed" text="随机标记"/>
+			<entry name="field.first" text="起始数量"/>
+			<entry name="field.last" text="结束数量"/>
+			<entry name="field.chosen" text="选中项目"/>
+			<entry name="col.entries" text="项目"/>
+			<entry name="add.entries" text="添加项目"/>
+			<entry name="gen.entries" text="更新标记"/>
+			<entry name="field.id" text="项目名称"/>
+			<entry name="field.enabled" text="启用"/>
+			<entry name="field.tag" text="标记"/>
+			<entry name="field.token" text="密钥"/>
+			<entry name="rule.last" text="结束数量不能小于起始数量。"/>
+			<entry name="rule.unique" text="项目名称重复。"/>
+			<entry name="out.snapshot" text="完整清单"/>
+			<entry name="out.snapshot.title" text="清单所属项目的名称。"/>
+			<entry name="out.snapshot.items" text="清单项目列表，按填写顺序输出。"/>
+			<entry name="out.snapshot.item" text="单个清单项目。"/>
+			<entry name="out.snapshot.name" text="项目名称，必须唯一。"/>
+			<entry name="out.snapshot.enabled" text="项目是否启用。"/>
+			<entry name="out.snapshot.secret" text="项目密钥，属于敏感信息，预览默认脱敏。"/>
+			<entry name="out.selected" text="单项清单"/>
+			<entry name="out.selected.item" text="当前选中项目的名称。"/>
+			<entry name="out.audit" text="审计信息"/>
+			<entry name="out.audit.confirmed" text="清单是否已确认。"/>
+		</locale>
+		<locale code="en">
+			<entry name="ui.title" text="Task list editor"/>
+			<entry name="ui.brand" text="Notebook"/>
+			<entry name="ui.eyebrow" text="XML reuse example"/>
+			<entry name="ui.description" text="The same editor reads a second XML description."/>
+			<entry name="ui.export-hint" text="Save the lists you need."/>
+			<entry name="section.general" text="List settings"/>
+			<entry name="section.entries" text="List items"/>
+			<entry name="notice.confirmed" text="This list was confirmed."/>
+			<entry name="msg.required" text="Enter a name."/>
+			<entry name="msg.count" text="The count must be between 1 and 100."/>
+			<entry name="field.deployment" text="Export scope"/>
+			<entry name="opt.all" text="All lists"/>
+			<entry name="opt.one" text="Single item"/>
+			<entry name="field.encoding" text="Output format"/>
+			<entry name="field.project" text="Project name"/>
+			<entry name="field.confirm" text="Confirm list"/>
+			<entry name="field.seed" text="Random marker"/>
+			<entry name="field.first" text="Start count"/>
+			<entry name="field.last" text="End count"/>
+			<entry name="field.chosen" text="Selected item"/>
+			<entry name="col.entries" text="Items"/>
+			<entry name="add.entries" text="Add item"/>
+			<entry name="gen.entries" text="Refresh marker"/>
+			<entry name="field.id" text="Item name"/>
+			<entry name="field.enabled" text="Enabled"/>
+			<entry name="field.tag" text="Marker"/>
+			<entry name="field.token" text="Secret"/>
+			<entry name="rule.last" text="The end count cannot be less than the start count."/>
+			<entry name="rule.unique" text="Item names must be unique."/>
+			<entry name="out.snapshot" text="Full list"/>
+			<entry name="out.snapshot.title" text="Name of the project this list belongs to."/>
+			<entry name="out.snapshot.items" text="List items in entry order."/>
+			<entry name="out.snapshot.item" text="A single list item."/>
+			<entry name="out.snapshot.name" text="Unique item name."/>
+			<entry name="out.snapshot.enabled" text="Whether the item is enabled."/>
+			<entry name="out.snapshot.secret" text="Item secret; sensitive and redacted in the preview by default."/>
+			<entry name="out.selected" text="Selected list"/>
+			<entry name="out.selected.item" text="Name of the currently selected item."/>
+			<entry name="out.audit" text="Audit info"/>
+			<entry name="out.audit.confirmed" text="Whether the list was confirmed."/>
+		</locale>
+	</strings>
+	<ui title="@string/ui.title" brand="@string/ui.brand" mark="N" eyebrow="@string/ui.eyebrow" description="@string/ui.description" mode-field="deployment" format-field="encoding" export-hint="@string/ui.export-hint">
+		<section name="general" label="@string/section.general"/>
+		<section name="entries" label="@string/section.entries"/>
+		<notice when="confirmed" text="@string/notice.confirmed"/>
 	</ui>
 	<validators>
-		<validator name="text" kind="required" message="请填写名称。"/>
-		<validator name="count" kind="integer" min="1" max="100" message="数量必须在 1–100 之间。"/>
+		<validator name="text" kind="required" message="@string/msg.required"/>
+		<validator name="count" kind="integer" min="1" max="100" message="@string/msg.count"/>
 	</validators>
 	<inputs>
-		<field name="deployment" type="enum" default="all" label="导出范围">
-			<option value="all" label="全部清单"/><option value="one" label="单个项目"/>
+		<field name="deployment" type="enum" default="all" label="@string/field.deployment">
+			<option value="all" label="@string/opt.all"/><option value="one" label="@string/opt.one"/>
 		</field>
-		<field name="encoding" type="enum" default="json" label="输出格式">
+		<field name="encoding" type="enum" default="json" label="@string/field.encoding">
 			<option value="json" label="JSON"/><option value="toml" label="TOML"/><option value="yaml" label="YAML"/>
 		</field>
-		<field name="project" type="string" default="example" section="general" label="项目名称" rule="text"/>
-		<field name="confirm" type="boolean" default="false" section="general" label="确认清单"/>
-		<field name="seed" type="string" default="" section="general" label="随机标记" generator="hex" bytes="8"/>
-		<field name="first" type="string" default="1" section="general" label="起始数量" rule="count"/>
-		<field name="last" type="string" default="10" section="general" label="结束数量" rule="count"/>
-		<field name="chosen" type="integer" default="0" label="选中项目"/>
-		<collection name="entries" label="项目" section="entries" initial-items="1" min-items="1" selected-by="chosen" all-when="all" add-label="添加项目" generate-label="更新标记">
-			<field name="id" type="string" default="item" label="项目名称" rule="text"/>
-			<field name="enabled" type="boolean" default="true" label="启用"/>
-			<field name="tag" type="string" default="" label="标记" generator="uuid-v4"/>
-			<field name="token" type="string" default="" label="密钥" widget="password" generator="hex" bytes="12"/>
+		<field name="project" type="string" default="example" section="general" label="@string/field.project" rule="text"/>
+		<field name="confirm" type="boolean" default="false" section="general" label="@string/field.confirm"/>
+		<field name="seed" type="string" default="" section="general" label="@string/field.seed" generator="hex" bytes="8"/>
+		<field name="first" type="string" default="1" section="general" label="@string/field.first" rule="count"/>
+		<field name="last" type="string" default="10" section="general" label="@string/field.last" rule="count"/>
+		<field name="chosen" type="integer" default="0" label="@string/field.chosen"/>
+		<collection name="entries" label="@string/col.entries" section="entries" initial-items="1" min-items="1" selected-by="chosen" all-when="all" add-label="@string/add.entries" generate-label="@string/gen.entries">
+			<field name="id" type="string" default="item" label="@string/field.id" rule="text"/>
+			<field name="enabled" type="boolean" default="true" label="@string/field.enabled"/>
+			<field name="tag" type="string" default="" label="@string/field.tag" generator="uuid-v4"/>
+			<field name="token" type="string" default="" label="@string/field.token" widget="password" generator="hex" bytes="12"/>
 		</collection>
 	</inputs>
 	<conditions>
@@ -35,23 +121,23 @@
 	</conditions>
 	<effects><reset on="project" target="confirm"/><reset on="seed" target="confirm"/></effects>
 	<rules>
-		<assert key="last" when="range" message="结束数量不能小于起始数量。"><compare op="gte"><source from="/last" transform="integer"/><source from="/first" transform="integer"/></compare></assert>
-		<unique collection="entries" key="id" message="项目名称重复。"><source from="id" transform="trim lowercase"/></unique>
+		<assert key="last" when="range" message="@string/rule.last"><compare op="gte"><source from="/last" transform="integer"/><source from="/first" transform="integer"/></compare></assert>
+		<unique collection="entries" key="id" message="@string/rule.unique"><source from="id" transform="trim lowercase"/></unique>
 	</rules>
 	<outputs>
-		<object name="snapshot" label="完整清单" filename="snapshot" command="notebook --input {filename}" when="all">
-			<string name="title" from="/project" description="清单所属项目的名称。"/>
-			<list name="items" from="/entries" description="清单项目列表，按填写顺序输出。">
-				<object description="单个清单项目。">
-					<string name="name" from="id" description="项目名称，必须唯一。"/>
-					<boolean name="enabled" from="enabled" description="项目是否启用。"/>
-					<string name="secret" from="token" secret="true" description="项目密钥，属于敏感信息，预览默认脱敏。"/>
+		<object name="snapshot" label="@string/out.snapshot" filename="snapshot" command="notebook --input {filename}" when="all">
+			<string name="title" from="/project" description="@string/out.snapshot.title"/>
+			<list name="items" from="/entries" description="@string/out.snapshot.items">
+				<object description="@string/out.snapshot.item">
+					<string name="name" from="id" description="@string/out.snapshot.name"/>
+					<boolean name="enabled" from="enabled" description="@string/out.snapshot.enabled"/>
+					<string name="secret" from="token" secret="true" description="@string/out.snapshot.secret"/>
 				</object>
 			</list>
 		</object>
-		<object name="selected" label="单项清单" filename="selected">
-			<string name="item" description="当前选中项目的名称。"><select from="/entries" index="/chosen"><source from="id"/></select></string>
+		<object name="selected" label="@string/out.selected" filename="selected">
+			<string name="item" description="@string/out.selected.item"><select from="/entries" index="/chosen"><source from="id"/></select></string>
 		</object>
-		<object name="audit" label="审计信息" filename="audit" when="confirmed"><boolean name="confirmed" from="/confirm" description="清单是否已确认。"/></object>
+		<object name="audit" label="@string/out.audit" filename="audit" when="confirmed"><boolean name="confirmed" from="/confirm" description="@string/out.audit.confirmed"/></object>
 	</outputs>
 </config-dsl>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import { download } from '../lib/dom';
   import { useSession } from '../state/context';
 
@@ -10,8 +11,8 @@
     copying = true;
     try {
       await navigator.clipboard.writeText(session.export().text);
-      session.status = '已复制完整配置（含明文凭据）。';
-    } catch { session.status = '浏览器未允许复制，请使用下载配置。'; }
+      session.status = m.export_copied();
+    } catch { session.status = m.export_copy_denied(); }
     finally { copying = false; }
   }
 
@@ -19,14 +20,14 @@
     try {
       const file = session.export();
       download(file.text, file.filename);
-      session.status = `已下载 ${file.filename}（含明文凭据）。`;
-    } catch { session.status = '下载失败，请尝试复制配置。'; }
+      session.status = m.export_downloaded({ filename: file.filename });
+    } catch { session.status = m.export_download_failed(); }
   }
 </script>
 
 <div class="export-actions">
-  <button type="button" disabled={!session.valid || copying} aria-busy={copying} onclick={copy}>复制配置</button>
-  <button type="button" class="button--primary" disabled={!session.valid} onclick={save}>下载配置</button>
+  <button type="button" disabled={!session.valid || copying} aria-busy={copying} onclick={copy}>{m.export_copy()}</button>
+  <button type="button" class="button--primary" disabled={!session.valid} onclick={save}>{m.export_download()}</button>
 </div>
 
 <style>

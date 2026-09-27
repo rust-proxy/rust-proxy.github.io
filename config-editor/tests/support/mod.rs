@@ -2,7 +2,7 @@
 #![allow(dead_code, unused_imports)]
 use std::sync::OnceLock;
 
-use config_editor::dsl::{Document, DslError, InputField};
+use config_editor::dsl::{Document, DslError, InputField, Text};
 pub use config_editor::{model::serialize, validation::endpoint};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -17,7 +17,7 @@ fn document() -> Result<&'static Document, DslError> {
 pub fn input_fields() -> &'static [InputField] {
 	document().map(|d| d.fields.as_slice()).unwrap_or_default()
 }
-pub fn options(name: &str) -> &'static [(String, String)] {
+pub fn options(name: &str) -> &'static [(String, Text)] {
 	input_fields()
 		.iter()
 		.find(|field| field.key == name)

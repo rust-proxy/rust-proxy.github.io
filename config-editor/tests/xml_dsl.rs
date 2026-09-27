@@ -3,7 +3,7 @@ use serde_json::json;
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 fn description(inputs: &str, definitions: &str, outputs: &str) -> String {
 	format!(
-		r#"<config-dsl version="5" target-version="test"><inputs>{inputs}</inputs>{definitions}<outputs>{outputs}</outputs></config-dsl>"#
+		r#"<config-dsl version="6" target-version="test"><inputs>{inputs}</inputs>{definitions}<outputs>{outputs}</outputs></config-dsl>"#
 	)
 }
 
@@ -156,6 +156,75 @@ fn output_and_option_descriptions_annotate_the_projection() -> Result {
 }
 
 #[test]
+fn string_pool_resolves_per_locale_and_falls_back() -> Result {
+	let source = r#"<config-dsl version="6" target-version="test" locales="zh-CN en" default-locale="zh-CN">
+ <strings>
+  <locale code="zh-CN"><entry name="title" text="标题"/><entry name="required" text="必填。"/></locale>
+  <locale code="en"><entry name="title" text="Title"/></locale>
+ </strings>
+ <inputs><field name="x" type="string" default="" label="@string/title" rule="req"/></inputs>
+ <validators><validator name="req" kind="required" message="@string/required"/></validators>
+ <outputs><object name="o"><string name="x" from="/x" description="@string/title"/></object></outputs>
+</config-dsl>"#;
+	let doc = Document::parse(source)?;
+	assert_eq!(doc.locales, ["zh-CN", "en"]);
+	assert_eq!(doc.default_locale, "zh-CN");
+	assert_eq!(doc.text(&doc.fields[0].label, "zh-CN"), "标题");
+	assert_eq!(doc.text(&doc.fields[0].label, "en"), "Title");
+	// Missing English translation falls back to the default locale.
+	assert_eq!(
+		doc.validate_in(&doc.defaults(), "en").get("x").map(String::as_str),
+		Some("必填。")
+	);
+	// Preview descriptions are localized too.
+	let config = doc.project(&doc.defaults())?;
+	let yaml = doc.preview_lines_in("o", &config["o"], "yaml", "en")?;
+	assert_eq!(yaml[0].description, "Title");
+	Ok(())
+}
+
+#[test]
+fn string_pool_rejects_invalid_references_and_manifests() -> Result {
+	let base = r#"<config-dsl version="6" target-version="test" locales="zh-CN en" default-locale="zh-CN">
+ <strings><locale code="zh-CN"><entry name="a" text="A"/></locale><locale code="en"><entry name="a" text="A"/></locale></strings>
+ <inputs><field name="x" type="string" default="" label="@string/a"/></inputs><outputs><object name="o"/></outputs>
+</config-dsl>"#;
+	Document::parse(base)?;
+	for invalid in [
+		base.replace("@string/a\"/></inputs>", "@string/missing\"/></inputs>"),
+		base.replace("locales=\"zh-CN en\"", "locales=\"zh-CN zh-CN\""),
+		base.replace("<locale code=\"en\">", "<locale code=\"fr\">"),
+		base.replace(
+			"<locale code=\"zh-CN\"><entry name=\"a\" text=\"A\"/></locale>",
+			"<locale code=\"zh-CN\"></locale>",
+		),
+		base.replace(
+			"<entry name=\"a\" text=\"A\"/>",
+			"<entry name=\"a\" text=\"A\"/><entry name=\"a\" text=\"B\"/>",
+		),
+		base.replace("version=\"6\"", "version=\"5\""),
+		base.replace("default-locale=\"zh-CN\"", "default-locale=\"fr\""),
+	] {
+		assert!(Document::parse(&invalid).is_err(), "accepted invalid pool manifest");
+	}
+	// A schema may override a built-in framework string.
+	let overridden = base
+		.replace(
+			"<locale code=\"zh-CN\"><entry name=\"a\" text=\"A\"/></locale>",
+			"<locale code=\"zh-CN\"><entry name=\"a\" text=\"A\"/><entry name=\"builtin.add\" text=\"新增\"/></locale>",
+		)
+		.replace(
+			"<locale code=\"en\"><entry name=\"a\" text=\"A\"/></locale>",
+			"<locale code=\"en\"><entry name=\"a\" text=\"A\"/><entry name=\"builtin.add\" text=\"New\"/></locale>",
+		)
+		.replace("</inputs>", "<collection name=\"rows\" initial-items=\"0\"><field name=\"v\" type=\"string\" default=\"\" label=\"@string/a\"/></collection></inputs>")
+		.replace("<object name=\"o\"/>", "<object name=\"o\"><string name=\"v\" value=\"ok\"/></object>");
+	let doc = Document::parse(&overridden)?;
+	assert_eq!(doc.text(&doc.collections[0].add_label, "en"), "New");
+	Ok(())
+}
+
+#[test]
 fn config_desc_is_rejected() {
 	let source = description("", "", "").replace("<outputs>", "<config-desc title='d'/><outputs>");
 	assert!(Document::parse(&source).is_err());
@@ -224,7 +293,7 @@ fn reject_cycles_including_cross_kind_and_unused_definitions() {
 
 #[test]
 fn diagnostics_have_location_and_never_include_field_values() -> Result {
-	let bad = "<config-dsl version='5' target-version='test'>\n<inputs/>\n<outputs><string name='token' value='never-log-this' unknown='true'/></outputs></config-dsl>";
+	let bad = "<config-dsl version='6' target-version='test'>\n<inputs/>\n<outputs><string name='token' value='never-log-this' unknown='true'/></outputs></config-dsl>";
 	let error = Document::parse(bad).err().ok_or("expected error")?.to_string();
 	assert!(error.contains("3:") && !error.contains("never-log-this"));
 	let source = description(

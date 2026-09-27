@@ -1,4 +1,5 @@
 pub mod dsl;
+pub mod messages;
 pub mod model;
 pub mod schema;
 pub mod session;

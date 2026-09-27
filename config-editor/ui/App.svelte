@@ -4,12 +4,14 @@
   import FormSection from './components/FormSection.svelte';
   import PreviewPanel from './components/PreviewPanel.svelte';
   import SectionNav from './components/SectionNav.svelte';
+  import { m } from './paraglide/messages';
   import { setSessions } from './state/context';
+  import type { LocaleStore } from './state/locale.svelte';
   import type { SessionStore } from './state/session.svelte';
   import type { ThemeStore } from './state/theme.svelte';
   import type { WorkbenchStore } from './state/workbench.svelte';
 
-  let { session, theme, workbench }: { session: SessionStore; theme: ThemeStore; workbench: WorkbenchStore } = $props();
+  let { session, theme, workbench, locale }: { session: SessionStore; theme: ThemeStore; workbench: WorkbenchStore; locale: LocaleStore } = $props();
   // svelte-ignore state_referenced_locally
   setSessions(session, workbench);
   const view = $derived(session.snapshot);
@@ -23,12 +25,12 @@
 <svelte:head><title>{view.ui.brand} {view.ui.title}</title></svelte:head>
 
 <div class="shell" data-theme={theme.current}>
-  <a class="skip-link" href="#editor-form" onclick={(event) => { event.preventDefault(); workbench.skipToEditor(); }}>跳转到配置表单</a>
-  <AppHeader {theme} />
+  <a class="skip-link" href="#editor-form" onclick={(event) => { event.preventDefault(); workbench.skipToEditor(); }}>{m.skip_to_form()}</a>
+  <AppHeader {theme} {locale} />
   <main id="editor" data-ready="true">
     <div class="page-heading">
       <div><p class="page-heading__eyebrow">{view.ui.eyebrow}</p><h1>{view.ui.title}</h1><p class="page-heading__intro">{view.ui.description}</p></div>
-      <p class="privacy-note"><span class="privacy-note__dot"></span>本地处理<span>不保存输入 · 不上传凭据</span></p>
+      <p class="privacy-note"><span class="privacy-note__dot"></span>{m.privacy_local()}<span>{m.privacy_details()}</span></p>
     </div>
     {#if view.mode}
       {@const mode = view.mode}
@@ -39,14 +41,14 @@
         {/each}
       </div>
     {/if}
-    <div class="pane-switch" role="group" aria-label="工作区视图">
-      <button type="button" aria-pressed={workbench.pane === 'editor'} onclick={() => workbench.switchPane('editor')}>编辑配置</button>
-      <button type="button" aria-pressed={workbench.pane === 'preview'} onclick={() => workbench.switchPane('preview')}>预览与导出{view.valid ? '' : ` · ${session.errors.length}`}</button>
+    <div class="pane-switch" role="group" aria-label={m.pane_group_label()}>
+      <button type="button" aria-pressed={workbench.pane === 'editor'} onclick={() => workbench.switchPane('editor')}>{m.pane_editor()}</button>
+      <button type="button" aria-pressed={workbench.pane === 'preview'} onclick={() => workbench.switchPane('preview')}>{m.pane_preview()}{view.valid ? '' : ` · ${session.errors.length}`}</button>
     </div>
     <div class="workspace" data-pane={workbench.pane}>
       <SectionNav />
       <form id="editor-form" class="editor-form" autocomplete="off" onsubmit={(event) => event.preventDefault()}>
-        <div class="region-heading"><h2>选择配置</h2><span>修改后实时更新预览</span></div>
+        <div class="region-heading"><h2>{m.region_heading()}</h2><span>{m.region_hint()}</span></div>
         {#key session.schema}
           <FieldSearch />
           {#each view.sections as section, index (section.name)}
@@ -57,7 +59,7 @@
       <PreviewPanel />
     </div>
     <div class={`status-bar${session.status ? ' status-bar--visible' : ''}`} role="status" aria-live="polite" data-testid="status-bar">{session.status}</div>
-    <footer><span>{view.ui.brand} 配置工具</span><span>本地生成，按需导出。</span></footer>
+    <footer><span>{m.footer_tools({ brand: view.ui.brand })}</span><span>{m.footer_note()}</span></footer>
   </main>
 </div>
 

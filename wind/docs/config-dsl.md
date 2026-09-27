@@ -1,7 +1,7 @@
 Draft: config-dsl-02
 Category: Experimental / Specification Draft
 Date: 2026 年 9 月
-Language version: 5
+Language version: 6
 
 # Config DSL：静态配置描述
 
@@ -11,7 +11,7 @@ Language version: 5
 
 本文是仓库级标准的提案，不是已采纳的 Wind API 或互联网标准。它描述 TUIC 配置编辑器
 使用的静态 XML 方言，供其他配置编辑器参考。Wind 目前尚未实现此 DSL。草案修订号
-`config-dsl-02` 和语言属性 `version="5"` 表示不同的版本。
+`config-dsl-02` 和语言属性 `version="6"` 表示不同的版本。
 
 本文聚焦 XML 文档结构与字段用途。正文第 1–13 节是规范性内容，第 15 节列出规范性引用；
 第 14 节和附录 A 为说明性内容。中英文版本使用对应的章节编号，并同步维护。
@@ -97,15 +97,18 @@ XML 属性空白规范化、换行改写、Unicode 规范化或裁剪。通用 X
 
 ## 3. 文档结构
 
-根 MUST 为 `config-dsl`，且仅具有必需的 `version="5"` 和 `target-version` 属性。
-`target-version` 是不透明元数据，不是语言选择器。
+根 MUST 为 `config-dsl`，且仅具有必需的 `version="6"` 和 `target-version` 属性，
+以及可选的 `locales`、`default-locale` 属性。`target-version` 是不透明元数据，不是
+语言选择器。`locales` 是空白分隔的语言标记列表，默认 `zh-CN`；`default-locale` 必须
+属于 `locales`，默认取列表首项。
 
 根包含以下顶层区块。未知或重复区块 MUST 被拒绝；区块顺序无关，除 `inputs` 和
-`outputs` 外均可省略，每个区块至多一个。除 `ui` 外，这些区块 MUST NOT 有属性。
+`outputs` 外均可省略，每个区块至多一个。除 `ui`、`strings` 外，这些区块 MUST NOT 有属性。
 
 | 区块 | 必需 | 作用 |
 | --- | --- | --- |
 | `ui` | 否 | 品牌、分区、提示等界面元数据 |
+| `strings` | 否 | 按语言组织的字符串池 |
 | `validators` | 否 | 可复用的字段校验器 |
 | `inputs` | 是 | 顶层输入字段与集合 |
 | `conditions` | 否 | 命名条件 |
@@ -114,9 +117,37 @@ XML 属性空白规范化、换行改写、Unicode 规范化或裁剪。通用 X
 | `rules` | 否 | 跨字段约束 |
 | `effects` | 否 | 字段联动重置 |
 
+### 3.1. 字符串池 `strings`
+
+`strings` 把展示文案集中为可复用的命名条目，按语言分块：
+
+```xml
+<strings>
+  <locale code="zh-CN"><entry name="ui.title" text="配置编辑器"/></locale>
+  <locale code="en"><entry name="ui.title" text="Configuration editor"/></locale>
+</strings>
+```
+
+- `locale` MUST 带 `code`，且属于根 `locales`；同一语言块至多一个。
+- `locale` 的子元素只能是 `entry`；`entry` MUST 带非空 `name`（标识符）和 `text`，
+  不接受子元素；同一语言块内 `name` MUST 唯一。
+- 每个被引用的 `name` MUST 至少在 `default-locale` 中存在；其他语言缺失时回退到
+  默认语言。未使用的条目允许存在。
+
+任何展示文本属性都可以用 `@string/<name>` 引用池条目，例如
+`label="@string/ui.title"`。不以 `@string/` 开头的值按默认语言字面量处理；被引用的
+条目 MUST 存在。配置值、`default`、枚举 `value`、`filename`、`command`、条件与路径
+等行为字段从不本地化。
+
+参考实现为框架自有文案保留以 `builtin.` 开头的 id（如 `builtin.add`、
+`builtin.error.select`）；描述文件可以在池中定义同名条目覆盖它们，未定义时回退到
+内置目录。
+
 ## 4. 界面 `ui`
 
 `ui` 描述页面品牌、分区和提示。全部属性可选，但 `title`、`brand` 在参考实现中必需。
+其余展示属性（`title`、`brand`、`eyebrow`、`description`、`export-hint`）以及
+`section` 的 `label`、`detail` 和 `notice` 的 `text` 都接受 `@string/<name>` 引用。
 
 | 属性 | 含义 |
 | --- | --- |
@@ -456,7 +487,7 @@ IPv6 时产生 `[host]:port`，否则产生 `host:port`。`select` 在调用者�
 此示例使用空敏感值，不是可部署的 TUIC 配置。
 
 ```xml
-<config-dsl version="5" target-version="example">
+<config-dsl version="6" target-version="example">
   <ui title="示例配置" brand="Example" mark="E" format-field="encoding">
     <section name="general" label="常规"/>
   </ui>
@@ -517,7 +548,7 @@ IPv6 时产生 `[host]:port`，否则产生 `host:port`。`select` 在调用者�
 
 | 元素 | 关键属性 | 子元素 |
 | --- | --- | --- |
-| `config-dsl` | `version`、`target-version` | 顶层区块 |
+| `config-dsl` | `version`、`target-version`、`locales`、`default-locale` | 顶层区块，`strings` 为字符串池 |
 | `ui` | `title`、`brand`、`mode-field`、`format-field` | `section`、`notice` |
 | `section` | `name`、`label`、`detail`、`collapsed`、`when` | `notice` |
 | `notice` | `text`、`when` | — |

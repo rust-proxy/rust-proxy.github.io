@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SchemaInfo } from './engine';
 
 const mocks = vi.hoisted(() => {
   const instance = {
@@ -14,7 +15,19 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('../../pkg/engine', () => ({ Engine: mocks.Engine, schemas: mocks.schemas }));
 
-const { EngineSession, isSchema, listSchemas } = await import('./engine');
+const { EngineSession, isSchema, listSchemas, schemaLabel } = await import('./engine');
+
+const SCHEMAS: SchemaInfo[] = [
+  {
+    name: 'alpha',
+    labels: [
+      ['zh-CN', 'Alpha'],
+      ['en', 'Alpha'],
+    ],
+    locales: ['zh-CN', 'en'],
+    default_locale: 'zh-CN',
+  },
+];
 
 beforeEach(() => {
   mocks.instance.initialize.mockReset();
@@ -25,9 +38,10 @@ beforeEach(() => {
 });
 
 describe('listSchemas', () => {
-  it('maps the registry entries', () => {
-    mocks.schemas.mockReturnValue(JSON.stringify([['alpha', 'Alpha'], ['beta', 'Beta']]));
-    expect(listSchemas()).toEqual([{ name: 'alpha', label: 'Alpha' }, { name: 'beta', label: 'Beta' }]);
+  it('maps the registry entries and resolves labels', () => {
+    mocks.schemas.mockReturnValue(JSON.stringify(SCHEMAS));
+    expect(listSchemas()).toEqual(SCHEMAS);
+    expect(schemaLabel(SCHEMAS[0], 'zh-CN')).toBe('Alpha');
   });
 
   it('reports a safe message on malformed registry data', () => {
@@ -36,16 +50,15 @@ describe('listSchemas', () => {
   });
 
   it('rejects unknown schema identifiers', () => {
-    const schemas = [{ name: 'alpha', label: 'Alpha' }];
-    expect(isSchema('alpha', schemas)).toBe(true);
-    expect(isSchema('other', schemas)).toBe(false);
+    expect(isSchema('alpha', SCHEMAS)).toBe(true);
+    expect(isSchema('other', SCHEMAS)).toBe(false);
   });
 });
 
 describe('EngineSession', () => {
   it('parses snapshots and exports at the boundary', () => {
-    const session = new EngineSession('alpha');
-    expect(mocks.Engine).toHaveBeenCalledWith('alpha');
+    const session = new EngineSession('alpha', 'zh-CN');
+    expect(mocks.Engine).toHaveBeenCalledWith('alpha', 'zh-CN');
     mocks.instance.snapshot.mockReturnValue('{"valid":true}');
     expect(session.snapshot('out', true)).toEqual({ valid: true });
     expect(mocks.instance.snapshot).toHaveBeenCalledWith('out', true);
@@ -54,7 +67,7 @@ describe('EngineSession', () => {
   });
 
   it('serializes actions and reports failures', () => {
-    const session = new EngineSession('alpha');
+    const session = new EngineSession('alpha', 'zh-CN');
     session.dispatch({ type: 'set', field: 'host', value: 'x' });
     expect(mocks.instance.dispatch).toHaveBeenCalledWith(JSON.stringify({ type: 'set', field: 'host', value: 'x' }));
 
@@ -67,11 +80,11 @@ describe('EngineSession', () => {
 
   it('wraps thrown values from the WASM constructor', () => {
     mocks.Engine.mockImplementationOnce(() => { throw new Error('未知方案'); });
-    expect(() => new EngineSession('bad')).toThrow('未知方案');
+    expect(() => new EngineSession('bad', 'zh-CN')).toThrow('未知方案');
   });
 
   it('frees the WASM engine on dispose', () => {
-    const session = new EngineSession('alpha');
+    const session = new EngineSession('alpha', 'zh-CN');
     session.dispose();
     expect(mocks.instance.free).toHaveBeenCalled();
   });

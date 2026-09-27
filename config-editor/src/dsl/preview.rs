@@ -4,7 +4,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{DslError, Element, InputField};
+use super::{Document, DslError, Element, InputField, Text};
 
 #[derive(Debug, Clone)]
 enum Node {
@@ -50,8 +50,10 @@ pub(super) fn render(
 	value: &Value,
 	fields: &[InputField],
 	format: &str,
+	doc: &Document,
+	locale: &str,
 ) -> Result<Vec<PreviewLine>, DslError> {
-	let node = annotate(export, value, fields)?;
+	let node = annotate(export, value, fields, doc, locale)?;
 	let Node::Object { children, .. } = node else {
 		return Err(export.error("输出必须是对象"));
 	};
@@ -63,7 +65,12 @@ pub(super) fn render(
 	}
 }
 
-fn annotate(node: &Element, value: &Value, fields: &[InputField]) -> Result<Node, DslError> {
+fn describe(node: &Element, doc: &Document, locale: &str) -> String {
+	node.attr("description")
+		.map_or_else(String::new, |value| doc.text(&Text::from_attr(value), locale))
+}
+
+fn annotate(node: &Element, value: &Value, fields: &[InputField], doc: &Document, locale: &str) -> Result<Node, DslError> {
 	match (node.tag.as_str(), value) {
 		("object", Value::Object(entries)) => {
 			let children = entries
@@ -74,12 +81,12 @@ fn annotate(node: &Element, value: &Value, fields: &[InputField]) -> Result<Node
 						.iter()
 						.find(|candidate| candidate.attr("name") == Some(key.as_str()))
 						.ok_or_else(|| node.error("输出含有未声明的字段"))?;
-					annotate(template, child, fields)
+					annotate(template, child, fields, doc, locale)
 				})
 				.collect::<Result<Vec<_>, _>>()?;
 			Ok(Node::Object {
 				name: node.attr("name").map(str::to_owned),
-				description: node.attr("description").unwrap_or_default().into(),
+				description: describe(node, doc, locale),
 				children,
 			})
 		}
@@ -87,11 +94,11 @@ fn annotate(node: &Element, value: &Value, fields: &[InputField]) -> Result<Node
 			let template = node.single()?;
 			let children = items
 				.iter()
-				.map(|item| annotate(template, item, fields))
+				.map(|item| annotate(template, item, fields, doc, locale))
 				.collect::<Result<Vec<_>, _>>()?;
 			Ok(Node::Array {
 				name: node.attr("name").map(str::to_owned),
-				description: node.attr("description").unwrap_or_default().into(),
+				description: describe(node, doc, locale),
 				items: children,
 			})
 		}
@@ -100,36 +107,36 @@ fn annotate(node: &Element, value: &Value, fields: &[InputField]) -> Result<Node
 			let children = entries
 				.iter()
 				.map(|(key, child)| {
-					let mut item = annotate(template, child, fields)?;
+					let mut item = annotate(template, child, fields, doc, locale)?;
 					item.set_name(key.clone());
 					Ok(item)
 				})
 				.collect::<Result<Vec<_>, DslError>>()?;
 			Ok(Node::Object {
 				name: node.attr("name").map(str::to_owned),
-				description: node.attr("description").unwrap_or_default().into(),
+				description: describe(node, doc, locale),
 				children,
 			})
 		}
 		("string" | "boolean" | "integer" | "enum", _) => Ok(Node::Scalar {
 			name: node.attr("name").map(str::to_owned),
 			value: value.clone(),
-			description: scalar_description(node, value, fields),
+			description: scalar_description(node, value, fields, doc, locale),
 		}),
 		_ => Err(node.error("输出结构与生成值不匹配")),
 	}
 }
 
-fn scalar_description(node: &Element, value: &Value, fields: &[InputField]) -> String {
+fn scalar_description(node: &Element, value: &Value, fields: &[InputField], doc: &Document, locale: &str) -> String {
 	if node.tag == "enum"
 		&& let Some(key) = node.attr("options")
 		&& let Some(field) = fields.iter().find(|field| field.key == key)
 		&& let Some(value) = value.as_str()
 		&& let Some(description) = field.option_descriptions.get(value)
 	{
-		return description.clone();
+		return doc.text(description, locale);
 	}
-	node.attr("description").unwrap_or_default().into()
+	describe(node, doc, locale)
 }
 
 fn preview_line(text: String, description: &str) -> PreviewLine {

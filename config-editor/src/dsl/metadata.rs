@@ -5,12 +5,12 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct Ui {
-	pub title: String,
-	pub brand: String,
+	pub title: Text,
+	pub brand: Text,
 	pub mark: String,
-	pub eyebrow: String,
-	pub description: String,
-	pub export_hint: String,
+	pub eyebrow: Text,
+	pub description: Text,
+	pub export_hint: Text,
 	pub mode_field: Option<String>,
 	pub format_field: Option<String>,
 	pub sections: Vec<Section>,
@@ -19,12 +19,12 @@ pub struct Ui {
 impl Default for Ui {
 	fn default() -> Self {
 		Self {
-			title: "配置文件编辑器".into(),
-			brand: "配置工具".into(),
+			title: Text::Ref("builtin.ui.title".into()),
+			brand: Text::Ref("builtin.ui.brand".into()),
 			mark: "C".into(),
-			eyebrow: String::new(),
-			description: String::new(),
-			export_hint: String::new(),
+			eyebrow: Text::default(),
+			description: Text::default(),
+			export_hint: Text::default(),
 			mode_field: None,
 			format_field: None,
 			sections: Vec::new(),
@@ -35,21 +35,21 @@ impl Default for Ui {
 #[derive(Debug, Clone)]
 pub struct Section {
 	pub name: String,
-	pub label: String,
-	pub detail: String,
+	pub label: Text,
+	pub detail: Text,
 	pub collapsed: bool,
 	pub when: Option<String>,
 	pub notices: Vec<Notice>,
 }
 #[derive(Debug, Clone)]
 pub struct Notice {
-	pub text: String,
+	pub text: Text,
 	pub when: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct Export {
 	pub name: String,
-	pub label: String,
+	pub label: Text,
 	pub filename: String,
 	pub command: String,
 	pub when: Option<String>,
@@ -121,9 +121,61 @@ fn notice(node: &Element) -> Result<Notice, DslError> {
 		return Err(node.error("需要 notice 元素"));
 	}
 	Ok(Notice {
-		text: node.required("text")?.into(),
+		text: Text::from_attr(node.required("text")?),
 		when: node.attr("when").map(str::to_owned),
 	})
+}
+/// Parses the `<strings>` pool: `<locale code=".."><entry name=".." text=".."/></locale>`.
+pub(super) fn strings(node: Option<&Element>, locales: &[String], default_locale: &str) -> Result<StringPool, DslError> {
+	let mut pool = StringPool {
+		default_locale: default_locale.to_owned(),
+		locales: locales.to_vec(),
+		..StringPool::default()
+	};
+	let Some(node) = node else {
+		return Ok(pool);
+	};
+	attrs(node, &[])?;
+	let mut seen = BTreeSet::new();
+	for locale in &node.children {
+		if locale.tag != "locale" {
+			return Err(locale.error("strings 只接受 locale 元素"));
+		}
+		attrs(locale, &["code"])?;
+		let code = locale.required("code")?;
+		if !locales.iter().any(|l| l == code) {
+			return Err(locale.error("locale 未在根声明的 locales 中"));
+		}
+		if !seen.insert(code.to_owned()) {
+			return Err(locale.error("重复的 locale 块"));
+		}
+		for entry in &locale.children {
+			if entry.tag != "entry" {
+				return Err(entry.error("locale 只接受 entry 元素"));
+			}
+			attrs(entry, &["name", "text"])?;
+			if !entry.children.is_empty() {
+				return Err(entry.error("entry 不接受子元素"));
+			}
+			let name = entry.required("name")?;
+			if name.is_empty()
+				|| name.as_bytes()[0].is_ascii_digit()
+				|| !name
+					.bytes()
+					.all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+			{
+				return Err(entry.error("字符串名称无效"));
+			}
+			let text = entry.required("text")?.to_owned();
+			if pool.insert(code, name, text).is_some() {
+				return Err(entry.error("重复的字符串名称"));
+			}
+		}
+	}
+	if let Some(id) = pool.lacks_default() {
+		return Err(node.error(&format!("字符串 {id} 缺少默认语言")));
+	}
+	Ok(pool)
 }
 pub(super) fn parse_ui(node: Option<&Element>) -> Result<Ui, DslError> {
 	let Some(node) = node else {
@@ -143,12 +195,12 @@ pub(super) fn parse_ui(node: Option<&Element>) -> Result<Ui, DslError> {
 		],
 	)?;
 	let mut ui = Ui {
-		title: node.required("title")?.into(),
-		brand: node.required("brand")?.into(),
+		title: Text::from_attr(node.required("title")?),
+		brand: Text::from_attr(node.required("brand")?),
 		mark: node.attr("mark").unwrap_or_default().into(),
-		eyebrow: node.attr("eyebrow").unwrap_or_default().into(),
-		description: node.attr("description").unwrap_or_default().into(),
-		export_hint: node.attr("export-hint").unwrap_or_default().into(),
+		eyebrow: node.attr("eyebrow").map_or_else(Text::default, Text::from_attr),
+		description: node.attr("description").map_or_else(Text::default, Text::from_attr),
+		export_hint: node.attr("export-hint").map_or_else(Text::default, Text::from_attr),
 		mode_field: node.attr("mode-field").map(str::to_owned),
 		format_field: node.attr("format-field").map(str::to_owned),
 		..Ui::default()
@@ -174,8 +226,8 @@ pub(super) fn parse_ui(node: Option<&Element>) -> Result<Ui, DslError> {
 			.map_err(|_| child.error("collapsed 必须为布尔值"))?;
 		ui.sections.push(Section {
 			name: name.into(),
-			label: child.required("label")?.into(),
-			detail: child.attr("detail").unwrap_or_default().into(),
+			label: Text::from_attr(child.required("label")?),
+			detail: child.attr("detail").map_or_else(Text::default, Text::from_attr),
 			collapsed,
 			when: child.attr("when").map(str::to_owned),
 			notices: child.children.iter().map(notice).collect::<Result<_, _>>()?,
@@ -194,7 +246,10 @@ pub(super) fn exports(node: &Element) -> Result<Vec<Export>, DslError> {
 			}
 			Ok(Export {
 				name: name.into(),
-				label: n.attr("label").unwrap_or(name).into(),
+				label: match n.attr("label") {
+					Some(value) => Text::from_attr(value),
+					None => Text::Lit(name.into()),
+				},
 				filename: filename.into(),
 				command: n.attr("command").unwrap_or_default().into(),
 				when: n.attr("when").map(str::to_owned),
@@ -329,8 +384,12 @@ pub(super) fn check(doc: &mut Document) -> Result<(), DslError> {
 			if sections.insert(name.clone()) {
 				doc.ui.sections.push(Section {
 					name: name.clone(),
-					label: if name.is_empty() { "输入".into() } else { name.clone() },
-					detail: String::new(),
+					label: if name.is_empty() {
+						Text::Ref("builtin.ui.section".into())
+					} else {
+						Text::Lit(name.clone())
+					},
+					detail: Text::default(),
 					collapsed: false,
 					when: None,
 					notices: Vec::new(),

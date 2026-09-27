@@ -9,7 +9,7 @@ fn unrelated_description_drives_the_complete_engine() -> Result {
 	let doc = Document::parse(SOURCE)?;
 	let mut state = State::new(&doc);
 	assert!(doc.validate(&state.data).is_empty());
-	assert_eq!(doc.ui.brand, "Notebook");
+	assert_eq!(doc.text(&doc.ui.brand, "zh-CN"), "Notebook");
 	assert_eq!(doc.ui.sections.len(), 2);
 	assert_eq!(doc.exports.len(), 3);
 	let config = build_configs(&doc, &state.data)?;
@@ -166,8 +166,8 @@ fn config_desc_and_legacy_lines_are_rejected() {
 	);
 	assert!(Document::parse(&described).is_err(), "config-desc must be rejected");
 	let legacy = SOURCE.replace(
-		"<string name=\"title\" from=\"/project\" description=\"清单所属项目的名称。\"/>",
-		"<line yaml=\"title: example\" description=\"清单所属项目的名称。\"/>",
+		"<string name=\"title\" from=\"/project\" description=\"@string/out.snapshot.title\"/>",
+		"<line yaml=\"title: example\" description=\"@string/out.snapshot.title\"/>",
 	);
 	assert!(Document::parse(&legacy).is_err(), "legacy line descriptions must be rejected");
 }
@@ -225,11 +225,14 @@ fn production_code_contains_no_product_identifiers() {
 		include_str!("../ui/types.ts"),
 		include_str!("../ui/bridge/engine.ts"),
 		include_str!("../ui/state/context.ts"),
+		include_str!("../ui/state/locale.svelte.ts"),
 		include_str!("../ui/state/session.svelte.ts"),
 		include_str!("../ui/state/workbench.svelte.ts"),
 		include_str!("../ui/state/theme.svelte.ts"),
 		include_str!("../ui/state/viewport.svelte.ts"),
 		include_str!("../ui/state/url.ts"),
+		include_str!("../messages/zh-CN.json"),
+		include_str!("../messages/en.json"),
 		include_str!("../ui/lib/dom.ts"),
 		include_str!("../ui/lib/highlight.ts"),
 		include_str!("../ui/components/AppHeader.svelte"),

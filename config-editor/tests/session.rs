@@ -28,7 +28,7 @@ fn action(session: &mut Session, value: Value) -> Result {
 
 #[test]
 fn wire_actions_preserve_row_identity_selection_and_business_id() -> Result {
-	let mut s = Session::new(Document::parse(XML)?);
+	let mut s = Session::new(Document::parse(XML)?, "zh-CN");
 	s.initialize(&mut random)?;
 	let first = s.snapshot("", false).sections[1].collections[0].rows[0].id.clone();
 	action(&mut s, json!({"type":"add", "collection":"entries"}))?;
@@ -63,7 +63,7 @@ fn wire_actions_preserve_row_identity_selection_and_business_id() -> Result {
 
 #[test]
 fn preview_export_resets_and_conditional_output_share_one_engine() -> Result {
-	let mut s = Session::new(Document::parse(XML)?);
+	let mut s = Session::new(Document::parse(XML)?, "zh-CN");
 	s.initialize(&mut random)?;
 	let view = s.snapshot("snapshot", false);
 	assert_eq!(preview_json(&view)?["items"][0]["secret"], "••••••••");
@@ -98,7 +98,7 @@ fn preview_export_resets_and_conditional_output_share_one_engine() -> Result {
 
 #[test]
 fn invalid_inputs_keep_preview_with_placeholders() -> Result {
-	let mut s = Session::new(Document::parse(XML)?);
+	let mut s = Session::new(Document::parse(XML)?, "zh-CN");
 	s.initialize(&mut random)?;
 	action(&mut s, json!({"type":"set", "field":"project", "value":""}))?;
 	let view = s.snapshot("snapshot", false);
@@ -111,7 +111,7 @@ fn invalid_inputs_keep_preview_with_placeholders() -> Result {
 
 #[test]
 fn failed_randomness_and_invalid_actions_do_not_partially_mutate_state() -> Result {
-	let mut s = Session::new(Document::parse(XML)?);
+	let mut s = Session::new(Document::parse(XML)?, "zh-CN");
 	let before = serde_json::to_value(s.snapshot("", true))?;
 	let mut calls = 0;
 	let mut fail = move |bytes: &mut [u8]| {
@@ -143,4 +143,39 @@ fn failed_randomness_and_invalid_actions_do_not_partially_mutate_state() -> Resu
 	assert!(serde_json::from_value::<Action>(json!({"type":"set", "field":"project", "value":"value", "extra":true})).is_err());
 	assert_eq!(serde_json::to_value(s.snapshot("", true))?, before);
 	Ok(())
+}
+
+#[test]
+fn switching_locale_relabels_without_touching_input() -> Result {
+	let mut s = Session::new(Document::parse(XML)?, "zh-CN");
+	s.initialize(&mut random)?;
+	action(&mut s, json!({"type":"set", "field":"project", "value":"kept"}))?;
+	let before = s.snapshot("", true);
+	assert_eq!(before.ui.title, "任务清单编辑器");
+	assert_eq!(field_label(&before, "project").as_deref(), Some("项目名称"));
+	s.set_locale("en");
+	let after = s.snapshot("", true);
+	assert_eq!(after.ui.title, "Task list editor");
+	assert_eq!(field_label(&after, "project").as_deref(), Some("Project name"));
+	assert_eq!(field_value(&after, "project").as_deref(), Some("kept"));
+	// An undeclared locale is ignored rather than silently blanking labels.
+	s.set_locale("fr");
+	assert_eq!(s.snapshot("", true).ui.title, "Task list editor");
+	Ok(())
+}
+
+fn field_label(view: &Snapshot, key: &str) -> Option<String> {
+	view.sections
+		.iter()
+		.flat_map(|section| &section.fields)
+		.find(|field| field.key == key)
+		.map(|field| field.label.clone())
+}
+
+fn field_value(view: &Snapshot, key: &str) -> Option<String> {
+	view.sections
+		.iter()
+		.flat_map(|section| &section.fields)
+		.find(|field| field.key == key)
+		.map(|field| field.value.clone())
 }

@@ -106,7 +106,7 @@ impl Session {
 		let doc = &self.doc;
 		let ui = &doc.ui;
 		let root = &self.state.data;
-		let errors = doc.validate(root);
+		let errors = doc.validate_in(root, &self.locale);
 		let selected = self.selected(requested);
 		let format = self.format();
 		let built = build_configs(doc, root).and_then(|configs| {
@@ -120,7 +120,7 @@ impl Session {
 			Ok((export.name.clone(), config.clone()))
 		});
 		let (valid, preview_lines) = match &built {
-			Ok((name, config)) => (true, preview_lines(doc, name, config, format)),
+			Ok((name, config)) => (true, preview_lines(doc, name, config, format, &self.locale)),
 			// Invalid inputs no longer hide the preview: render the structure with placeholders.
 			Err(_) => (
 				false,
@@ -130,18 +130,18 @@ impl Session {
 						let configs = if reveal { configs } else { doc.redact(&configs).ok()? };
 						Some((export.name.clone(), configs.get(&export.name)?.clone()))
 					})
-					.map(|(name, config)| preview_lines(doc, &name, &config, format))
+					.map(|(name, config)| preview_lines(doc, &name, &config, format, &self.locale))
 					.unwrap_or_default(),
 			),
 		};
 		Snapshot {
 			ui: Branding {
-				title: ui.title.clone(),
-				brand: ui.brand.clone(),
+				title: doc.text(&ui.title, &self.locale),
+				brand: doc.text(&ui.brand, &self.locale),
 				mark: ui.mark.clone(),
-				eyebrow: ui.eyebrow.clone(),
-				description: ui.description.clone(),
-				export_hint: ui.export_hint.clone(),
+				eyebrow: doc.text(&ui.eyebrow, &self.locale),
+				description: doc.text(&ui.description, &self.locale),
+				export_hint: doc.text(&ui.export_hint, &self.locale),
 			},
 			sections: ui
 				.sections
@@ -156,7 +156,7 @@ impl Session {
 				.iter()
 				.map(|e| OutputView {
 					name: e.name.clone(),
-					label: e.label.clone(),
+					label: doc.text(&e.label, &self.locale),
 					visible: doc.shown(&e.when, root),
 				})
 				.collect(),
@@ -185,8 +185,8 @@ impl Session {
 		};
 		SectionView {
 			name: section.name.clone(),
-			label: section.label.clone(),
-			detail: section.detail.clone(),
+			label: doc.text(&section.label, &self.locale),
+			detail: doc.text(&section.detail, &self.locale),
 			collapsed: section.collapsed,
 			visible: doc.shown(&section.when, &self.state.data),
 			fields: doc
@@ -210,10 +210,11 @@ impl Session {
 		let ids = self.state.rows(&c.name);
 		let mut selector = self.top_field(&c.selected_by, errors);
 		if let Some(f) = &mut selector {
+			let label = self.doc.text(&c.label, &self.locale);
 			f.options = ids
 				.iter()
 				.enumerate()
-				.map(|(i, _)| (i.to_string(), format!("{} {}", c.label, i + 1)))
+				.map(|(i, _)| (i.to_string(), format!("{} {}", label, i + 1)))
 				.collect();
 			f.kind = "select";
 			f.visible = self.doc.shown(&c.select_when, root) && ids.len() >= 2;
@@ -236,10 +237,10 @@ impl Session {
 			.collect();
 		CollectionView {
 			name: c.name.clone(),
-			label: c.label.clone(),
-			hint: c.hint.clone(),
-			add_label: c.add_label.clone(),
-			generate_label: c.generate_label.clone(),
+			label: self.doc.text(&c.label, &self.locale),
+			hint: self.doc.text(&c.hint, &self.locale),
+			add_label: self.doc.text(&c.add_label, &self.locale),
+			generate_label: self.doc.text(&c.generate_label, &self.locale),
 			generated: c.fields.iter().any(|f| f.generator.is_some()),
 			visible: c.visible_in(&self.doc, root).unwrap_or(false),
 			editable: c.editable(&self.doc, root),
@@ -252,9 +253,9 @@ impl Session {
 	fn field_view(&self, f: &InputField, row: &Value, path: String, errors: &Errors) -> FieldView {
 		FieldView {
 			key: f.key.clone(),
-			label: f.label.clone(),
-			hint: f.hint.clone(),
-			placeholder: f.placeholder.clone(),
+			label: self.doc.text(&f.label, &self.locale),
+			hint: self.doc.text(&f.hint, &self.locale),
+			placeholder: self.doc.text(&f.placeholder, &self.locale),
 			kind: match f.kind {
 				InputKind::Text => "text",
 				InputKind::Password => "password",
@@ -263,7 +264,11 @@ impl Session {
 				InputKind::Toggle => "toggle",
 				InputKind::Select => "select",
 			},
-			options: f.options.clone(),
+			options: f
+				.options
+				.iter()
+				.map(|(value, label)| (value.clone(), self.doc.text(label, &self.locale)))
+				.collect(),
 			value: f.read_value(row),
 			visible: f.visible_in(&self.doc, &self.state.data, row).unwrap_or(false),
 			error: errors.get(&path).cloned().unwrap_or_default(),
@@ -276,7 +281,7 @@ impl Session {
 		notices
 			.iter()
 			.map(|n| NoticeView {
-				text: n.text.clone(),
+				text: self.doc.text(&n.text, &self.locale),
 				visible: self.doc.shown(&n.when, &self.state.data),
 			})
 			.collect()
@@ -286,8 +291,8 @@ impl Session {
 /// Annotates the generated output with the descriptions declared on its output nodes.
 ///
 /// Falls back to plain serialized lines without tooltips if annotation is impossible.
-fn preview_lines(doc: &Document, name: &str, config: &Value, format: &str) -> Vec<PreviewLine> {
-	if let Ok(lines) = doc.preview_lines(name, config, format) {
+fn preview_lines(doc: &Document, name: &str, config: &Value, format: &str, locale: &str) -> Vec<PreviewLine> {
+	if let Ok(lines) = doc.preview_lines_in(name, config, format, locale) {
 		return lines;
 	}
 	serialize(config, format)

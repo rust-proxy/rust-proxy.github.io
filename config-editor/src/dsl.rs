@@ -15,8 +15,92 @@ pub use metadata::{Export, Generator, Notice, Section, Ui};
 pub use preview::PreviewLine;
 use serde_json::{Map, Value};
 
+use crate::messages;
+
 /// Display-only substitute for invalid input values in the preview. Never exported.
 pub const PLACEHOLDER: &str = "<placeholder>";
+
+/// Prefix marking a display string that references the schema string pool.
+pub const STRING_REF_PREFIX: &str = "@string/";
+
+/// A display string is either a literal (default locale only) or a pool reference.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Text {
+	Lit(String),
+	Ref(String),
+}
+impl Text {
+	pub fn from_attr(value: &str) -> Self {
+		match value.strip_prefix(STRING_REF_PREFIX) {
+			Some(id) => Self::Ref(id.to_owned()),
+			None => Self::Lit(value.to_owned()),
+		}
+	}
+	pub fn reference(&self) -> Option<&str> {
+		match self {
+			Self::Ref(id) => Some(id),
+			Self::Lit(_) => None,
+		}
+	}
+}
+impl Default for Text {
+	fn default() -> Self {
+		Self::Lit(String::new())
+	}
+}
+impl From<&str> for Text {
+	fn from(value: &str) -> Self {
+		Self::Lit(value.to_owned())
+	}
+}
+impl From<String> for Text {
+	fn from(value: String) -> Self {
+		Self::Lit(value)
+	}
+}
+
+/// One string pool entry resolved across every declared locale.
+#[derive(Debug, Clone, Default)]
+pub struct Localized {
+	values: BTreeMap<String, String>,
+}
+impl Localized {
+	pub fn insert(&mut self, locale: &str, text: String) -> Option<String> {
+		self.values.insert(locale.to_owned(), text)
+	}
+	pub fn get(&self, locale: &str) -> Option<&str> {
+		self.values.get(locale).map(String::as_str)
+	}
+}
+
+/// Schema-local string pool. Display text is referenced by stable id and resolved per locale;
+/// unresolved ids fall back to the Rust built-in catalog in [`crate::messages`].
+#[derive(Debug, Clone, Default)]
+pub struct StringPool {
+	pub default_locale: String,
+	pub locales: Vec<String>,
+	entries: BTreeMap<String, Localized>,
+}
+impl StringPool {
+	pub fn contains(&self, id: &str) -> bool {
+		self.entries.contains_key(id)
+	}
+	pub fn insert(&mut self, locale: &str, id: &str, text: String) -> Option<String> {
+		self.entries.entry(id.to_owned()).or_default().insert(locale, text)
+	}
+	pub fn resolve(&self, id: &str, locale: &str) -> Option<&str> {
+		let entry = self.entries.get(id)?;
+		entry.get(locale).or_else(|| entry.get(&self.default_locale))
+	}
+	/// First entry missing the default locale, if any: translations may be incomplete but the
+	/// fallback locale must define every string.
+	pub fn lacks_default(&self) -> Option<&str> {
+		self.entries
+			.iter()
+			.find(|(_, entry)| entry.get(&self.default_locale).is_none())
+			.map(|(id, _)| id.as_str())
+	}
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DslError(pub String);
@@ -65,13 +149,13 @@ pub enum InputKind {
 #[derive(Debug, Clone)]
 pub struct InputField {
 	pub key: String,
-	pub label: String,
-	pub placeholder: String,
-	pub hint: String,
+	pub label: Text,
+	pub placeholder: Text,
+	pub hint: Text,
 	pub section: String,
 	pub kind: InputKind,
-	pub options: Vec<(String, String)>,
-	pub option_descriptions: BTreeMap<String, String>,
+	pub options: Vec<(String, Text)>,
+	pub option_descriptions: BTreeMap<String, Text>,
 	pub rule: String,
 	pub generator: Option<Generator>,
 	default: Value,
@@ -111,11 +195,11 @@ impl InputField {
 pub struct Collection {
 	pub name: String,
 	pub fields: Vec<InputField>,
-	pub label: String,
+	pub label: Text,
 	pub section: String,
-	pub hint: String,
-	pub add_label: String,
-	pub generate_label: String,
+	pub hint: Text,
+	pub add_label: Text,
+	pub generate_label: Text,
 	pub min_items: usize,
 	pub selected_by: Option<String>,
 	pub all_when: Option<String>,
@@ -137,6 +221,9 @@ pub struct Document {
 	pub target_version: String,
 	pub ui: Ui,
 	pub exports: Vec<Export>,
+	pub pool: StringPool,
+	pub locales: Vec<String>,
+	pub default_locale: String,
 	validators: BTreeMap<String, Element>,
 	rules: Vec<Element>,
 	resets: Vec<(String, String)>,
@@ -149,6 +236,23 @@ pub struct Document {
 impl Document {
 	pub fn parse(source: &str) -> Result<Self, DslError> {
 		parser::parse(source)
+	}
+	/// Resolves a display string for a locale, then the pool default locale, then the built-in
+	/// catalog, then the raw id.
+	pub fn text(&self, text: &Text, locale: &str) -> String {
+		match text {
+			Text::Lit(value) => value.clone(),
+			Text::Ref(id) => self
+				.pool
+				.resolve(id, locale)
+				.or_else(|| messages::builtin(id, locale, &self.default_locale))
+				.unwrap_or(id)
+				.to_owned(),
+		}
+	}
+	/// Whether a locale is declared by this description.
+	pub fn has_locale(&self, locale: &str) -> bool {
+		self.locales.iter().any(|l| l == locale)
 	}
 	pub fn defaults(&self) -> Value {
 		let mut fields = defaults(&self.fields);
@@ -372,13 +476,23 @@ impl Document {
 	}
 	/// Renders one top-level output as annotated lines from its declared descriptions.
 	pub fn preview_lines(&self, export: &str, value: &Value, format: &str) -> Result<Vec<PreviewLine>, DslError> {
+		self.preview_lines_in(export, value, format, &self.default_locale)
+	}
+	/// Locale-aware variant used by the live session snapshot.
+	pub fn preview_lines_in(
+		&self,
+		export: &str,
+		value: &Value,
+		format: &str,
+		locale: &str,
+	) -> Result<Vec<PreviewLine>, DslError> {
 		let node = self
 			.outputs
 			.children
 			.iter()
 			.find(|candidate| candidate.attr("name") == Some(export))
 			.ok_or_else(|| DslError("请选择输出。".into()))?;
-		preview::render(node, value, &self.fields, format)
+		preview::render(node, value, &self.fields, format, self, locale)
 	}
 	fn output(&self, node: &Element, root: &Value, row: &Value) -> Result<Option<Value>, DslError> {
 		self.output_mode(node, root, row, false)

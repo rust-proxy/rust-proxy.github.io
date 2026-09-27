@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import { useSession } from '../state/context';
   import type { FieldView } from '../types';
 
@@ -36,7 +37,7 @@
   {#if field.hint}<span id={`${id}-hint`} class="field-hint">{field.hint}</span>{/if}
   {#if field.error}<span id={`${id}-error`} class="field-error">{field.error}</span>{/if}
   {#if !row && field.generated}
-    <button type="button" onclick={() => session.dispatch({ type: 'generate', field: field.key })}>生成随机值</button>
+    <button type="button" onclick={() => session.dispatch({ type: 'generate', field: field.key })}>{m.field_generate()}</button>
   {/if}
 </div>
 

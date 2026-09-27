@@ -6,6 +6,10 @@ build/
 /config-editor/dist/
 /config-editor/.tools/
 /config-editor/pkg/
+/config-editor/ui/paraglide/
+/config-editor/project.inlang/cache/
+/config-editor/project.inlang/.meta.json
+/config-editor/project.inlang/README.md
 /config-editor/.vitest/
 /tests/config-editor/test-results/
 /tests/config-editor/playwright-report/

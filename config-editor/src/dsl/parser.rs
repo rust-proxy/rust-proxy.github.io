@@ -6,10 +6,11 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 	if root.tag != "config-dsl" {
 		return Err(root.error("根元素必须为 config-dsl"));
 	}
-	attrs(&root, &["version", "target-version"])?;
-	if root.required("version")? != "5" {
-		return Err(root.error("仅支持 DSL version=5"));
+	attrs(&root, &["version", "target-version", "locales", "default-locale"])?;
+	if root.required("version")? != "6" {
+		return Err(root.error("仅支持 DSL version=6"));
 	}
+	let (locales, default_locale) = locales(&root)?;
 	let mut sections = BTreeMap::new();
 	for child in &root.children {
 		if ![
@@ -21,12 +22,13 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 			"validators",
 			"rules",
 			"effects",
+			"strings",
 		]
 		.contains(&child.tag.as_str())
 		{
 			return Err(child.error("未知文档区块"));
 		}
-		if child.tag != "ui" {
+		if child.tag != "ui" && child.tag != "strings" {
 			attrs(child, &[])?;
 		}
 		if sections.insert(child.tag.as_str(), child).is_some() {
@@ -83,11 +85,18 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 				}
 				collections.push(Collection {
 					name: name.into(),
-					label: node.attr("label").unwrap_or(name).into(),
+					label: match node.attr("label") {
+						Some(value) => Text::from_attr(value),
+						None => Text::Lit(name.into()),
+					},
 					section: node.attr("section").unwrap_or_default().into(),
-					hint: node.attr("hint").unwrap_or_default().into(),
-					add_label: node.attr("add-label").unwrap_or("添加").into(),
-					generate_label: node.attr("generate-label").unwrap_or("生成随机值").into(),
+					hint: node.attr("hint").map_or_else(Text::default, Text::from_attr),
+					add_label: node
+						.attr("add-label")
+						.map_or_else(|| Text::Ref("builtin.add".into()), Text::from_attr),
+					generate_label: node
+						.attr("generate-label")
+						.map_or_else(|| Text::Ref("builtin.generate".into()), Text::from_attr),
 					min_items: metadata::bounded(node, "min-items", 0, 1000)?,
 					selected_by: node.attr("selected-by").map(str::to_owned),
 					all_when: node.attr("all-when").map(str::to_owned),
@@ -123,10 +132,14 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 		}
 	}
 	output(outputs, false)?;
+	let pool = metadata::strings(sections.get("strings").copied(), &locales, &default_locale)?;
 	let mut doc = Document {
 		target_version: root.required("target-version")?.into(),
 		ui: metadata::parse_ui(sections.get("ui").copied())?,
 		exports: metadata::exports(outputs)?,
+		pool,
+		locales,
+		default_locale,
 		validators: metadata::validators(sections.get("validators").copied())?,
 		rules: metadata::rules(sections.get("rules").copied())?,
 		resets: metadata::resets(sections.get("effects").copied())?,
@@ -136,6 +149,7 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 		values,
 		outputs: (*outputs).clone(),
 	};
+	check_string_refs(&root, &doc.pool)?;
 	metadata::check(&mut doc).map_err(|error| root.error(&error.0))?;
 	check_references(&root, &doc)?;
 	let mut done = BTreeSet::new();
@@ -146,6 +160,61 @@ pub(super) fn parse(source: &str) -> Result<Document, DslError> {
 	}
 	Ok(doc)
 }
+fn valid_locale(token: &str) -> bool {
+	let mut parts = token.split('-');
+	let first = parts.next().unwrap_or_default();
+	(2..=8).contains(&first.len())
+		&& first.bytes().all(|b| b.is_ascii_lowercase())
+		&& parts.all(|p| !p.is_empty() && p.len() <= 8 && p.bytes().all(|b| b.is_ascii_alphanumeric()))
+}
+
+/// Reads the root `locales` list and `default-locale`, defaulting to a single `zh-CN`.
+fn locales(root: &Element) -> Result<(Vec<String>, String), DslError> {
+	let raw = root.attr("locales").unwrap_or("zh-CN");
+	let mut list = Vec::new();
+	for token in raw.split_whitespace() {
+		if !valid_locale(token) {
+			return Err(root.error("无效的语言标记"));
+		}
+		if list.iter().any(|l| l == token) {
+			return Err(root.error("重复的语言标记"));
+		}
+		list.push(token.to_owned());
+	}
+	if list.is_empty() {
+		return Err(root.error("至少声明一种语言"));
+	}
+	let default = root.attr("default-locale").unwrap_or(&list[0]).to_owned();
+	if !list.contains(&default) {
+		return Err(root.error("default-locale 未在 locales 中声明"));
+	}
+	Ok((list, default))
+}
+
+/// Every `@string/<id>` reference anywhere in the description must resolve to a pool entry.
+fn check_string_refs(node: &Element, pool: &StringPool) -> Result<(), DslError> {
+	for value in node.attrs.values() {
+		let Some(id) = value.strip_prefix(STRING_REF_PREFIX) else {
+			continue;
+		};
+		if id.is_empty()
+			|| id.as_bytes()[0].is_ascii_digit()
+			|| !id
+				.bytes()
+				.all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+		{
+			return Err(node.error("字符串引用 id 无效"));
+		}
+		if !pool.contains(id) {
+			return Err(node.error("引用了未声明的字符串"));
+		}
+	}
+	for child in &node.children {
+		check_string_refs(child, pool)?;
+	}
+	Ok(())
+}
+
 pub(super) fn attrs(node: &Element, allowed: &[&str]) -> Result<(), DslError> {
 	if node.attrs.keys().any(|k| !allowed.contains(&k.as_str())) {
 		return Err(node.error("含有未知属性"));
@@ -233,9 +302,9 @@ fn field(node: &Element) -> Result<InputField, DslError> {
 			return Err(child.error("重复枚举值"));
 		}
 		if let Some(description) = child.attr("description") {
-			option_descriptions.insert(value.into(), description.into());
+			option_descriptions.insert(value.into(), Text::from_attr(description));
 		}
-		options.push((value.into(), child.required("label")?.into()));
+		options.push((value.into(), Text::from_attr(child.required("label")?)));
 	}
 	let raw = node.required("default")?;
 	let (default, mut kind) = match node.required("type")? {
@@ -278,9 +347,9 @@ fn field(node: &Element) -> Result<InputField, DslError> {
 	let rule = node.attr("rule").unwrap_or_default();
 	Ok(InputField {
 		key,
-		label: node.required("label")?.into(),
-		placeholder: node.attr("placeholder").unwrap_or_default().into(),
-		hint: node.attr("hint").unwrap_or_default().into(),
+		label: Text::from_attr(node.required("label")?),
+		placeholder: node.attr("placeholder").map_or_else(Text::default, Text::from_attr),
+		hint: node.attr("hint").map_or_else(Text::default, Text::from_attr),
 		section: node.attr("section").unwrap_or_default().into(),
 		kind,
 		options,

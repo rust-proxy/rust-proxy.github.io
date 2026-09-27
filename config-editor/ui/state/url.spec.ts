@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { readSchemaParam, writeSchemaParam } from './url';
+import { readLangParam, readSchemaParam, writeLangParam, writeSchemaParam } from './url';
 
 beforeEach(() => {
   window.history.replaceState({}, '', '/config-editor/?retained=yes#query-state');
@@ -15,6 +15,16 @@ describe('URL synchronization', () => {
     writeSchemaParam('beta');
     const url = new URL(window.location.href);
     expect(url.searchParams.get('schema')).toBe('beta');
+    expect(url.searchParams.get('retained')).toBe('yes');
+    expect(url.hash).toBe('#query-state');
+  });
+
+  it('reads and writes the language parameter alongside other state', () => {
+    expect(readLangParam('?lang=en')).toBe('en');
+    expect(readLangParam('?retained=yes')).toBeNull();
+    writeLangParam('en');
+    const url = new URL(window.location.href);
+    expect(url.searchParams.get('lang')).toBe('en');
     expect(url.searchParams.get('retained')).toBe('yes');
     expect(url.hash).toBe('#query-state');
   });

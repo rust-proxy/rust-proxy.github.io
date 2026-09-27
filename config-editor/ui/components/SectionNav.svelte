@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import { useSession, useWorkbench } from '../state/context';
   import { focusSection } from '../lib/dom';
 
@@ -29,22 +30,22 @@
   });
 </script>
 
-<nav class="section-nav" aria-label="配置分区">
-  <p>配置目录</p>
-  <label class="section-nav__picker" for="editor-section-picker">配置分区
+<nav class="section-nav" aria-label={m.nav_sections()}>
+  <p>{m.nav_directory()}</p>
+  <label class="section-nav__picker" for="editor-section-picker">{m.nav_sections()}
     <select id="editor-section-picker" value={active} onchange={(event) => focusSection(event.currentTarget.value)}>
-      {#each session.visibleSections as section (section.name)}<option value={section.name}>{section.label}{session.errorCount(section) ? ` · ${session.errorCount(section)} 项待修正` : ''}</option>{/each}
+      {#each session.visibleSections as section (section.name)}<option value={section.name}>{section.label}{session.errorCount(section) ? m.nav_option_error({ count: session.errorCount(section) }) : ''}</option>{/each}
     </select>
   </label>
   {#each session.sections as section, index (section.name)}
     {#if section.visible}
       <button type="button" data-testid="section-nav-item" aria-current={active === section.name ? 'location' : undefined} onclick={() => focusSection(section.name)}>
         <span class="section-nav__number">{String(index + 1).padStart(2, '0')}</span><span>{section.label}</span>
-        {#if session.errorCount(section)}<span class="section-nav__error-count" aria-label={`${session.errorCount(section)} 项待修正`}>{session.errorCount(section)}</span>{/if}
+        {#if session.errorCount(section)}<span class="section-nav__error-count" aria-label={m.nav_error_count({ count: session.errorCount(section) })}>{session.errorCount(section)}</span>{/if}
       </button>
     {/if}
   {/each}
-  <a href="#editor-preview" onclick={(event) => { event.preventDefault(); workbench.showPreview(); }}>查看配置预览 →</a>
+  <a href="#editor-preview" onclick={(event) => { event.preventDefault(); workbench.showPreview(); }}>{m.nav_view_preview()}</a>
 </nav>
 
 <style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import FieldControl from './FieldControl.svelte';
   import { useSession } from '../state/context';
   import type { CollectionView, RowView } from '../types';
@@ -12,7 +13,7 @@
     <strong>{collection.label} {row.number}</strong>
     <div class="collection-row__actions">
       {#if collection.generated}<button type="button" onclick={() => session.dispatch({ type: 'generate-row', collection: collection.name, id: row.id })}>{collection.generate_label}</button>{/if}
-      {#if collection.removable}<button class="collection-row__remove" type="button" aria-label={`移除${collection.label} ${row.number}`} onclick={() => onremove(row.id)}>移除</button>{/if}
+      {#if collection.removable}<button class="collection-row__remove" type="button" aria-label={m.row_remove_aria({ label: collection.label, number: row.number })} onclick={() => onremove(row.id)}>{m.row_remove()}</button>{/if}
     </div>
   </div>
   <div class="field-list">

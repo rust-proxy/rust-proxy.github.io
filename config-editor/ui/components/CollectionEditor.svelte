@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import { m } from '../paraglide/messages';
   import CollectionRow from './CollectionRow.svelte';
   import FieldControl from './FieldControl.svelte';
   import { useSession } from '../state/context';
@@ -34,7 +35,7 @@
 </script>
 
 <div class="collection" hidden={!collection.visible} bind:this={root}>
-  <div class="collection__heading"><h3>{collection.label}</h3><span>{collection.rows.filter(row => row.visible).length} 项</span></div>
+  <div class="collection__heading"><h3>{collection.label}</h3><span>{m.collection_item_count({ count: collection.rows.filter(row => row.visible).length })}</span></div>
   {#each collection.rows as row (row.id)}
     <CollectionRow {collection} {row} onremove={remove} />
   {/each}

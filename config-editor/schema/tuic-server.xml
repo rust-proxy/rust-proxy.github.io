@@ -1,26 +1,80 @@
-<config-dsl version="5" target-version="2.0.0-dev7">
-	<ui title="服务端配置文件编辑器" brand="TUIC" mark="T" eyebrow="TUIC 2.0.0-dev7 · QUINN" description="填写监听、认证与路由信息，生成 TUIC 服务端配置。" format-field="format" export-hint="复制和下载始终包含真实密码。">
-		<section name="addresses" label="连接信息" />
-		<section name="authentication" label="用户认证" />
-		<section name="tls" label="TLS 与证书">
-			<notice when="acme" text="域名需指向服务器，ACME HTTP-01 验证使用 TCP 80；同时开放 TUIC 的 UDP 监听端口。" />
-			<notice when="self" text="自签名仅用于受控测试。" />
+<config-dsl version="6" target-version="2.0.0-dev7" locales="zh-CN en" default-locale="zh-CN">
+	<strings>
+		<locale code="zh-CN">
+			<entry name="ui.title" text="服务端配置文件编辑器" />
+			<entry name="ui.eyebrow" text="TUIC 2.0.0-dev7 · QUINN" />
+			<entry name="ui.description" text="填写监听、认证与路由信息，生成 TUIC 服务端配置。" />
+			<entry name="ui.export-hint" text="复制和下载始终包含真实密码。" />
+			<entry name="section.addresses" text="连接信息" />
+			<entry name="section.authentication" text="用户认证" />
+			<entry name="section.tls" text="TLS 与证书" />
+			<entry name="section.transport" text="高级选项" />
+			<entry name="section.transport.detail" text="日志 · 连接 · 端口转发" />
+			<entry name="section.backend" text="QUIC 后端" />
+			<entry name="section.backend.detail" text="拥塞控制 · 传输参数" />
+			<entry name="section.routing" text="路由与出站" />
+			<entry name="section.routing.detail" text="出站 · ACL · 规则 · DNS" />
+			<entry name="section.management" text="管理与伪装" />
+			<entry name="section.management.detail" text="RESTful · 伪装 · 实验性" />
+			<entry name="notice.acme" text="域名需指向服务器，ACME HTTP-01 验证使用 TCP 80；同时开放 TUIC 的 UDP 监听端口。" />
+			<entry name="notice.self" text="自签名仅用于受控测试。" />
+			<entry name="notice.transport" text="预留字段（udp_relay_ipv6、dual_stack、task_negotiation_timeout、ipstack_prefer、timeout、proxy 等）当前未接入运行逻辑，本编辑器不输出。" />
+			<entry name="notice.backend" text="bbr 与 bbr3 当前共用同一实现，行为相同。" />
+			<entry name="notice.routing.loopback" text="服务端默认拦截回环与私有目标地址。具名出站与 ACL 需要自行确认引用关系。" />
+			<entry name="notice.routing.default" text="请至少保留一个名为 default 的出站，供未匹配的流量使用。" />
+			<entry name="notice.management" text="maximum_clients_per_user 当前未强制生效，请勿依赖它限制并发。" />
+			<entry name="notice.zeroRtt" text="0-RTT 早期数据可能被重放。" />
+			<entry name="notice.disclaimer" text="此处仅检查配置字段。证书文件、DNS、防火墙和实际连接需要在部署环境验证。" />
+		</locale>
+		<locale code="en">
+			<entry name="ui.title" text="Server configuration editor" />
+			<entry name="ui.eyebrow" text="TUIC 2.0.0-dev7 · QUINN" />
+			<entry name="ui.description" text="Fill in listening, authentication, and routing to generate a TUIC server configuration." />
+			<entry name="ui.export-hint" text="Copy and download always include the real passwords." />
+			<entry name="section.addresses" text="Connection" />
+			<entry name="section.authentication" text="Users" />
+			<entry name="section.tls" text="TLS &amp; certificates" />
+			<entry name="section.transport" text="Advanced" />
+			<entry name="section.transport.detail" text="Logging · connections · port forwarding" />
+			<entry name="section.backend" text="QUIC backend" />
+			<entry name="section.backend.detail" text="Congestion control · transport parameters" />
+			<entry name="section.routing" text="Routing &amp; outbound" />
+			<entry name="section.routing.detail" text="Outbound · ACL · rules · DNS" />
+			<entry name="section.management" text="Management &amp; masquerade" />
+			<entry name="section.management.detail" text="RESTful · masquerade · experimental" />
+			<entry name="notice.acme" text="The domain must point at the server; ACME HTTP-01 uses TCP 80, and the TUIC UDP port must be open too." />
+			<entry name="notice.self" text="Self-signed certificates are for controlled testing only." />
+			<entry name="notice.transport" text="Reserved fields (udp_relay_ipv6, dual_stack, task_negotiation_timeout, ipstack_prefer, timeout, proxy, ...) are not wired into runtime logic yet; this editor does not output them." />
+			<entry name="notice.backend" text="bbr and bbr3 currently share one implementation and behave identically." />
+			<entry name="notice.routing.loopback" text="The server blocks loopback and private destinations by default. Verify named outbound and ACL references yourself." />
+			<entry name="notice.routing.default" text="Keep at least one outbound named default for unmatched traffic." />
+			<entry name="notice.management" text="maximum_clients_per_user is not enforced yet; do not rely on it to limit concurrency." />
+			<entry name="notice.zeroRtt" text="0-RTT early data may be replayed." />
+			<entry name="notice.disclaimer" text="Only configuration fields are checked here. Certificates, DNS, firewall, and real connections must be verified in the deployment environment." />
+		</locale>
+	</strings>
+	<ui title="@string/ui.title" brand="TUIC" mark="T" eyebrow="@string/ui.eyebrow" description="@string/ui.description" format-field="format" export-hint="@string/ui.export-hint">
+		<section name="addresses" label="@string/section.addresses" />
+		<section name="authentication" label="@string/section.authentication" />
+		<section name="tls" label="@string/section.tls">
+			<notice when="acme" text="@string/notice.acme" />
+			<notice when="self" text="@string/notice.self" />
 		</section>
-		<section name="transport" label="高级选项" detail="日志 · 连接 · 端口转发" collapsed="true">
-			<notice text="预留字段（udp_relay_ipv6、dual_stack、task_negotiation_timeout、ipstack_prefer、timeout、proxy 等）当前未接入运行逻辑，本编辑器不输出。" />
+		<section name="transport" label="@string/section.transport" detail="@string/section.transport.detail" collapsed="true">
+			<notice text="@string/notice.transport" />
 		</section>
-		<section name="backend" label="QUIC 后端" detail="拥塞控制 · 传输参数" collapsed="true">
-			<notice text="bbr 与 bbr3 当前共用同一实现，行为相同。" />
+		<section name="backend" label="@string/section.backend" detail="@string/section.backend.detail" collapsed="true">
+			<notice text="@string/notice.backend" />
 		</section>
-		<section name="routing" label="路由与出站" detail="出站 · ACL · 规则 · DNS" collapsed="true">
-			<notice text="服务端默认拦截回环与私有目标地址。具名出站与 ACL 需要自行确认引用关系。" />
-			<notice text="请至少保留一个名为 default 的出站，供未匹配的流量使用。" />
+		<section name="routing" label="@string/section.routing" detail="@string/section.routing.detail" collapsed="true">
+			<notice text="@string/notice.routing.loopback" />
+			<notice text="@string/notice.routing.default" />
 		</section>
-		<section name="management" label="管理与伪装" detail="RESTful · 伪装 · 实验性" collapsed="true">
-			<notice text="maximum_clients_per_user 当前未强制生效，请勿依赖它限制并发。" />
+		<section name="management" label="@string/section.management" detail="@string/section.management.detail" collapsed="true">
+			<notice text="@string/notice.management" />
 		</section>
-		<notice when="zeroRtt" text="0-RTT 早期数据可能被重放。" />
-		<notice text="此处仅检查配置字段。证书文件、DNS、防火墙和实际连接需要在部署环境验证。" />
+		<notice when="zeroRtt" text="@string/notice.zeroRtt" />
+		<notice text="@string/notice.disclaimer" />
 	</ui>
 	<validators>
 		<validator name="required" kind="required" message="请填写此项。" />

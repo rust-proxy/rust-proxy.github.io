@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import { useSession, useWorkbench } from '../state/context';
 
   let query = $state('');
@@ -17,14 +18,14 @@
   });
 </script>
 
-<div class="field-search" role="search" aria-label="查找配置项">
-  <label for="editor-search">查找配置项</label>
-  <div class="field-search__input"><input id="editor-search" type="search" onkeydown={escape} bind:value={query} placeholder="搜索名称、说明或配置路径" autocomplete="off" />
-    {#if query}<button type="button" onclick={() => { query = ''; document.getElementById('editor-search')?.focus(); }}>清除</button>{/if}
+<div class="field-search" role="search" aria-label={m.search_label()}>
+  <label for="editor-search">{m.search_label()}</label>
+  <div class="field-search__input"><input id="editor-search" type="search" onkeydown={escape} bind:value={query} placeholder={m.search_placeholder()} autocomplete="off" />
+    {#if query}<button type="button" onclick={() => { query = ''; document.getElementById('editor-search')?.focus(); }}>{m.search_clear()}</button>{/if}
   </div>
   {#if query.trim()}
     <div class="field-search__results" data-testid="search-results">
-      <p role="status">{matches.length ? `找到 ${matches.length} 个配置项` : '没有匹配的可见配置项'}</p>
+      <p role="status">{matches.length ? m.search_found({ count: matches.length }) : m.search_empty()}</p>
       <ul>{#each matches as match (match.path)}
         <li><button type="button" data-testid="search-result" onkeydown={escape} onclick={() => { query = ''; workbench.navigateToField(match.path); }}><strong>{match.label}</strong><span>{match.section} · {match.path}</span></button></li>
       {/each}</ul>

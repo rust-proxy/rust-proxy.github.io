@@ -1,7 +1,7 @@
 Draft: config-dsl-02
 Category: Experimental / Specification Draft
 Date: September 2026
-Language version: 5
+Language version: 6
 
 # Config DSL: Static Configuration Description
 
@@ -13,7 +13,7 @@ This is a proposed repository-level standard, not an adopted Wind API or an
 Internet standard. It describes the static XML dialect used by the TUIC config
 editor as a reference for other configuration editors. Wind does not yet
 implement this DSL. The draft revision `config-dsl-02` and the language attribute
-`version="5"` identify different things.
+`version="6"` identify different things.
 
 This document focuses on the XML document structure and field usage. Sections 1–13
 are normative and Section 15 lists normative references; Section 14 and Appendix A
@@ -45,7 +45,7 @@ prose.
 
 The DSL does not replace a target application's configuration parser or wire
 protocol. Imports, migrations, includes, arbitrary functions, assignment,
-recursion, network lookups, and executable expressions are outside version 5.
+recursion, network lookups, and executable expressions are outside version 6.
 Consumers MUST NOT evaluate strings as Rust, JavaScript, Shell, template, or any
 other programming language. Serde, quick-xml, and Rust are implementation choices,
 not language requirements.
@@ -111,18 +111,22 @@ values need not be identifiers.
 
 ## 3. Document structure
 
-The root MUST be `config-dsl` with only the required `version="5"` and
-`target-version` attributes. `target-version` is opaque metadata, not a language
-selector.
+The root MUST be `config-dsl` with only the required `version="6"` and
+`target-version` attributes plus the optional `locales` and `default-locale`
+attributes. `target-version` is opaque metadata, not a language selector.
+`locales` is a whitespace-separated list of language tags and defaults to
+`zh-CN`; `default-locale` MUST be a member of `locales` and defaults to the first
+entry.
 
 The root contains the following top-level blocks. Unknown or duplicate blocks MUST
 be rejected; block order is irrelevant, all blocks except `inputs` and `outputs`
-may be omitted, and each block may appear at most once. Except for `ui`, these
-blocks MUST NOT have attributes.
+may be omitted, and each block may appear at most once. Except for `ui` and
+`strings`, these blocks MUST NOT have attributes.
 
 | Block | Required | Purpose |
 | --- | --- | --- |
 | `ui` | no | Interface metadata: branding, sections, notices |
+| `strings` | no | Locale-partitioned string pool |
 | `validators` | no | Reusable field validators |
 | `inputs` | yes | Top-level input fields and collections |
 | `conditions` | no | Named conditions |
@@ -131,10 +135,44 @@ blocks MUST NOT have attributes.
 | `rules` | no | Cross-field constraints |
 | `effects` | no | Field-linkage resets |
 
+### 3.1. String pool `strings`
+
+`strings` centralizes display text as reusable named entries grouped by locale:
+
+```xml
+<strings>
+  <locale code="zh-CN"><entry name="ui.title" text="配置编辑器"/></locale>
+  <locale code="en"><entry name="ui.title" text="Configuration editor"/></locale>
+</strings>
+```
+
+- `locale` MUST carry `code`, which MUST be declared in the root `locales`; each
+  locale block may appear at most once.
+- The only permitted child of `locale` is `entry`; `entry` MUST carry a non-empty
+  identifier `name` and a `text`, and MUST NOT have children; `name` MUST be unique
+  within a locale block.
+- Every referenced `name` MUST exist at least in `default-locale`; other locales
+  fall back to the default locale when a translation is missing. Unused entries are
+  allowed.
+
+Any display-text attribute may reference the pool with `@string/<name>`, for
+example `label="@string/ui.title"`. Values not starting with `@string/` are
+literals for the default locale; referenced entries MUST exist. Configuration
+values, `default`, enum `value`, `filename`, `command`, conditions, and paths are
+never localized.
+
+The reference implementation reserves ids prefixed with `builtin.` for
+framework-owned text (for example `builtin.add`, `builtin.error.select`). A
+description may override them with same-named pool entries; otherwise the built-in
+catalog is used.
+
 ## 4. Interface `ui`
 
 `ui` describes page branding, sections, and notices. All attributes are optional,
-but `title` and `brand` are required by the reference implementation.
+but `title` and `brand` are required by the reference implementation. The remaining
+display attributes (`title`, `brand`, `eyebrow`, `description`, `export-hint`) as
+well as a `section`'s `label`, `detail` and a `notice`'s `text` accept
+`@string/<name>` references.
 
 | Attribute | Meaning |
 | --- | --- |
@@ -519,7 +557,7 @@ TLS, or connectivity.
 This example uses empty secret data and is not a deployable TUIC configuration.
 
 ```xml
-<config-dsl version="5" target-version="example">
+<config-dsl version="6" target-version="example">
   <ui title="Example" brand="Example" mark="E" format-field="encoding">
     <section name="general" label="General"/>
   </ui>
@@ -581,7 +619,7 @@ Top-level blocks: `ui`, `validators`, `inputs`*, `conditions`, `values`, `output
 
 | Element | Key attributes | Children |
 | --- | --- | --- |
-| `config-dsl` | `version`, `target-version` | top-level blocks |
+| `config-dsl` | `version`, `target-version`, `locales`, `default-locale` | top-level blocks; `strings` is the string pool |
 | `ui` | `title`, `brand`, `mode-field`, `format-field` | `section`, `notice` |
 | `section` | `name`, `label`, `detail`, `collapsed`, `when` | `notice` |
 | `notice` | `text`, `when` | — |

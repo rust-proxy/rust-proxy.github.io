@@ -2,16 +2,16 @@ export type ThemeId = 'latte' | 'frappe' | 'macchiato' | 'mocha';
 
 export interface ThemeOption {
   id: ThemeId;
-  label: string;
   dark: boolean;
 }
 
-/// Theme registry: adding a flavor means one entry here and one palette block in theme.css.
+/// Theme registry: adding a flavor means one entry here, one label in the message catalog, and
+/// one palette block in theme.css.
 export const THEMES: readonly ThemeOption[] = [
-  { id: 'latte', label: 'Latte（浅色）', dark: false },
-  { id: 'frappe', label: 'Frappé', dark: true },
-  { id: 'macchiato', label: 'Macchiato', dark: true },
-  { id: 'mocha', label: 'Mocha', dark: true },
+  { id: 'latte', dark: false },
+  { id: 'frappe', dark: true },
+  { id: 'macchiato', dark: true },
+  { id: 'mocha', dark: true },
 ];
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';

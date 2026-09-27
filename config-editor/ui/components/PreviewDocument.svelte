@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '../paraglide/messages';
   import { highlightLines } from '../lib/highlight';
   import type { PreviewLine } from '../types';
 
@@ -20,9 +21,9 @@
 
 <svelte:window onresize={clear} onkeydown={(event) => { if (event.key === 'Escape') clear(); }} />
 
-<div class="preview-doc" aria-label="生成配置预览">
+<div class="preview-doc" aria-label={m.preview_doc_label()}>
   {#each lines as line, index (index)}
-    <button type="button" class="preview-doc__line" aria-label={line.description ? `${line.text}。${line.description}` : line.text}
+    <button type="button" class="preview-doc__line" aria-label={line.description ? m.preview_line_aria({ text: line.text, description: line.description }) : line.text}
       onmouseenter={(event) => place(event, line.description)}
       onmouseleave={clear}
       onfocus={(event) => place(event, line.description)}

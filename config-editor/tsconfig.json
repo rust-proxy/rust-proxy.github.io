@@ -12,5 +12,6 @@
     "noEmit": true,
     "types": ["svelte", "vite/client"]
   },
-  "include": ["ui/**/*.ts", "ui/**/*.svelte", "pkg/*.d.ts"]
+  "include": ["ui/**/*.ts", "ui/**/*.svelte", "pkg/*.d.ts"],
+  "exclude": ["ui/paraglide"]
 }

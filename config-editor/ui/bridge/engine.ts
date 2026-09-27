@@ -1,7 +1,22 @@
 import { Engine, schemas as readSchemas } from '../../pkg/engine';
+import { m } from '../paraglide/messages';
 import type { Action, ExportFile, Snapshot } from '../types';
 
-export interface SchemaInfo { name: string; label: string }
+export interface SchemaInfo {
+  name: string;
+  labels: [string, string][];
+  locales: string[];
+  default_locale: string;
+}
+
+/// Selects the schema selector label for the active locale, falling back to the schema default.
+export function schemaLabel(schema: SchemaInfo, locale: string): string {
+  return (
+    schema.labels.find(([tag]) => tag === locale)?.[1] ??
+    schema.labels.find(([tag]) => tag === schema.default_locale)?.[1] ??
+    schema.name
+  );
+}
 
 function toMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message || fallback;
@@ -16,9 +31,9 @@ function parse<T>(value: string, fallback: string): T {
 
 export function listSchemas(): SchemaInfo[] {
   try {
-    return (JSON.parse(readSchemas()) as [string, string][]).map(([name, label]) => ({ name, label }));
+    return JSON.parse(readSchemas()) as SchemaInfo[];
   } catch {
-    throw new Error('无法读取配置方案。');
+    throw new Error(m.bridge_schema_read_failed());
   }
 }
 
@@ -31,30 +46,30 @@ export class EngineSession {
   readonly schema: string;
   #engine: Engine;
 
-  constructor(schema: string) {
+  constructor(schema: string, locale: string) {
     this.schema = schema;
-    try { this.#engine = new Engine(schema); }
-    catch (error) { throw new Error(toMessage(error, '无法创建配置会话。')); }
+    try { this.#engine = new Engine(schema, locale); }
+    catch (error) { throw new Error(toMessage(error, m.bridge_session_create_failed())); }
   }
 
   initialize(): void {
     try { this.#engine.initialize(); }
-    catch (error) { throw new Error(toMessage(error, '初始化配置失败。')); }
+    catch (error) { throw new Error(toMessage(error, m.bridge_init_failed())); }
   }
 
   dispatch(action: Action): void {
     try { this.#engine.dispatch(JSON.stringify(action)); }
-    catch (error) { throw new Error(toMessage(error, '无效的编辑操作。')); }
+    catch (error) { throw new Error(toMessage(error, m.bridge_action_invalid())); }
   }
 
   snapshot(selected: string, reveal: boolean): Snapshot {
-    try { return parse<Snapshot>(this.#engine.snapshot(selected, reveal), '无法读取界面状态。'); }
-    catch (error) { throw new Error(toMessage(error, '无法读取界面状态。')); }
+    try { return parse<Snapshot>(this.#engine.snapshot(selected, reveal), m.bridge_snapshot_failed()); }
+    catch (error) { throw new Error(toMessage(error, m.bridge_snapshot_failed())); }
   }
 
   export(selected: string): ExportFile {
-    try { return parse<ExportFile>(this.#engine.export(selected), '无法导出配置。'); }
-    catch (error) { throw new Error(toMessage(error, '无法导出配置。')); }
+    try { return parse<ExportFile>(this.#engine.export(selected), m.bridge_export_failed()); }
+    catch (error) { throw new Error(toMessage(error, m.bridge_export_failed())); }
   }
 
   dispose(): void { this.#engine.free(); }
