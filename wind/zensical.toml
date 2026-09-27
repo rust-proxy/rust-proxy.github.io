@@ -9,6 +9,7 @@ repo_name = "rust-proxy/wind"
 edit_uri = "https://github.com/rust-proxy/rust-proxy.github.io/edit/main/wind/docs/"
 nav = [
   { "首页" = "index.md" },
+  { "博客" = ["blog/index.md"] },
   { "协议规范" = [
     { "TUIC" = "tuic.md" },
     { "AnyTLS" = "anytls.md" },
@@ -79,6 +80,23 @@ toc = { permalink = true, slugify = { object = "pymdownx.slugs.slugify", kwds = 
 "pymdownx.inlinehilite" = {}
 "pymdownx.tabbed" = { alternate_style = true }
 
+[project.plugins.blog]
+post_dir = "blog/posts"
+pagination_per_page = 10
+archive = true
+categories = true
+authors = true
+authors_profiles = true
+post_readtime = true
+post_excerpt = "optional"
+
+[project.plugins.rss]
+match_path = "blog/posts/.*"
+json_feed_enabled = false
+
+[project.plugins.rss.date_from_meta]
+as_creation = "date"
+
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/rust-proxy/wind"
@@ -88,3 +106,8 @@ name = "Wind 源码"
 icon = "lucide/book-open"
 link = "https://github.com/rust-proxy/rust-proxy.github.io"
 name = "文档仓库"
+
+[[project.extra.social]]
+icon = "lucide/rss"
+link = "https://rust-proxy.github.io/wind/feed_rss_created.xml"
+name = "RSS 订阅"

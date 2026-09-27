@@ -4,7 +4,7 @@ This repository is the organization Pages repository `rust-proxy.github.io`, who
 
 - TUIC documentation: [rust-proxy.github.io/tuic](https://rust-proxy.github.io/tuic/).
 - Configuration editor (renders TUIC configuration by default): [rust-proxy.github.io/config-editor/](https://rust-proxy.github.io/config-editor/). It has its own HTML, CSS, WebAssembly, and theme, and runs standalone on any static server without depending on a documentation site or backend.
-- Wind documentation: [rust-proxy.github.io/wind](https://rust-proxy.github.io/wind/), with English specifications at [rust-proxy.github.io/wind/specs](https://rust-proxy.github.io/wind/specs/).
+- Wind documentation: [rust-proxy.github.io/wind](https://rust-proxy.github.io/wind/), with English specifications at [rust-proxy.github.io/wind/specs](https://rust-proxy.github.io/wind/specs/) and a blog at [rust-proxy.github.io/wind/blog](https://rust-proxy.github.io/wind/blog/).
 
 The sites are built with [Zensical](https://zensical.org/docs/); the configuration editor is built with **Rust WASM + Svelte 5**.
 
@@ -154,12 +154,15 @@ Configuration state is modified only by the Rust `Session`. Svelte submits gener
 | `config-editor/tests/` | XML DSL and configuration regression tests |
 | `wind/zensical.toml` / `wind/docs/` | Wind Chinese protocol specifications and design documents (single publishing source) |
 | `wind/docs/specs/` | Wind English specifications and RFC template, published under `/wind/specs/` and kept in sync with the Chinese editions |
+| `wind/docs/blog/` | Wind blog: `index.md` entry point, `posts/` articles, and `.authors.yml`; built with the native Zensical `blog` plugin and published under `/wind/blog/` |
 | `portal/index.html` | Site root portal page |
 | `justfile` | Build, check, and preview recipes; the `build` recipe assembles all documentation sites and the editor into `site/` without publishing |
 | `tests/config-editor/` | Nightly cargo-script checks (`roundtrip.rs`, `check-rust.rs`, `check-site.rs`), the dependency-free `serve.mjs`, and the Playwright Test specs and configs under `e2e/` |
 | `.github/workflows/deploy.yml` | GitHub Pages build and publish workflow |
 
 The main documentation is maintained only in Simplified Chinese; the English specifications and RFC template under `wind/docs/specs/` are the exception, published alongside their Chinese counterparts under `/wind/specs/`, with section numbering and requirements kept in sync. After updating TUIC or Wind, verify the editor's version baseline and the actual runtime behavior of fields, and do not expose configuration that is not yet wired into client runtime logic as usable functionality. Examples use placeholder domains and test credentials generated at runtime, and do not include real deployment data.
+
+The Wind site enables Zensical's native `blog` plugin (available since Zensical 0.0.64) and the `rss` plugin (since 0.0.65); the pinned `zensical` version in the `justfile` must stay at or above 0.0.65. Blog articles live in `wind/docs/blog/posts/`, require a `date` in front matter, and use `<!-- more -->` as the excerpt separator; only the `blog/index.md` entry point belongs in `nav`, never individual posts. `[project.plugins.rss]` is restricted to `match_path = "blog/posts/.*"` so only posts (not generated archive, category, or author views) enter the feed, and it emits `feed_rss_created.xml` under `/wind/`. Keep blog content in Simplified Chinese like the rest of the site.
 
 ## Publishing paths
 
@@ -169,6 +172,6 @@ The [CI and Pages workflow](.github/workflows/deploy.yml) runs on pull requests,
 - `build`: builds the standalone SPA with wasm-pack, the Svelte checker, and Vite, assembles all documentation sites, checks site links and assets with the `check-site.rs` cargo script, and then runs the TUIC and no-TUIC-field XML reuse browser regressions through Playwright against Chromium and Firefox. Rust, uv, and npm use dependency caching.
 - `deploy`: depends on `check` and `build` succeeding, and publishes only on pushes to `main` or manual runs; Pages write and OIDC permissions are granted only to this job, while pull requests only validate and build.
 
-The published artifact is assembled in a temporary directory whose root is `https://rust-proxy.github.io/`: the portal page is at `/`, TUIC documentation at `/tuic/`, the standalone editor at `/config-editor/`, Wind Chinese documentation at `/wind/`, and the Wind English specifications at `/wind/specs/`. No custom domain or `CNAME` is used, and the Pages source should be set to GitHub Actions. Real TUIC parsing and loopback tests still run in an environment with the neighboring repositories as described above.
+The published artifact is assembled in a temporary directory whose root is `https://rust-proxy.github.io/`: the portal page is at `/`, TUIC documentation at `/tuic/`, the standalone editor at `/config-editor/`, Wind Chinese documentation at `/wind/`, the Wind blog at `/wind/blog/`, the Wind RSS feed under `/wind/`, and the Wind English specifications at `/wind/specs/`. No custom domain or `CNAME` is used, and the Pages source should be set to GitHub Actions. Real TUIC parsing and loopback tests still run in an environment with the neighboring repositories as described above.
 
 The documentation has migrated from MkDocs to Zensical and no longer uses the i18n plugin. The old `/tuic/zh/` path does not generate a redirect; external links should be updated under `/tuic/`. A passing site build and configuration parse does not mean remote DNS, certificates, firewalls, or proxy connections have been verified.
