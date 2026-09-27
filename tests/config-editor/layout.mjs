@@ -9,12 +9,12 @@ export async function checkLayout(page, { field, secret, name }) {
   const preview = page.getByRole('button', { name: /^预览与导出/ });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await search.fill(await page.locator(`[id="ce-${secret}"]`).inputValue());
-  assert.equal(await page.locator('.ce-search-results li').count(), 0, 'Search never indexes input values');
+  assert.equal(await page.locator('.field-search__results li').count(), 0, 'Search never indexes input values');
   await search.fill('not-a-field-xyz');
   await search.press('Escape');
   assert.equal(await search.inputValue(), '');
   await search.fill(field);
-  await page.locator('.ce-search-results button').filter({ hasText: field }).first().click();
+  await page.locator('.field-search__results button').filter({ hasText: field }).first().click();
   assert.equal(await input.evaluate(node => document.activeElement === node), true, 'Search focuses the matching field');
   const previous = await input.inputValue();
   await input.fill('not-a-number');
@@ -22,7 +22,7 @@ export async function checkLayout(page, { field, secret, name }) {
   await preview.click();
   assert.equal(await input.isVisible(), false);
   assert.equal(await page.locator('#ce-preview').isVisible(), true);
-  await page.locator('.ce-errors button').filter({ hasText: await page.locator(`[id="ce-${field}-error"]`).textContent() }).first().click();
+  await page.locator('.preview__errors button').filter({ hasText: await page.locator(`[id="ce-${field}-error"]`).textContent() }).first().click();
   assert.equal(await input.isVisible(), true);
   assert.equal(await input.evaluate(node => document.activeElement === node), true, 'Mobile error navigation switches panes before focusing');
   await input.fill(previous);
@@ -52,7 +52,7 @@ export async function checkLayout(page, { field, secret, name }) {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole('navigation', { name: '配置分区' }).getByRole('button').last().click();
   await page.waitForFunction(() => {
-    const buttons = [...document.querySelectorAll('.ce-section-nav > button')];
+    const buttons = [...document.querySelectorAll('.section-nav > button')];
     return buttons.at(-1)?.getAttribute('aria-current') === 'location';
   });
   console.log(`PASS: ${name} search, mobile error focus, view switching and responsive layouts`);

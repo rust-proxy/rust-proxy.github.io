@@ -11,7 +11,7 @@
 
   function focusRow(id: string) {
     const row = Array.from(root.querySelectorAll<HTMLElement>('[data-row]')).find(element => element.dataset.row === id);
-    row?.querySelector<HTMLElement>('.ce-field:not([hidden]) input, .ce-field:not([hidden]) select')?.focus();
+    row?.querySelector<HTMLElement>('.field:not([hidden]) input, .field:not([hidden]) select')?.focus();
   }
 
   async function add() {
@@ -29,16 +29,30 @@
     const remaining = collection.rows.filter(row => row.visible);
     const target = remaining[Math.min(index, remaining.length - 1)];
     if (target) focusRow(target.id);
-    else root.querySelector<HTMLButtonElement>('.ce-add')?.focus();
+    else root.querySelector<HTMLButtonElement>('.collection__add')?.focus();
   }
 </script>
 
-<div class="ce-collection" hidden={!collection.visible} bind:this={root}>
-  <div class="ce-collection-heading"><h3>{collection.label}</h3><span>{collection.rows.filter(row => row.visible).length} 项</span></div>
+<div class="collection" hidden={!collection.visible} bind:this={root}>
+  <div class="collection__heading"><h3>{collection.label}</h3><span>{collection.rows.filter(row => row.visible).length} 项</span></div>
   {#each collection.rows as row (row.id)}
     <CollectionRow {collection} {row} onremove={remove} />
   {/each}
-  {#if collection.editable}<button class="ce-add" type="button" onclick={add}>{collection.add_label}</button>{/if}
+  {#if collection.editable}<button class="collection__add" type="button" onclick={add}>{collection.add_label}</button>{/if}
   {#if collection.selector}<FieldControl field={collection.selector} />{/if}
-  {#if collection.hint}<p class="ce-hint">{collection.hint}</p>{/if}
+  {#if collection.hint}<p class="field-hint">{collection.hint}</p>{/if}
 </div>
+
+<style>
+  .collection { margin-top: 22px; }
+  .collection__heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .collection__heading h3 { margin: 0; font-size: 13px; }
+  .collection__heading > span { font-size: 11px; color: var(--color-text-muted); }
+  .collection__add {
+    width: 100%;
+    border-style: dashed;
+    font-size: 12px;
+    margin-bottom: 16px;
+    color: var(--color-accent);
+  }
+</style>

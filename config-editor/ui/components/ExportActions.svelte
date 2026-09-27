@@ -24,7 +24,12 @@
   }
 </script>
 
-<div class="ce-actions">
+<div class="export-actions">
   <button type="button" disabled={!session.valid || copying} aria-busy={copying} onclick={copy}>复制配置</button>
-  <button type="button" class="ce-primary" disabled={!session.valid} onclick={save}>下载配置</button>
+  <button type="button" class="button--primary" disabled={!session.valid} onclick={save}>下载配置</button>
 </div>
+
+<style>
+  .export-actions { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--color-border); }
+  .export-actions button { flex: 1; font-size: 12px; }
+</style>

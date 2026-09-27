@@ -1,0 +1,21 @@
+/* Cross-component primitives shared by several component styles. */
+.field-list { display: grid; gap: 18px; }
+.field-hint {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.field-error { color: var(--color-danger); font-size: 12px; }
+[aria-invalid="true"] { border-color: var(--color-danger) !important; }
+
+button[aria-pressed="true"], .button--primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+button[aria-pressed="true"]:hover:not(:disabled), .button--primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+}

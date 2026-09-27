@@ -21,8 +21,8 @@ page.on('response', response => {
 });
 await page.route('**/*', route => route.request().url().startsWith(new URL(base).origin) ? route.continue() : route.abort());
 const id = key => page.locator(`[id="ce-${key}"]`);
-const lines = () => page.locator('.ce-desc-line');
-const previewText = async () => (await page.locator('.ce-desc-line code').allTextContents()).join('\n');
+const lines = () => page.locator('.preview-doc__line');
+const previewText = async () => (await page.locator('.preview-doc__line code').allTextContents()).join('\n');
 const click = name => page.getByRole('button', { name, exact: true }).click();
 const section = label => page.locator('summary', { hasText: label });
 async function output() {
@@ -54,7 +54,7 @@ try {
   assert.ok((await lines().allTextContents()).some(line => line.includes('[tls]')), 'TOML tables are highlighted');
   await id('format').selectOption('yaml');
   assert.ok((await lines().allTextContents()).some(line => line.includes('skip_cert_verify: false')));
-  assert.ok(await page.locator('.ce-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');
+  assert.ok(await page.locator('.preview-doc__line code .token.atrule').count() > 0, 'YAML keys are highlighted');
   await id('format').selectOption('json');
 
   let client = await output();
@@ -164,8 +164,8 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   await page.screenshot({ path: resolve('.cache/config-editor-mobile.png'), fullPage: true });
-  await click('切换主题');
-  assert.equal(await page.locator('.ce-shell').getAttribute('data-theme'), 'dark');
+  await page.locator('#ce-theme').selectOption('mocha');
+  assert.equal(await page.locator('.shell').getAttribute('data-theme'), 'mocha');
   await checkLayout(page, { field: 'serverAuthTimeout', secret: 'users.0.password', name: 'tuic' });
   assert.equal(await page.evaluate(() => localStorage.length === 0 || !Object.keys(localStorage).some(key => /editor|password|uuid/.test(key))), true);
   assert.deepEqual(requests.filter(url => /google-analytics|googletagmanager|gtag/.test(url)), []);

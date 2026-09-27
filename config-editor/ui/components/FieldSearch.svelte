@@ -17,13 +17,13 @@
   });
 </script>
 
-<div class="ce-search" role="search" aria-label="查找配置项">
+<div class="field-search" role="search" aria-label="查找配置项">
   <label for="ce-search">查找配置项</label>
-  <div class="ce-search-input"><input id="ce-search" type="search" onkeydown={escape} bind:value={query} placeholder="搜索名称、说明或配置路径" autocomplete="off" />
+  <div class="field-search__input"><input id="ce-search" type="search" onkeydown={escape} bind:value={query} placeholder="搜索名称、说明或配置路径" autocomplete="off" />
     {#if query}<button type="button" onclick={() => { query = ''; document.getElementById('ce-search')?.focus(); }}>清除</button>{/if}
   </div>
   {#if query.trim()}
-    <div class="ce-search-results">
+    <div class="field-search__results">
       <p role="status">{matches.length ? `找到 ${matches.length} 个配置项` : '没有匹配的可见配置项'}</p>
       <ul>{#each matches as match (match.path)}
         <li><button type="button" onkeydown={escape} onclick={() => { query = ''; workbench.navigateToField(match.path); }}><strong>{match.label}</strong><span>{match.section} · {match.path}</span></button></li>
@@ -31,3 +31,27 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .field-search { position: relative; margin-bottom: 20px; }
+  .field-search > label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .field-search__input { display: flex; gap: 8px; }
+  .field-search__input input { min-width: 0; width: 100%; }
+  .field-search__results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-pop);
+    max-height: 360px;
+    overflow: auto;
+  }
+  .field-search__results p { padding: 10px 14px; margin: 0; color: var(--color-text-muted); font-size: 12px; }
+  .field-search__results ul { list-style: none; padding: 0; margin: 0; }
+  .field-search__results button { display: grid; width: 100%; text-align: left; border: 0; border-radius: 0; gap: 2px; }
+  .field-search__results span { font-size: 11px; color: var(--color-text-muted); overflow-wrap: anywhere; font-weight: 400; }
+</style>

@@ -29,9 +29,9 @@
   });
 </script>
 
-<nav class="ce-section-nav" aria-label="配置分区">
+<nav class="section-nav" aria-label="配置分区">
   <p>配置目录</p>
-  <label class="ce-section-picker" for="ce-section-picker">配置分区
+  <label class="section-nav__picker" for="ce-section-picker">配置分区
     <select id="ce-section-picker" value={active} onchange={(event) => focusSection(event.currentTarget.value)}>
       {#each session.visibleSections as section (section.name)}<option value={section.name}>{section.label}{session.errorCount(section) ? ` · ${session.errorCount(section)} 项待修正` : ''}</option>{/each}
     </select>
@@ -39,10 +39,70 @@
   {#each session.sections as section, index (section.name)}
     {#if section.visible}
       <button type="button" aria-current={active === section.name ? 'location' : undefined} onclick={() => focusSection(section.name)}>
-        <span class="ce-nav-number">{String(index + 1).padStart(2, '0')}</span><span>{section.label}</span>
-        {#if session.errorCount(section)}<span class="ce-error-count" aria-label={`${session.errorCount(section)} 项待修正`}>{session.errorCount(section)}</span>{/if}
+        <span class="section-nav__number">{String(index + 1).padStart(2, '0')}</span><span>{section.label}</span>
+        {#if session.errorCount(section)}<span class="section-nav__error-count" aria-label={`${session.errorCount(section)} 项待修正`}>{session.errorCount(section)}</span>{/if}
       </button>
     {/if}
   {/each}
   <a href="#ce-preview" onclick={(event) => { event.preventDefault(); workbench.showPreview(); }}>查看配置预览 →</a>
 </nav>
+
+<style>
+  .section-nav { position: sticky; top: 24px; display: grid; gap: 5px; }
+  .section-nav p {
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 4px 0 14px 10px;
+  }
+  .section-nav button {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    border-color: transparent;
+    background: transparent;
+    text-align: left;
+    font-size: 12px;
+    padding: 10px;
+  }
+  .section-nav__number { color: var(--color-text-muted); font: 10px var(--font-mono); }
+  .section-nav a { margin: 18px 10px; font-size: 12px; text-decoration: none; }
+  .section-nav button[aria-current] {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  .section-nav button > span:nth-child(2) { flex: 1; }
+  .section-nav__error-count {
+    border-radius: 999px;
+    padding: 0 7px;
+    color: var(--color-danger);
+    background: var(--color-danger-soft);
+    font-size: 11px;
+  }
+  .section-nav__picker { display: none; }
+  @media (max-width: 1279px) {
+    .section-nav {
+      grid-column: 1 / -1;
+      position: static;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      box-shadow: var(--shadow-card);
+    }
+    .section-nav > button, .section-nav > p { display: none; }
+    .section-nav a { margin: 0; }
+    .section-nav__picker { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 12px; }
+    .section-nav__picker select { min-width: 0; max-width: 100%; }
+  }
+  @media (max-width: 959px) {
+    .section-nav > a { display: none; }
+    .section-nav__picker { width: 100%; }
+    .section-nav__picker select { flex: 1; }
+  }
+</style>

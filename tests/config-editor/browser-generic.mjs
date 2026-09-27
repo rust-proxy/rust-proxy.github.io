@@ -18,9 +18,9 @@ await page.route('**/*', route => {
   return route.abort();
 });
 const id = key => page.locator(`[id="ce-${key}"]`);
-const lines = () => page.locator('.ce-desc-line');
+const lines = () => page.locator('.preview-doc__line');
 const click = name => page.getByRole('button', { name, exact: true }).click();
-const output = async () => JSON.parse((await page.locator('.ce-desc-line code').allTextContents()).join('\n'));
+const output = async () => JSON.parse((await page.locator('.preview-doc__line code').allTextContents()).join('\n'));
 try {
   await page.goto(`${base}?schema=example`);
   await page.waitForSelector('#config-editor[data-ready="true"]');
@@ -32,10 +32,10 @@ try {
   assert.match(await secretLine.getAttribute('aria-label'), /敏感/, 'generic preview lines carry XML descriptions');
   await id('encoding').selectOption('toml');
   assert.ok((await lines().allTextContents()).some(line => line.includes('[[items]]')));
-  assert.ok(await page.locator('.ce-desc-line code .token.class-name').count() > 0, 'TOML tables are highlighted');
+  assert.ok(await page.locator('.preview-doc__line code .token.class-name').count() > 0, 'TOML tables are highlighted');
   await id('encoding').selectOption('yaml');
   assert.ok((await lines().allTextContents()).some(line => line.includes('title: "example"')));
-  assert.ok(await page.locator('.ce-desc-line code .token.atrule').count() > 0, 'YAML keys are highlighted');
+  assert.ok(await page.locator('.preview-doc__line code .token.atrule').count() > 0, 'YAML keys are highlighted');
   await id('encoding').selectOption('json');
 
   assert.equal(await id('seed').inputValue().then(v => v.length), 16);
@@ -81,11 +81,11 @@ try {
   await click('全部清单');
   await click('完整清单');
   await id('encoding').selectOption('toml');
-  assert.equal(await page.locator('.ce-command').textContent(), 'notebook --input snapshot.toml');
+  assert.equal(await page.locator('.preview__command').textContent(), 'notebook --input snapshot.toml');
   await id('first').fill('50');
   assert.equal(await page.getByRole('button', { name: '下载配置', exact: true }).isDisabled(), true);
   const validationTarget = await page.locator('[aria-invalid="true"]').first().getAttribute('id');
-  await page.locator('.ce-errors button').first().click();
+  await page.locator('.preview__errors button').first().click();
   assert.equal(await page.evaluate(() => document.activeElement?.id), validationTarget, 'Validation links move focus to the invalid field');
   await id('last').fill('60');
   assert.equal(await page.getByRole('button', { name: '下载配置', exact: true }).isEnabled(), true);
@@ -109,9 +109,9 @@ try {
   await failurePage.goto(base);
   await failurePage.waitForSelector('#config-editor[data-ready="true"]');
   assert.equal(await failurePage.locator('#ce-seed').inputValue(), '', 'Failed initialization must not apply partial random values');
-  assert.match(await failurePage.locator('.ce-status').textContent(), /无法安全生成随机值/);
+  assert.match(await failurePage.locator('.status-bar').textContent(), /无法安全生成随机值/);
   await failurePage.getByRole('button', { name: '添加项目', exact: true }).click();
-  assert.equal(await failurePage.locator('.ce-user').count(), 1, 'Failed randomness must not add a partial row');
+  assert.equal(await failurePage.locator('.collection-row').count(), 1, 'Failed randomness must not add a partial row');
   await failurePage.locator('#ce-project').fill('manual');
   assert.equal(await failurePage.locator('#ce-project').inputValue(), 'manual', 'Manual editing still works');
   assert.deepEqual(errors, []);
