@@ -49,14 +49,10 @@ jobs:
       - name: Test XML DSL and configuration generation
         run: cargo test --workspace --locked
 
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
       - name: Verify TOML, JSON and YAML round trips
         run: |
           cargo run --locked --example fixtures -- .cache/config-editor-fixtures
-          uvx --with 'PyYAML>=6,<7' python tests/config-editor/roundtrip.py .cache/config-editor-fixtures/roundtrip.json
+          cargo +nightly -Zscript tests/config-editor/roundtrip.rs .cache/config-editor-fixtures/roundtrip.json
 
   build:
     name: Build and test standalone SPA
@@ -68,6 +64,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+
+      - name: Install nightly for cargo script checks
+        run: rustup toolchain install nightly --profile minimal
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -93,7 +92,7 @@ jobs:
       - name: Build documentation and standalone editor
         run: |
           just build
-          uvx python tests/config-editor/check-site.py
+          cargo +nightly -Zscript tests/config-editor/check-site.rs
 
       - name: Install browser test dependencies
         run: npm ci --prefix tests/config-editor

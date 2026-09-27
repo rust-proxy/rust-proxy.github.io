@@ -80,7 +80,7 @@ npm run test:browser --prefix config-editor
 
 # Build all documentation sites and the standalone editor into site/; no publishing
 just build
-uvx python tests/config-editor/check-site.py
+cargo +nightly -Zscript tests/config-editor/check-site.rs
 
 # Assemble a site preview (/, /tuic/, /wind/)
 node tests/config-editor/serve.mjs --dir site --port 8765
@@ -94,11 +94,11 @@ Preview: `http://127.0.0.1:8765/`, `http://127.0.0.1:8765/tuic/`, `http://127.0.
 # Generate test credentials and configuration dynamically; writes only to the ignored .cache/
 cargo run --locked --example fixtures -- .cache/config-editor-fixtures
 
-# Python 3.11+ independent parsers for tomllib, json, and PyYAML
-uvx --with 'PyYAML>=6,<7' python tests/config-editor/roundtrip.py .cache/config-editor-fixtures/roundtrip.json
+# Independent TOML/JSON/YAML parsers as a nightly cargo script
+cargo +nightly -Zscript tests/config-editor/roundtrip.rs .cache/config-editor-fixtures/roundtrip.json
 
 # Call the neighboring TUIC's real parsing functions and run a local SOCKS5 -> TUIC -> TCP echo
-uvx python tests/config-editor/check-rust.py --offline
+cargo +nightly -Zscript tests/config-editor/check-rust.rs --offline
 ```
 
 The real parsing check requires the neighboring `../tuic`, its submodules, cached dependencies, and the corresponding build tools; omit `--offline` when the dependency cache is missing. The auxiliary Cargo project writes only to `.cache/`, starts from TUIC's lock file, and does not modify TUIC manifests, sources, lock files, or submodules. The loopback allowance applies only to the in-memory test configuration, and error diagnostics never print configuration contents.
@@ -156,7 +156,7 @@ Configuration state is modified only by the Rust `Session`. Svelte submits gener
 | `wind/docs/specs/` | Wind English specifications and RFC template, published under `/wind/specs/` and kept in sync with the Chinese editions |
 | `portal/index.html` | Site root portal page |
 | `justfile` | Build, check, and preview recipes; the `build` recipe assembles all documentation sites and the editor into `site/` without publishing |
-| `tests/config-editor/` | Independent parser/site checks (`roundtrip.py`, `check-rust.py`, `check-site.py`), the dependency-free `serve.mjs`, and the Playwright Test specs and configs under `e2e/` |
+| `tests/config-editor/` | Nightly cargo-script checks (`roundtrip.rs`, `check-rust.rs`, `check-site.rs`), the dependency-free `serve.mjs`, and the Playwright Test specs and configs under `e2e/` |
 | `.github/workflows/deploy.yml` | GitHub Pages build and publish workflow |
 
 The main documentation is maintained only in Simplified Chinese; the English specifications and RFC template under `wind/docs/specs/` are the exception, published alongside their Chinese counterparts under `/wind/specs/`, with section numbering and requirements kept in sync. After updating TUIC or Wind, verify the editor's version baseline and the actual runtime behavior of fields, and do not expose configuration that is not yet wired into client runtime logic as usable functionality. Examples use placeholder domains and test credentials generated at runtime, and do not include real deployment data.
@@ -165,8 +165,8 @@ The main documentation is maintained only in Simplified Chinese; the English spe
 
 The [CI and Pages workflow](.github/workflows/deploy.yml) runs on pull requests, pushes to `main`, and manual triggers:
 
-- `check`: nightly rustfmt, stable native and WASM Clippy, Rust/XML DSL tests, and independent TOML/JSON/YAML parsing round trips. Python is pinned to 3.13 via `UV_PYTHON`, and tools run on demand with `uvx`.
-- `build`: builds the standalone SPA with wasm-pack, the Svelte checker, and Vite, assembles all documentation sites, checks site links and assets, and then runs the TUIC and no-TUIC-field XML reuse browser regressions through the locked Playwright/Chromium. Rust, uv, and npm use dependency caching.
+- `check`: nightly rustfmt, stable native and WASM Clippy, Rust/XML DSL tests, and independent TOML/JSON/YAML parsing round trips through nightly cargo scripts. Zensical still runs on demand with `uvx`, with Python pinned to 3.13 via `UV_PYTHON`.
+- `build`: builds the standalone SPA with wasm-pack, the Svelte checker, and Vite, assembles all documentation sites, checks site links and assets with the `check-site.rs` cargo script, and then runs the TUIC and no-TUIC-field XML reuse browser regressions through Playwright against Chromium and Firefox. Rust, uv, and npm use dependency caching.
 - `deploy`: depends on `check` and `build` succeeding, and publishes only on pushes to `main` or manual runs; Pages write and OIDC permissions are granted only to this job, while pull requests only validate and build.
 
 The published artifact is assembled in a temporary directory whose root is `https://rust-proxy.github.io/`: the portal page is at `/`, TUIC documentation at `/tuic/`, the standalone editor at `/config-editor/`, Wind Chinese documentation at `/wind/`, and the Wind English specifications at `/wind/specs/`. No custom domain or `CNAME` is used, and the Pages source should be set to GitHub Actions. Real TUIC parsing and loopback tests still run in an environment with the neighboring repositories as described above.

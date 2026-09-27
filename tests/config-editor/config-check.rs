@@ -1,5 +1,5 @@
 //! Real parser checks and a loopback-only SOCKS5 -> QUIC -> TCP echo smoke
-//! test. Built in .cache by check-rust.py; the TUIC checkout is read-only.
+//! test. Built in .cache by check-rust.rs; the TUIC checkout is read-only.
 use std::{
 	net::{IpAddr, Ipv4Addr, SocketAddr},
 	path::{Path, PathBuf},

@@ -67,7 +67,7 @@ build: build-docs-tuic build-docs-wind build-editor
 
 # Build and validate the assembled site.
 site-check: build
-    uvx python tests/config-editor/check-site.py
+    cargo +nightly -Zscript tests/config-editor/check-site.rs
 
 # Run browser regression tests against the standalone editor build.
 browser:
