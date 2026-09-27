@@ -16,18 +16,18 @@
 <div class={classes} hidden={!field.visible}>
   <label for={id}>{field.label}</label>
   {#if field.kind === 'toggle'}
-    <input {id} type="checkbox" checked={field.value === 'true'}
+    <input {id} data-testid={id} type="checkbox" checked={field.value === 'true'}
       aria-describedby={described} aria-invalid={!!field.error}
       onchange={(event) => change(String(event.currentTarget.checked))} />
   {:else if field.kind === 'select'}
-    <select {id} value={field.value} aria-describedby={described} aria-invalid={!!field.error}
+    <select {id} data-testid={id} value={field.value} aria-describedby={described} aria-invalid={!!field.error}
       onchange={(event) => change(event.currentTarget.value)}>
       {#each field.options as [value, label] (value)}
         <option {value}>{label}</option>
       {/each}
     </select>
   {:else}
-    <input {id} type={field.kind === 'number' ? 'text' : field.kind}
+    <input {id} data-testid={id} type={field.kind === 'number' ? 'text' : field.kind}
       value={field.value} placeholder={field.placeholder} autocomplete="off" spellcheck="false"
       inputmode={field.kind === 'number' ? 'numeric' : undefined}
       aria-describedby={described} aria-invalid={!!field.error}

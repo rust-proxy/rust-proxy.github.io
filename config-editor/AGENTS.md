@@ -12,7 +12,7 @@ v5 把逐行说明并入 `outputs` 节点和枚举选项并移除 `config-desc`�
 $env:CONFIG_SCHEMA = 'schema/example.xml'
 try {
     npm run build --prefix config-editor -- --outDir ../.cache/generic-site
-    uvx python tests/config-editor/run-browser.py --directory .cache/generic-site --script tests/config-editor/browser-generic.mjs
+    npm run test:generic --prefix tests/config-editor
 } finally {
     Remove-Item Env:CONFIG_SCHEMA
     npm run wasm --prefix config-editor
@@ -25,7 +25,7 @@ Svelte 通过 WASM `Engine` 提交 `set`、`set-row`、`add`、`remove`、`gener
 
 前端采用分区目录、卡片表单和固定预览组成的响应式工作台。宽屏显示三栏，中等宽度将目录收为分区选择器，小屏幕通过“编辑配置／预览与导出”切换并保留各自滚动位置和表单状态。目录高亮当前分区并显示可见字段错误数；查找配置项仅匹配当前可见字段的标签、说明和路径，不索引输入值。目录与搜索操作会展开目标分区并移动键盘焦点；错误列表会先切回编辑视图，再展开字段所在分区并定位输入框。集合新增后聚焦新行，删除后聚焦相邻可见行。主题和展开状态仅存在于当前页面，不持久化。
 
-前端代码按职责分层：`ui/bridge/` 只负责 WASM `Engine` 生命周期与 JSON 边界；`ui/state/` 提供 `SessionStore`（会话、命令与派生选择器）、`WorkbenchStore`（分栏、滚动位置与跨栏导航）、`ThemeStore`、`ViewportStore`、URL 同步和 Svelte context；`ui/lib/` 提供 DOM 焦点/下载与 Prism 高亮工具；`ui/components/` 渲染 `AppHeader`、`SectionNav`、`FieldSearch`、`FormSection`、`FieldControl`、`CollectionEditor`/`CollectionRow`、`PreviewPanel`、`PreviewDocument`、`ExportActions` 和 `Notices`。组件通过 context 读取 `SessionStore`，不再逐层传递控制器。组件样式用 Svelte 原生 `<style>`（scoped）写在各自文件内，类名采用 BEM，跨组件的字段与按钮基元集中在 `ui/styles/primitives.css`；`ui/styles/theme.css` 内嵌 Catppuccin（MIT）的 Latte／Frappé／Macchiato／Mocha 四套 flavor 的 `--ctp-*` 原始调色板，并映射为语义 `--color-*`／`--syntax-*` 令牌，`base.css` 只保留元素基样式与启动占位。主题由 `ThemeStore` 注册表驱动，新增主题只需一条注册项和一个 `[data-theme]` 调色板块；无新增运行时依赖。前端单元测试位于 `ui/**/*.spec.ts`，使用 Vitest + jsdom 覆盖桥接、状态与工具模块；`tests/decoupled.rs` 的无产品标识检查覆盖全部生产前端文件。
+前端代码按职责分层：`ui/bridge/` 只负责 WASM `Engine` 生命周期与 JSON 边界；`ui/state/` 提供 `SessionStore`（会话、命令与派生选择器）、`WorkbenchStore`（分栏、滚动位置与跨栏导航）、`ThemeStore`、`ViewportStore`、URL 同步和 Svelte context；`ui/lib/` 提供 DOM 焦点/下载与 Prism 高亮工具；`ui/components/` 渲染 `AppHeader`、`SectionNav`、`FieldSearch`、`FormSection`、`FieldControl`、`CollectionEditor`/`CollectionRow`、`PreviewPanel`、`PreviewDocument`、`ExportActions` 和 `Notices`。组件通过 context 读取 `SessionStore`，不再逐层传递控制器。组件样式用 Svelte 原生 `<style>`（scoped）写在各自文件内，类名采用 BEM，跨组件的字段与按钮基元集中在 `ui/styles/primitives.css`；`ui/styles/theme.css` 内嵌 Catppuccin（MIT）的 Latte／Frappé／Macchiato／Mocha 四套 flavor 的 `--ctp-*` 原始调色板，并映射为语义 `--color-*`／`--syntax-*` 令牌，`base.css` 只保留元素基样式与启动占位。主题由 `ThemeStore` 注册表驱动，新增主题只需一条注册项和一个 `[data-theme]` 调色板块；无新增运行时依赖。前端测试分两层：`ui/**/*.spec.ts` 用 Vitest + jsdom 覆盖桥接、状态与工具模块；`ui/**/*.browser.spec.ts` 用 Vitest Browser Mode（Playwright provider，Chromium + Firefox）在真实浏览器里渲染 `ui/testing/` 下的 harness 并以真实 WASM 驱动 `FieldControl`、`CollectionEditor`、`PreviewDocument` 等组件，`npm run test:browser` 运行（需先 `npm run wasm`）。跨浏览器端到端回归在 `tests/config-editor/e2e/` 下用 Playwright Test 驱动（见仓库根 `AGENTS.md`）。`tests/decoupled.rs` 的无产品标识检查覆盖全部生产前端文件。
 
 ## DSL 概要
 

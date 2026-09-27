@@ -27,7 +27,7 @@
     </div>
     {#if view.format}
       {@const field = view.format}
-      <select id={`field-${field.key}`} aria-label={field.label} value={field.value}
+      <select id={`field-${field.key}`} data-testid={`field-${field.key}`} aria-label={field.label} value={field.value}
         onchange={(event) => session.dispatch({ type: 'set', field: field.key, value: event.currentTarget.value })}>
         {#each field.options as [value, label] (value)}
           <option {value}>{label}</option>
@@ -46,7 +46,7 @@
     <summary>查看 {errors.length} 项待修正字段</summary>
     <p>以下字段需要修正，预览中已用 &lt;placeholder&gt; 替代：</p>
     <ul>{#each errors as [key, message] (key)}
-      <li><button type="button" onclick={() => workbench.navigateToField(key)}>{message}</button></li>
+      <li><button type="button" data-testid="error-link" onclick={() => workbench.navigateToField(key)}>{message}</button></li>
     {/each}</ul>
   </details>
   {#if view.preview_lines.length}
@@ -55,7 +55,7 @@
     <div class="preview__code"><code>无法生成预览，请检查配置。</code></div>
   {/if}
   <ExportActions />
-  <div class="preview__notes"><p class="field-hint">{view.ui.export_hint}</p>{#if view.command}<code class="preview__command">{view.command}</code>{/if}<Notices notices={view.notices} /></div>
+    <div class="preview__notes"><p class="field-hint">{view.ui.export_hint}</p>{#if view.command}<code class="preview__command" data-testid="export-command">{view.command}</code>{/if}<Notices notices={view.notices} /></div>
 </aside>
 
 <style>

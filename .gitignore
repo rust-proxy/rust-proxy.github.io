@@ -6,4 +6,7 @@ build/
 /config-editor/dist/
 /config-editor/.tools/
 /config-editor/pkg/
+/config-editor/.vitest/
+/tests/config-editor/test-results/
+/tests/config-editor/playwright-report/
 node_modules/

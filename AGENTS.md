@@ -28,6 +28,9 @@ just dev     # compile WASM and start the editor
 just dev-ui  # skip the WASM build when only changing Svelte/CSS
 just wasm    # recompile Rust/XML while Vite is running
 just check   # Rust, WASM, and Svelte checks
+just browser        # build the editor, then run the Chromium/Firefox E2E suite
+just browser-site   # build the assembled site, then test it at /config-editor/
+just test-browser   # Svelte component tests in real browsers
 ```
 
 Run `just` to see all build, preview, and browser-regression commands.
@@ -72,12 +75,15 @@ cargo clippy --target wasm32-unknown-unknown --lib --locked -- -D warnings
 npm run check --prefix config-editor
 npm run test --prefix config-editor
 
+# Svelte component tests in real browsers (Chromium + Firefox; needs `npm run wasm` first)
+npm run test:browser --prefix config-editor
+
 # Build all documentation sites and the standalone editor into site/; no publishing
 just build
 uvx python tests/config-editor/check-site.py
 
 # Assemble a site preview (/, /tuic/, /wind/)
-uvx python tests/config-editor/preview-server.py
+node tests/config-editor/serve.mjs --dir site --port 8765
 ```
 
 Preview: `http://127.0.0.1:8765/`, `http://127.0.0.1:8765/tuic/`, `http://127.0.0.1:8765/config-editor/`, `http://127.0.0.1:8765/wind/`. Run `npm ci --prefix config-editor` first to install the frontend dependencies; the combined build clean-builds each documentation site, places the standalone editor under `site/config-editor/`, and copies `portal/index.html` to `site/index.html`. Stop the documentation development servers before a clean build to avoid cache conflicts.
@@ -99,24 +105,27 @@ The real parsing check requires the neighboring `../tuic`, its submodules, cache
 
 ### Browser checks
 
-The browser tests use a separate npm manifest and lock file; test dependencies are not bundled into the application. Start the assembled preview above, then run (locally this uses the installed Edge by default):
+End-to-end tests use [Playwright Test](https://playwright.dev/) with Chromium and Firefox. A separate npm manifest and lock file keep the runner out of the application bundle, and each config launches the dependency-free Node server `tests/config-editor/serve.mjs` through Playwright's `webServer`. Run from the repository root:
 
 ```sh
 npm ci --prefix tests/config-editor
-node tests/config-editor/browser.mjs
+npm exec --prefix tests/config-editor --no-install -- playwright install chromium firefox
 
-# Test the built standalone artifact; the temporary local server shuts down with the test
-uvx python tests/config-editor/run-browser.py
+# Standalone build served at the root (default Playwright config)
+npm test --prefix tests/config-editor
 
-# Use the deployment prefix for the assembled site build
-uvx python tests/config-editor/run-browser.py --directory site/config-editor --prefix /config-editor/
+# Assembled Pages build served at /config-editor/ (run `just build` first)
+npm run test:site --prefix tests/config-editor
 
-# Alternatively use Playwright's bundled Chromium, matching CI
-npm exec --prefix tests/config-editor -- playwright install chromium
-BROWSER_CHANNEL=chromium node tests/config-editor/browser.mjs
+# XML reuse with schema/example.xml built into .cache/generic-site
+CONFIG_SCHEMA=schema/example.xml npm run build --prefix config-editor -- --outDir .cache/generic-site
+npm run test:generic --prefix tests/config-editor
+
+# Refresh visual baselines (Linux only)
+npm run test:update --prefix tests/config-editor
 ```
 
-`PLAYWRIGHT_MODULE_PATH` can point to an existing Playwright module directory; `BROWSER_CHANNEL` accepts `msedge`, `chrome`, and `chromium`, with CI defaulting to `chromium`. The standalone Vite development server uses `PREVIEW_URL=http://127.0.0.1:8080/`. The tests cover WASM loading, standalone page structure, pairing consistency, user removal, TLS switching, input validation, forwarding edits, copy/download, escaping, mobile, theming, no external requests, and no input persistence; screenshots go to `.cache/`. The reuse check builds with `schema/example.xml` into `.cache/generic-site` and runs `uvx python tests/config-editor/run-browser.py --directory .cache/generic-site --script tests/config-editor/browser-generic.mjs`; see the DSL documentation for the full command. CI likewise keeps the default site artifacts for later publishing.
+Specs live in `tests/config-editor/e2e/`: `editor.spec.ts` (client and server schemas, TLS, routing, URL state, export, injection safety), `generic.spec.ts` (alternate XML description and Crypto-failure handling), and `visual.spec.ts` (Catppuccin flavors at desktop and mobile sizes). Chromium and Firefox projects run in parallel; traces, screenshots, and video are kept on failure and the HTML report is uploaded by CI. Visual baselines live under `e2e/__screenshots__/linux/` and are compared only on Linux so fonts stay deterministic; other platforms skip them. Coverage still includes WASM loading, user removal, input validation, forwarding edits, copy/download, escaping, mobile, theming, no external requests, and no input persistence.
 
 ## DSL and maintenance conventions
 
@@ -147,7 +156,7 @@ Configuration state is modified only by the Rust `Session`. Svelte submits gener
 | `wind/docs/specs/` | Wind English specifications and RFC template, published under `/wind/specs/` and kept in sync with the Chinese editions |
 | `portal/index.html` | Site root portal page |
 | `justfile` | Build, check, and preview recipes; the `build` recipe assembles all documentation sites and the editor into `site/` without publishing |
-| `tests/config-editor/` | Standalone parser, real TUIC, site, and browser checks |
+| `tests/config-editor/` | Independent parser/site checks (`roundtrip.py`, `check-rust.py`, `check-site.py`), the dependency-free `serve.mjs`, and the Playwright Test specs and configs under `e2e/` |
 | `.github/workflows/deploy.yml` | GitHub Pages build and publish workflow |
 
 The main documentation is maintained only in Simplified Chinese; the English specifications and RFC template under `wind/docs/specs/` are the exception, published alongside their Chinese counterparts under `/wind/specs/`, with section numbering and requirements kept in sync. After updating TUIC or Wind, verify the editor's version baseline and the actual runtime behavior of fields, and do not expose configuration that is not yet wired into client runtime logic as usable functionality. Examples use placeholder domains and test credentials generated at runtime, and do not include real deployment data.

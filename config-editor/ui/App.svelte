@@ -56,7 +56,7 @@
       </form>
       <PreviewPanel />
     </div>
-    <div class={`status-bar${session.status ? ' status-bar--visible' : ''}`} role="status" aria-live="polite">{session.status}</div>
+    <div class={`status-bar${session.status ? ' status-bar--visible' : ''}`} role="status" aria-live="polite" data-testid="status-bar">{session.status}</div>
     <footer><span>{view.ui.brand} 配置工具</span><span>本地生成，按需导出。</span></footer>
   </main>
 </div>

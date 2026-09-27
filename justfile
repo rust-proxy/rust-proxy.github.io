@@ -69,14 +69,25 @@ build: build-docs-tuic build-docs-wind build-editor
 site-check: build
     uvx python tests/config-editor/check-site.py
 
-# Run browser regression tests against a temporary server for the editor dist/.
+# Run browser regression tests against the standalone editor build.
 browser:
-    uvx python tests/config-editor/run-browser.py
+    npm run build --prefix config-editor
+    npm test --prefix tests/config-editor
 
 # Run browser regression tests against the assembled deployment build.
 browser-site: build
-    uvx python tests/config-editor/run-browser.py --directory site/config-editor --prefix /config-editor/
+    npm run test:site --prefix tests/config-editor
+
+# Run the XML-reuse browser regression against the example description.
+browser-generic:
+    CONFIG_SCHEMA=schema/example.xml npm run build --prefix config-editor -- --outDir ../.cache/generic-site
+    npm run test:generic --prefix tests/config-editor
+
+# Run Svelte component tests in real browsers (requires the WASM package).
+test-browser:
+    npm run wasm --prefix config-editor
+    npm run test:browser --prefix config-editor
 
 # Build, validate, and serve the assembled site preview.
 preview: site-check
-    uvx python tests/config-editor/preview-server.py
+    node tests/config-editor/serve.mjs --dir site --port 8765

@@ -23,10 +23,10 @@
     {#if query}<button type="button" onclick={() => { query = ''; document.getElementById('editor-search')?.focus(); }}>清除</button>{/if}
   </div>
   {#if query.trim()}
-    <div class="field-search__results">
+    <div class="field-search__results" data-testid="search-results">
       <p role="status">{matches.length ? `找到 ${matches.length} 个配置项` : '没有匹配的可见配置项'}</p>
       <ul>{#each matches as match (match.path)}
-        <li><button type="button" onkeydown={escape} onclick={() => { query = ''; workbench.navigateToField(match.path); }}><strong>{match.label}</strong><span>{match.section} · {match.path}</span></button></li>
+        <li><button type="button" data-testid="search-result" onkeydown={escape} onclick={() => { query = ''; workbench.navigateToField(match.path); }}><strong>{match.label}</strong><span>{match.section} · {match.path}</span></button></li>
       {/each}</ul>
     </div>
   {/if}

@@ -38,7 +38,7 @@
   </label>
   {#each session.sections as section, index (section.name)}
     {#if section.visible}
-      <button type="button" aria-current={active === section.name ? 'location' : undefined} onclick={() => focusSection(section.name)}>
+      <button type="button" data-testid="section-nav-item" aria-current={active === section.name ? 'location' : undefined} onclick={() => focusSection(section.name)}>
         <span class="section-nav__number">{String(index + 1).padStart(2, '0')}</span><span>{section.label}</span>
         {#if session.errorCount(section)}<span class="section-nav__error-count" aria-label={`${session.errorCount(section)} 项待修正`}>{session.errorCount(section)}</span>{/if}
       </button>
