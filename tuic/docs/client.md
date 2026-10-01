@@ -36,7 +36,21 @@ curl --socks5-hostname 127.0.0.1:1080 https://example.com
 
 扩展名无法识别时客户端会报错退出；可用环境变量 `TUIC_CONFIG_FORMAT`（`toml`、`json`、`json5`、`yaml`、`yml`）显式指定格式。旧的 `[relay]` 段会在解析时自动迁移到顶层连接字段与 `[tls]`，但新配置应使用下文的当前写法。
 
-### 完整示例
+其中旧 `[relay]` 的传输调优字段按 `[backend] mode` 迁移：`congestion_control`、`send_window`、`receive_window` 会写入实际选中的后端（`[backend.quinn]` 或 `[backend.quiche]`）；`initial_mtu`、`min_mtu`、`gso`、`pmtu` 在 quiche 后端下没有对应字段，仍保留在 `[backend.quinn]`，并会输出一条点名这些键的警告。
+
+### TLS 证书与 SNI
+
+`[tls]` 下的三个开关由 quinn 后端（默认后端）实现，作用如下：
+
+- `disable_sni = true`：不在 ClientHello 中发送 SNI 扩展，主机名不再泄露给中间人；证书仍按 `sni`（未设置时按 `server` 的主机名）校验。若 `server` 是 IP 字面量且未设置 `sni`，请改用 `sni` 指定证书中的名称。
+- `disable_native_certs = true`：不使用平台信任库，改用内置的 Mozilla 根证书集合；配合 `certificates` 可只信任自建 CA。
+- `certificates = ["/path/to/ca.pem"]`：追加信任的 CA 证书文件（PEM，可含多个证书），用于校验自签或私有 CA 签发的服务端证书。文件不存在或解析不出证书时客户端会在启动时直接报错。
+
+`skip_cert_verify = true` 仍然优先于上述配置：它完全不校验证书，仅供测试或明确可信的环境使用。
+
+`[backend] mode = "quiche"` 时这三个 TLS 开关暂无对应实现：设置它们会输出一条警告说明其在 quiche 后端不生效，而不是静默忽略。
+
+## 完整示例
 
 完整且带注释的客户端配置由[配置编辑器](/config-editor/?schema=tuic-client)的预览区维护：在左侧表单填写参数，右侧实时生成配置，逐行悬浮或聚焦可查看字段说明，并同步显示校验结果与复制、下载入口。
 
@@ -44,7 +58,7 @@ curl --socks5-hostname 127.0.0.1:1080 https://example.com
 
 编辑器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。它只输出已接入运行逻辑的字段；`ipstack_prefer`、`timeout`、`[proxy]`、`dual_stack` 等预留字段不会被生成。
 
-### 端口转发
+## 端口转发
 
 除 SOCKS5 外，客户端还可以把本地端口直接转发到远端目标：
 
