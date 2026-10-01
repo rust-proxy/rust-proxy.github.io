@@ -14,3 +14,4 @@ build/
 /tests/config-editor/test-results/
 /tests/config-editor/playwright-report/
 node_modules/
+config-editor/Bughunt.md
