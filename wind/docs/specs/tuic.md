@@ -96,6 +96,7 @@ A TUIC connection operates over a single QUIC connection. Multiple relay operati
 - **Unidirectional streams**: Used for commands that do not require a response (e.g., Authenticate, Packet, Dissociate).
 - **Bidirectional streams**: Used for TCP relay via Connect command.
 - **QUIC datagrams**: MAY be used for UDP packet relay for reduced latency.
+- **Transport selection**: DATAGRAM frames MUST NOT be used to relay Packet commands unless the peer's `max_datagram_frame_size` transport parameter has been received. When the peer does not advertise DATAGRAM support, Packet commands MUST be sent on unidirectional streams instead, so a peer that cannot receive datagrams still receives its replies.
 
 ## 4. Message Format
 

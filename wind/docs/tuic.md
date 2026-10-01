@@ -96,6 +96,7 @@ TUIC 连接在单个 QUIC 连接上运行。多个中继操作（TCP 连接和 U
 - **单向流 (Unidirectional streams)**: 用于不需要响应的命令（例如：Authenticate、Packet、Dissociate）。
 - **双向流 (Bidirectional streams)**: 用于通过 Connect 命令进行的 TCP 中继。
 - **QUIC 数据报 (QUIC datagrams)**: 可以 (MAY) 用于 UDP 数据包中继以减少延迟。
+- **传输选择 (Transport selection)**: 除非已收到对端的 `max_datagram_frame_size` 传输参数，否则禁止 (MUST NOT) 使用 DATAGRAM 帧中继 Packet 命令。对端未通告 DATAGRAM 支持时，必须 (MUST) 改用单向流发送 Packet 命令，以确保无法接收数据报的对端仍能收到应答。
 
 ## 4. 消息格式 (Message Format)
 
