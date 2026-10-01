@@ -160,6 +160,13 @@ form of `MATCH`.
 suffix. Exact and suffix comparisons are ASCII case-insensitive. Keyword
 matching is also ASCII case-insensitive.
 
+`DOMAIN`, `DOMAIN-SUFFIX`, and `DOMAIN-KEYWORD` values MUST be non-empty. An
+empty keyword needle degenerates into a catch-all and an empty suffix needle
+into a near never-match, so a single mis-authored rule line (typically a stray
+comma) would silently neutralise every rule after it, including `REJECT`.
+`wind_rule::Rule::parse` therefore rejects an empty value for these rule types
+at parse time.
+
 `Predicate` is the compatibility escape hatch. It MUST evaluate by calling
 `Rule::matches(ctx)`, so opaque rules keep the exact behavior of
 `wind_rule`, including `RULE-SET` currently matching false and

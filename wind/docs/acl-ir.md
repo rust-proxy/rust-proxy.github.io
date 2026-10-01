@@ -139,6 +139,11 @@ enum DomainTest {
 `DomainTest::Suffix` 同时匹配该 suffix 本身及其子域。Exact 与 suffix 比较是 ASCII
 大小写不敏感的。Keyword 匹配同样是 ASCII 大小写不敏感的。
 
+`DOMAIN`、`DOMAIN-SUFFIX`、`DOMAIN-KEYWORD` 的值必须非空。空 keyword needle 会退化为
+全匹配，空 suffix needle 会退化为几乎永不匹配，因此一条错写的规则行（通常是一个多余的
+逗号）会静默使其后所有规则失效，包括 `REJECT`。为此 `wind_rule::Rule::parse` 在解析期
+拒绝这些规则类型的空值。
+
 `Predicate` 是兼容性逃逸口。它必须通过调用 `Rule::matches(ctx)` 求值，因此不透明
 规则精确保留 `wind_rule` 行为，包括 `RULE-SET` 当前恒为 false，以及 `SUB-RULE`
 当前沿用旧有包含规则语义。
