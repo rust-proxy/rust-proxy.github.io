@@ -17,6 +17,7 @@ nav = [
     { "Hysteria 2" = "hyteria.md" },
   ] },
   { "配置与路由" = [
+    { "入站固定出口与链式代理" = "chain-proxy.md" },
     { "Config DSL" = "config-dsl.md" },
     { "ACL 中间表示" = "acl-ir.md" },
   ] },

@@ -56,7 +56,33 @@ curl --socks5-hostname 127.0.0.1:1080 https://example.com
 
 [打开客户端配置编辑器](/config-editor/?schema=tuic-client){ .md-button .md-button--primary }
 
-编辑器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。它只输出已接入运行逻辑的字段；`ipstack_prefer`、`timeout`、`[proxy]`、`dual_stack` 等预留字段不会被生成。
+编辑器默认输出 TOML，也可切换为 JSON 或 YAML，并可直接复制或下载。编辑器暂不生成 `ipstack_prefer`、`timeout`、`[proxy]`、`dual_stack`；上游代理可以按下节说明手动加入配置。
+
+## SOCKS5 上游代理 {#socks5-upstream}
+
+在现有客户端配置中添加 `[proxy]`，可让 TUIC 的 QUIC 连接经过 SOCKS5 上游。Quinn 和 Quiche 后端均支持，上游必须提供 **UDP ASSOCIATE**；仅支持 TCP CONNECT 的 SOCKS 服务无法承载 QUIC。
+
+```toml
+# 以下字段位于配置顶层，放在其他 [section] 之前。
+server = "tuic.example:124"
+timeout = "8s"
+reconnect = true
+reconnect_initial_backoff = "500ms"
+reconnect_max_backoff = "30s"
+
+[proxy]
+server = "socks.example:123"
+udp_buffer_size = 2048
+# 需要认证时，同时填写 username 和 password。
+```
+
+示例是配置片段，需保留原配置中的 TUIC 身份凭据与 TLS 设置。代理用户名和密码必须同时设置，各包含 1–255 字节；省略时使用无认证方式。`udp_buffer_size` 是有界分配提示，较小的值不会截断 QUIC 报文。
+
+代理模式下，TUIC 服务器域名交给 SOCKS 上游解析，不会在客户端解析；若顶层显式设置 `ip`，则上游直接连接该 IP。SOCKS 服务器自身的域名仍由客户端解析。未配置代理时，服务器解析行为保持不变。
+
+客户端自动创建名为 `__GENERATED_CHAINPROXY__tuic` 的本地 UDP Tunnel，绑定系统分配的回环端口，固定转发到 `SOCKS_UPSTREAM`。TUIC 后端连接此 Tunnel，但 SNI、证书校验名称和认证信息仍来自原服务器配置。内部端口和名称不会写回配置文件。
+
+`lazy = true` 时首次业务流量才连接上游；`lazy = false` 时启动期间完成握手，失败会使启动失败。`timeout` 限制上游会话建立和代理模式下的初次 TUIC 握手。代理控制连接断开后按重连参数恢复；关闭重连时对应链路停止。任何代理故障都不会回退到直连 TUIC 服务器。
 
 ## 端口转发
 

@@ -19,6 +19,7 @@ Wind 是共享的代理框架与协议实现集合，为 TUIC、AnyTLS、NaïveP
 
 ## 配置与路由
 
+- [入站固定出口与链式代理](chain-proxy.md)：Tunnel、SOCKS5 UDP 出站与 TUIC 上游代理。
 - [Config DSL](config-dsl.md)：静态配置描述语言。
 - [ACL 中间表示](acl-ir.md)：nftables 形状的路由中间表示。
 
