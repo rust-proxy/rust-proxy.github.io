@@ -150,7 +150,7 @@
 		<field name="serverStreamTimeout" type="string" default="60" section="transport" label="流超时（秒）" placeholder="60" hint="TCP/UDP I/O 任务的保留时间。" widget="number" rule="seconds" />
 		<field name="backendMode" type="enum" default="quinn" section="backend" label="服务端 QUIC 后端">
 			<option value="quinn" label="Quinn（默认）" description="选择 Quinn 作为 QUIC 后端。" />
-			<option value="quiche" label="quiche（实验性）" description="选择 quiche 作为 QUIC 后端；实验性，需要构建时启用对应 feature。" />
+			<option value="quiche" label="quiche（实验性）" description="选择 quiche 作为 QUIC 后端；实验性，所有目标均内置，无需额外构建 feature。" />
 		</field>
 		<field name="controller" type="enum" default="bbr" section="backend" label="服务端拥塞控制">
 			<option value="bbr" label="BBR" description="BBR 以带宽和往返时延建模，适合多数代理链路。" />
